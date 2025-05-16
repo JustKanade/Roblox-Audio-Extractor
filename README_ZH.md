@@ -3,7 +3,7 @@
   
 <img src="https://github.com/JustKanade/Roblox-Audio-Extractor/blob/main/.readme/images/Roblox-Audio-Extractor%20Logo.png" alt="" width="300px">
 
-**An efficient tool for extracting and converting audio files from Roblox cache with one click**
+**从 Roblox 缓存中提取和转换音频文件的高效工具**
 
 ![GitHub Release](https://img.shields.io/github/v/release/JustKanade/Roblox-Audio-Extractor?label=Release&color=green&logo=github)
 [![License: AGPL v3](https://img.shields.io/badge/License-AGPL%20v3-orange.svg)](https://www.gnu.org/licenses/agpl-3.0)
