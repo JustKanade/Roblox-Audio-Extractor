@@ -2,7 +2,7 @@
 
 <div align="center">
   
-![Roblox Audio Extractor Logo](https://github.com/JustKanade/Roblox-Audio-Extractor/blob/main/.readme/images/Roblox-Audio-Extractor%20Logo.png)
+<img src="https://github.com/JustKanade/Roblox-Audio-Extractor/blob/main/.readme/images/Roblox-Audio-Extractor%20Logo.png" alt="" width="300px">
 
 [![License: AGPL v3](https://img.shields.io/badge/License-AGPL%20v3-blue.svg)](https://www.gnu.org/licenses/agpl-3.0)
 [![Python 3.7+](https://img.shields.io/badge/python-3.7+-blue.svg)](https://www.python.org/downloads/)
@@ -24,11 +24,13 @@ English | [简体中文](README_ZH.md)
 - **Deduplication** - Intelligently records download history to avoid extracting duplicate files
 - **Multi-language Support** - Built-in Chinese and English interfaces, easy to switch
 - **Smart Naming** - Extracted files are named with timestamps and random strings to prevent overwriting
-![](https://github.com/JustKanade/Roblox-Audio-Extractor/blob/main/.readme/images/Folder.png)
+<p align="center">
+  <img src="https://github.com/JustKanade/Roblox-Audio-Extractor/blob/main/.readme/images/Folder.png" alt="" width="200">
+</p>
 ## System Requirements
 
 - Python 3.7+
-- Supports Windows, macOS, and Linux
+- Supports Windows, macOS, 和 Linux
 - For MP3 conversion functionality, [FFmpeg](https://ffmpeg.org/download.html) must be installed
 
 ## Installation Guide
