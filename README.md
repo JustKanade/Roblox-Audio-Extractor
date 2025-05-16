@@ -24,7 +24,7 @@ English | [简体中文](README_ZH.md)
 - **Deduplication** - Intelligently records download history to avoid extracting duplicate files
 - **Multi-language Support** - Built-in Chinese and English interfaces, easy to switch
 - **Smart Naming** - Extracted files are named with timestamps and random strings to prevent overwriting
-
+![](https://github.com/JustKanade/Roblox-Audio-Extractor/blob/main/.readme/images/Folder.png)
 ## System Requirements
 
 - Python 3.7+
