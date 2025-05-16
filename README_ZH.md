@@ -1,15 +1,15 @@
-# Roblox音频提取工具 (Roblox Audio Extractor)
-
+# Roblox Audio Extractor
 <div align="center">
   
 <img src="https://github.com/JustKanade/Roblox-Audio-Extractor/blob/main/.readme/images/Roblox-Audio-Extractor%20Logo.png" alt="" width="300px">
+
+**An efficient tool for extracting and converting audio files from Roblox cache with one click**
 
 ![GitHub Release](https://img.shields.io/github/v/release/JustKanade/Roblox-Audio-Extractor?label=Release&color=green&logo=github)
 [![License: AGPL v3](https://img.shields.io/badge/License-AGPL%20v3-orange.svg)](https://www.gnu.org/licenses/agpl-3.0)
 [![Python 3.7+](https://img.shields.io/badge/python-3.7+-blue.svg)](https://www.python.org/downloads/)
 [![GitHub stars](https://img.shields.io/github/stars/JustKanade/Roblox-Audio-Extractor?style=social)](https://github.com/JustKanade/Roblox-Audio-Extractor/stargazers)
 
-**从Roblox缓存中一键提取与转换音频文件的高效工具**
 
 [English](README.md) | 简体中文
 
