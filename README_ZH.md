@@ -2,7 +2,7 @@
 
 <div align="center">
   
-![Roblox Audio Extractor Logo](https://github.com/JustKanade/Roblox-Audio-Extractor/blob/main/.readme/images/Roblox-Audio-Extractor%20Logo.png)
+<img src="https://github.com/JustKanade/Roblox-Audio-Extractor/blob/main/.readme/images/Roblox-Audio-Extractor%20Logo.png" alt="" width="300px">
 
 [![License: AGPL v3](https://img.shields.io/badge/License-AGPL%20v3-blue.svg)](https://www.gnu.org/licenses/agpl-3.0)
 [![Python 3.7+](https://img.shields.io/badge/python-3.7+-blue.svg)](https://www.python.org/downloads/)
@@ -24,7 +24,9 @@
 -  **去重功能** - 自动记录下载历史，避免重复提取相同文件
 -  **多语言支持** - 内置中文和英文界面，轻松切换
 - **自动命名** - 提取的文件使用时间戳和随机字符串命名，防止覆盖
-![](https://github.com/JustKanade/Roblox-Audio-Extractor/blob/main/.readme/images/Folder.png)
+<p align="center">
+  <img src="https://github.com/JustKanade/Roblox-Audio-Extractor/blob/main/.readme/images/Folder.png" alt="" width="200">
+</p>
 ##  系统要求
 
 - Python 3.7+
