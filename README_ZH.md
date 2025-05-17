@@ -56,7 +56,7 @@ pip install -r requirements.txt
 
 运行主程序:
 ```bash
-python roblox_audio_extractor.py
+python Roblox_Audio_Extractor.py
 ```
 
 ### 主菜单选项:
