@@ -124,22 +124,54 @@ class LanguageManager:
                 self.CHINESE: "1. 提取音频文件"
             },
             "view_history": {
-                self.ENGLISH: "2. View Extracted History",
-                self.CHINESE: "2. 查看提取历史"
+                self.ENGLISH: "3. View Extracted History",
+                self.CHINESE: "3. 查看提取历史"
             },
             "clear_history": {
                 self.ENGLISH: " Clear Extracted History",
                 self.CHINESE: " 清除提取历史"
             },
             "language_settings": {
-                self.ENGLISH: "3. Language Settings",
-                self.CHINESE: "3. 语言设置"
+                self.ENGLISH: "4. Language Settings",
+                self.CHINESE: "4. 语言设置"
             },
             "about": {
-                self.ENGLISH: "4. About",
-                self.CHINESE: "4. 关于"
+                self.ENGLISH: "5. About",
+                self.CHINESE: "5. 关于"
             },
 
+            'clear_cache': {
+                Language.ENGLISH: "2. Clear Audio Cache",
+                Language.CHINESE: "2. 清除音频缓存"
+            },
+            'cache_description': {
+                Language.ENGLISH: "Clear all audio cache files with 'oggs' in their names from the default cache directory.\n\nUse this when you want to extract audio from a specific game: clear the cache first, then run the game until it's fully loaded before extracting.",
+                Language.CHINESE: "清除默认缓存目录中所有带'oggs'字样的音频缓存文件。\n\n当你想要提取某一特定游戏的音频时使用:先清除缓存,然后运行游戏直至完全加载后再进行提取。"
+            },
+            'confirm_clear_cache': {
+                Language.ENGLISH: "Are you sure you want to clear all audio cache files? This cannot be undone.",
+                Language.CHINESE: "确定要清除所有音频缓存文件吗？此操作无法撤销。"
+            },
+            'cache_cleared': {
+                Language.ENGLISH: "Successfully cleared {0} of {1} audio cache files.",
+                Language.CHINESE: "成功清除了{1}个缓存文件中的{0}个。"
+            },
+            'no_cache_found': {
+                Language.ENGLISH: "No audio cache files found.",
+                Language.CHINESE: "未找到音频缓存文件。"
+            },
+            'clear_cache_failed': {
+                Language.ENGLISH: "Failed to clear cache: {0}",
+                Language.CHINESE: "清除缓存失败: {0}"
+            },
+            'cache_location': {
+                Language.ENGLISH: "Cache Directory Location",
+                Language.CHINESE: "缓存目录位置"
+            },
+            'cache_dir_not_found': {
+                Language.ENGLISH: "Cache directory not found.",
+                Language.CHINESE: "未找到缓存目录。"
+            },
             "error_occurred": {
                 self.ENGLISH: "An error occurred: {}",
                 self.CHINESE: "发生错误：{}"
@@ -176,6 +208,7 @@ class LanguageManager:
     def _add_remaining_translations(self):
         """添加剩余的翻译项"""
         remaining = {
+
             "Creators & Contributors": {
                 self.ENGLISH: "Creators & Contributor：JustKanade",
                 self.CHINESE: "创作&贡献者：JustKanade："
@@ -1436,6 +1469,8 @@ class GUILogger:
             self.thread.join(timeout=2)
 
 
+
+
 class RobloxAudioExtractorGUI:
     """Roblox 音频提取器 GUI 界面 """
 
@@ -1599,6 +1634,15 @@ class RobloxAudioExtractorGUI:
         )
         self.btn_extract.pack(fill=tk.X, padx=5, pady=5)
 
+        self.btn_clear_cache = ttk.Button(
+            self.menu_buttons_frame,
+            text=lang.get('clear_cache'),
+            command=self.show_clear_cache_frame,
+            width=25
+        )
+        self.btn_clear_cache.pack(fill=tk.X, padx=5, pady=5)
+
+
         self.btn_history = ttk.Button(
             self.menu_buttons_frame,
             text="2. View History",
@@ -1622,6 +1666,34 @@ class RobloxAudioExtractorGUI:
             width=25
         )
         self.btn_about.pack(fill=tk.X, padx=5, pady=5)
+
+
+    def show_clear_cache_frame(self):
+        """显示清除缓存界面"""
+        # 清除右侧框架
+        self.clear_right_frame()
+
+        # 创建清除缓存框架
+        cache_frame = ttk.LabelFrame(self.right_frame, text=lang.get('clear_cache'))
+        cache_frame.pack(fill=tk.BOTH, expand=False, padx=5, pady=5)
+
+        # 创建可滚动内容
+        content_frame = self.create_scrollable_frame(cache_frame)
+
+        # 添加说明文本
+        ttk.Label(content_frame, text=lang.get('cache_description'),
+                  wraplength=400).pack(anchor=tk.W, padx=10, pady=5)
+
+        ttk.Label(content_frame, text=lang.get('cache_location') + f":\n{self.default_dir}",
+                  wraplength=400).pack(anchor=tk.W, padx=10, pady=5)
+
+        # 添加操作按钮
+        clear_btn = ttk.Button(content_frame, text=lang.get('clear_cache'),
+                              command=self.clear_audio_cache)
+        clear_btn.pack(anchor=tk.CENTER, pady=10)
+
+        # 显示日志框架
+        self.log_frame.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
 
     def cancel_active_task(self):
         """取消活动任务"""
@@ -1647,6 +1719,11 @@ class RobloxAudioExtractorGUI:
 
         self.btn_language.config(text=lang.get('language_settings'))
         self.btn_about.config(text=lang.get('about'))
+        self.btn_clear_cache.config(text=lang.get('clear_cache'))
+
+        # 如果当前显示的是清除缓存界面，更新其内容
+        if hasattr(self, 'cache_frame') and self.cache_frame.winfo_exists():
+            self.show_clear_cache_frame()
 
         # 更新状态栏
         self.status_bar.config(text="Ready / 就绪")
@@ -1764,6 +1841,59 @@ class RobloxAudioExtractorGUI:
         # 显示日志框架
         self.log_frame.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
 
+    def clear_audio_cache(self):
+        """清除音频缓存文件"""
+        try:
+            # 确认对话框
+            if not messagebox.askyesno(
+                    lang.get('clear_cache'),
+                    lang.get('confirm_clear_cache')
+            ):
+                self.gui_logger.info(lang.get('operation_cancelled'))
+                return
+
+            # 计数器
+            total_files = 0
+            cleared_files = 0
+
+            # 需要排除的文件夹
+            exclude_dirs = {'extracted_mp3', 'extracted_oggs'}
+
+            # 递归搜索所有文件
+            for root, dirs, files in os.walk(self.default_dir):
+                # 跳过排除的目录
+                if any(excluded in root for excluded in exclude_dirs):
+                    continue
+
+                for file in files:
+                    file_path = os.path.join(root, file)
+                    total_files += 1
+
+                    try:
+                        # 读取文件的前8KB内容
+                        with open(file_path, 'rb') as f:
+                            content = f.read(8192)
+
+                        # 检查OGG文件头或其他标识
+                        if (b'OggS' in content or  # OGG标识
+                                b'.ogg' in content.lower() or  # .ogg扩展名
+                                b'audio' in content.lower() or  # 音频关键字
+                                b'sound' in content.lower()):  # 声音关键字
+
+                            # 删除文件
+                            os.remove(file_path)
+                            cleared_files += 1
+
+                    except (IOError, OSError, PermissionError):
+                        continue
+
+            # 显示结果
+            self.gui_logger.success(lang.get('cache_cleared', cleared_files, total_files))
+        except Exception as e:
+            self.gui_logger.error(lang.get('clear_cache_failed', str(e)))
+
+        except Exception as e:
+            self.gui_logger.error(lang.get('clear_cache_failed', str(e)))
     def browse_directory(self):
         """浏览并选择目录"""
         directory = filedialog.askdirectory(initialdir=self.dir_var.get())
@@ -2156,7 +2286,7 @@ class RobloxAudioExtractorGUI:
             if sys.platform.startswith("win"):
                 # Windows: 使用PhotoImage加载ico文件
                 from PIL import Image, ImageTk
-                icon = Image.open(resource_path("Roblox-Audio-Extractor.ico"))
+                icon = Image.open(resource_path(os.path.join(".readme", "ui-images  ", "Roblox-Audio-Extractor.ico")))
                 app_icon = ImageTk.PhotoImage(icon)
 
             # 创建标签显示图标
@@ -2214,7 +2344,6 @@ class RobloxAudioExtractorGUI:
         # 显示日志框架
         self.log_frame.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
 
-
 def get_roblox_default_dir():
     """获取Roblox缓存的默认目录"""
     try:
@@ -2237,16 +2366,17 @@ def main():
     try:
         # 创建并运行 GUI 应用程序
         root = tk.Tk()
-
         # 根据操作系统设置应用程序图标
         try:
             if sys.platform.startswith("win"):  # Windows
-                root.iconbitmap(resource_path("Roblox-Audio-Extractor.ico"))
+                root.iconbitmap(resource_path(os.path.join(".readme", "ui-images", "Roblox-Audio-Extractor.ico")))
             elif sys.platform == "darwin":  # macOS
                 # macOS 不支持 .ico 格式，可以使用 .icns 或其他支持的格式
-                root.tk.call('wm', 'iconphoto', root._w, tk.PhotoImage(file="Roblox-Audio-Extractor.png"))
+                root.tk.call('wm', 'iconphoto', root._w, tk.PhotoImage(
+                    file=resource_path(os.path.join(".readme", "ui-images", "Roblox-Audio-Extractor.png"))))
             else:  # Linux 或其他
-                root.tk.call('wm', 'iconphoto', root._w, tk.PhotoImage(file="Roblox-Audio-Extractor.png"))
+                root.tk.call('wm', 'iconphoto', root._w, tk.PhotoImage(
+                    file=resource_path(os.path.join(".readme", "ui-images", "Roblox-Audio-Extractor.png"))))
         except Exception as e:
             print(f"无法设置图标: {e}")
 
