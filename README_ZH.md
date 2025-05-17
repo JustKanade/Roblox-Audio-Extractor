@@ -71,9 +71,9 @@ python Roblox_Audio_Extractor.py
 
 ##  界面预览
 
-  <img src="https://github.com/JustKanade/Roblox-Audio-Extractor/blob/main/.readme/images/Extraction-Process.png" alt="音频提取过程" width="80%">
-  <p><i>音频提取过程</i></p>
-</div>
+<div align="center">
+  
+<img src="https://github.com/JustKanade/Roblox-Audio-Extractor/blob/main/.readme/images/Extraction-Process.png" alt="音频提取过程" width="500px">
 
 ##  提取过程详解
 
