@@ -56,7 +56,7 @@ pip install -r requirements.txt
 
 运行主程序:
 ```bash
-python roblox_audio_extractor.py
+python Roblox_Audio_Extractor.py
 ```
 
 ### 主菜单选项:
@@ -97,7 +97,7 @@ python roblox_audio_extractor.py
 
 - **线程数**: 程序默认使用系统CPU核心数的两倍作为线程数，最大不超过32。可手动调整。
 - **自定义输入目录**: 如果Roblox缓存位于非默认位置，可手动指定目录路径。
-- **历史记录**: 历史记录文件保存在`~/.roblox_audio_extractor/download_history.json`。
+- **历史记录**: 历史记录文件保存在`~/.roblox_audio_extractor/extracted_history.json`。
 
 ## 常见问题
 
