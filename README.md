@@ -28,6 +28,7 @@ English | [简体中文](README_ZH.md)
 <p align="center">
   <img src="https://github.com/JustKanade/Roblox-Audio-Extractor/blob/main/.readme/images/Folder.png" alt="" width="200">
 </p>
+
 ## System Requirements
 
 - Python 3.7+
