@@ -56,7 +56,7 @@ pip install -r requirements.txt
 
 Run the main program:
 ```bash
-python roblox_audio_extractor.py
+python Roblox_Audio_Extractor.py
 ```
 
 ### Main Menu Options:
@@ -98,7 +98,7 @@ Output Directory/
 
 - **Thread Count**: The program defaults to using twice the number of CPU cores as threads, up to a maximum of 32. This can be manually adjusted.
 - **Custom Input Directory**: If the Roblox cache is in a non-default location, you can manually specify the directory path.
-- **History Records**: History records are saved in `~/.roblox_audio_extractor/download_history.json`.
+- **History Records**: History records are saved in `~/.roblox_audio_extractor/extracted_history.json`.
 
 ## FAQ
 
