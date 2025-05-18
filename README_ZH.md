@@ -75,6 +75,8 @@ python Roblox_Audio_Extractor.py
   
 <img src="https://github.com/JustKanade/Roblox-Audio-Extractor/blob/main/.readme/images/Extraction-Process.png" alt="音频提取过程" width="500px">
 
+</div>
+
 ##  提取过程详解
 
 1. **扫描阶段**: 程序扫描Roblox缓存目录(默认位于`C:\Users\用户名\AppData\Local\Temp\Roblox\http`)
