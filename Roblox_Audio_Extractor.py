@@ -1,16 +1,18 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Roblox音频提取器 - 从Roblox缓存中提取音频文件并转换为MP3
-Roblox Audio Extractor - Extract audio files from Roblox cache and convert to MP3
+Roblox音频提取器 - 从Roblox缓存中提取音频文件并按音频长度或大小分类
+Roblox Audio Extractor - Extract audio files from Roblox cache and classify by audio duration or size
 作者/Author: JustKanade
-版本/Version: 0.14
+修改/Modified by: User
+版本/Version: 0.14.1 (Multiple Classification Methods)
 许可/License: GNU Affero General Public License v3.0 (AGPLv3)
 """
 
 import os
 import sys
 import time
+import json
 import logging
 import threading
 import concurrent.futures
@@ -25,6 +27,7 @@ import hashlib
 import multiprocessing
 from functools import lru_cache
 
+
 def resource_path(relative_path):
     """Get absolute path to resource, works for dev and for PyInstaller"""
     try:
@@ -35,6 +38,7 @@ def resource_path(relative_path):
 
     return os.path.join(base_path, relative_path)
 
+
 # 设置日志记录
 logging.basicConfig(level=logging.INFO, format='%(message)s')
 logger = logging.getLogger(__name__)
@@ -42,6 +46,13 @@ logger = logging.getLogger(__name__)
 # 延迟导入库列表
 _LIBS_IMPORTED = False
 gzip = shutil = random = string = getpass = subprocess = ThreadPoolExecutor = Fore = Style = init = None
+
+
+# 分类方法枚举
+class ClassificationMethod(Enum):
+    """音频分类方法枚举"""
+    DURATION = auto()  # 按时长分类
+    SIZE = auto()  # 按大小分类
 
 
 def import_libs():
@@ -86,6 +97,22 @@ def import_libs():
 
     _LIBS_IMPORTED = True
 
+def get_roblox_default_dir():
+    """获取Roblox缓存的默认目录"""
+    try:
+        username = os.getenv('USERNAME') or os.getenv('USER')
+
+        # 根据操作系统选择合适的路径
+        if os.name == 'nt':  # Windows
+            return os.path.join("C:", os.sep, "Users", username, "AppData", "Local", "Temp", "Roblox", "http")
+        elif sys.platform == 'darwin':  # macOS
+            return os.path.join("/Users", username, "Library", "Caches", "Roblox", "http")
+        else:  # Linux 或其他
+            return os.path.join(os.path.expanduser("~"), ".local", "share", "Roblox", "http")
+    except:
+        # 如果发生错误，回退到当前目录
+        return os.path.join(os.getcwd(), "Roblox")
+
 
 class Language(Enum):
     """支持的语言枚举类"""
@@ -112,12 +139,13 @@ class LanguageManager:
         """加载翻译，分离为单独方法以提高可维护性"""
         self.TRANSLATIONS = {
             "title": {
-                self.ENGLISH: "    Roblox-Audio-Extractor ",
+                self.ENGLISH: "    Roblox-Audio-Extractor Version-0.14.1 ",
+                self.CHINESE: "    Roblox-Audio-Extractor Version-0.14.1 "
             },
 
             "welcome_message": {
                 self.ENGLISH: "Welcome to Roblox Audio Extractor!",
-                self.CHINESE: "欢迎使用 Roblox-Audio-Extractor"
+                self.CHINESE: "欢迎使用 Roblox-Audio-Extractor "
             },
             "extract_audio": {
                 self.ENGLISH: "1. Extract Audio Files",
@@ -200,6 +228,51 @@ class LanguageManager:
                 self.ENGLISH: "Operation cancelled.",
                 self.CHINESE: "操作已取消。"
             },
+            # 新增分类方法相关翻译
+            "classification_method": {
+                self.ENGLISH: "Classification Method",
+                self.CHINESE: "分类方法"
+            },
+            "classify_by_duration": {
+                self.ENGLISH: "1. Classify by audio duration (requires FFmpeg)",
+                self.CHINESE: "1. 按音频时长分类 (需要安装FFmpeg)"
+            },
+            "classify_by_size": {
+                self.ENGLISH: "2. Classify by file size",
+                self.CHINESE: "2. 按文件大小分类"
+            },
+            "ffmpeg_not_found_warning": {
+                self.ENGLISH: "Warning: FFmpeg not found. Duration classification may not work correctly.",
+                self.CHINESE: "警告：未找到FFmpeg。按时长分类可能无法正常工作。"
+            },
+            "ultra_small": {
+                self.ENGLISH: "Ultra Small (0-50KB)",
+                self.CHINESE: "极小文件 (0-50KB)"
+            },
+            "small": {
+                self.ENGLISH: "Small (50KB-200KB)",
+                self.CHINESE: "小文件 (50KB-200KB)"
+            },
+            "medium": {
+                self.ENGLISH: "Medium (200KB-1MB)",
+                self.CHINESE: "中等文件 (200KB-1MB)"
+            },
+            "large": {
+                self.ENGLISH: "Large (1MB-5MB)",
+                self.CHINESE: "大文件 (1MB-5MB)"
+            },
+            "ultra_large": {
+                self.ENGLISH: "Ultra Large (5MB+)",
+                self.CHINESE: "极大文件 (5MB以上)"
+            },
+            "size_classification_info": {
+                self.ENGLISH: "• Files will be organized by file size in different folders",
+                self.CHINESE: "• 文件将按文件大小分类到不同文件夹中"
+            },
+            "duration_classification_info": {
+                self.ENGLISH: "• Files will be organized by audio duration in different folders",
+                self.CHINESE: "• 文件将按音频时长分类到不同文件夹中"
+            },
             # ... [其余翻译保持不变]
         }
         # 添加剩余的翻译
@@ -215,8 +288,8 @@ class LanguageManager:
             },
 
             "about_info": {
-                self.ENGLISH: "This is an open-source tool for extracting audio files from Roblox cache and converting them to MP3.",
-                self.CHINESE: "这是一个开源工具，旨在用于从 Roblox 缓存中提取音频文件并将其转换为 Ogg/Mp3"
+                self.ENGLISH: "This is an open-source tool for extracting audio files from Roblox cache and converting them to MP3. Files can be classified by audio duration or file size.",
+                self.CHINESE: "这是一个开源工具，旨在用于从 Roblox 缓存中提取音频文件并将其转换为 Ogg/Mp3。文件可以按音频时长或文件大小分类。"
             },
 
             "default_dir": {
@@ -247,9 +320,9 @@ class LanguageManager:
                 self.ENGLISH: "=== Processing Information ===",
                 self.CHINESE: "=== 处理信息 ==="
             },
-            "info_size_categories": {
-                self.ENGLISH: "• Files will be organized by size in different folders",
-                self.CHINESE: "• 文件将按大小分类到不同文件夹中"
+            "info_duration_categories": {
+                self.ENGLISH: "• Files will be organized by audio duration in different folders",
+                self.CHINESE: "• 文件将按音频时长分类到不同文件夹中"
             },
             "info_mp3_conversion": {
                 self.ENGLISH: "• You can convert OGG files to MP3 after extraction",
@@ -376,12 +449,12 @@ class LanguageManager:
                 self.CHINESE: "OGG"
             },
             "readme_title": {
-                self.ENGLISH: "Roblox Audio Files - Category Information",
-                self.CHINESE: "Roblox 音频文件 - 类别信息"
+                self.ENGLISH: "Roblox Audio Files - Classification Information",
+                self.CHINESE: "Roblox 音频文件 - 分类信息"
             },
             "ffmpeg_not_installed": {
-                self.ENGLISH: "FFmpeg is not installed. Please install FFmpeg to convert files.",
-                self.CHINESE: "未安装FFmpeg。请安装FFmpeg以转换文件。"
+                self.ENGLISH: "FFmpeg is not installed. Please install FFmpeg to convert files and get duration information.",
+                self.CHINESE: "未安装FFmpeg。请安装FFmpeg以转换文件并获取时长信息。"
             },
             "no_ogg_files": {
                 self.ENGLISH: "No OGG files found to convert",
@@ -408,8 +481,40 @@ class LanguageManager:
                 self.CHINESE: "关于 Roblox Audio Extractor"
             },
             "about_version": {
-                self.ENGLISH: "Current Version: 0.14",
-                self.CHINESE: "当前版本: 0.14"
+                self.ENGLISH: "Current Version: 0.14.1 ",
+                self.CHINESE: "当前版本: 0.14.1"
+            },
+            "mp3_conversion_info": {
+                self.ENGLISH: "Starting MP3 conversion...",
+                self.CHINESE: "开始MP3转换..."
+            },
+            "getting_duration": {
+                self.ENGLISH: "Getting audio duration...",
+                self.CHINESE: "正在获取音频时长..."
+            },
+            "duration_unknown": {
+                self.ENGLISH: "Unknown duration",
+                self.CHINESE: "未知时长"
+            },
+            "readme_duration_title": {
+                self.ENGLISH: "Audio Duration Categories:",
+                self.CHINESE: "音频时长分类:"
+            },
+            "readme_size_title": {
+                self.ENGLISH: "File Size Categories:",
+                self.CHINESE: "文件大小分类:"
+            },
+            "classification_method_used": {
+                self.ENGLISH: "Classification method: {}",
+                self.CHINESE: "分类方法: {}"
+            },
+            "classification_by_duration": {
+                self.ENGLISH: "by audio duration",
+                self.CHINESE: "按音频时长"
+            },
+            "classification_by_size": {
+                self.ENGLISH: "by file size",
+                self.CHINESE: "按文件大小"
             },
         }
         # 合并词典
@@ -672,7 +777,8 @@ class RobloxAudioExtractor:
     """从Roblox临时文件中提取音频的主类"""
 
     def __init__(self, base_dir: str, num_threads: int = None, keyword: str = "oggs",
-                 download_history: Optional['ExtractedHistory'] = None):
+                 download_history: Optional['ExtractedHistory'] = None,
+                 classification_method: ClassificationMethod = ClassificationMethod.DURATION):
         """初始化提取器"""
         import_libs()  # 确保已导入所需库
 
@@ -680,6 +786,7 @@ class RobloxAudioExtractor:
         self.num_threads = num_threads or min(32, multiprocessing.cpu_count() * 2)
         self.keyword = keyword
         self.download_history = download_history
+        self.classification_method = classification_method
 
         # 输出目录
         self.output_dir = os.path.join(self.base_dir, "extracted_oggs")
@@ -698,18 +805,34 @@ class RobloxAudioExtractor:
         self.processed_count = 0
         self.cancelled = False
 
-        # 按大小分类文件
+        # 按音频时长分类文件 (秒)
+        self.duration_categories = {
+            "ultra_short_0-5s": (0, 5),  # 0-5秒 (音效、提示音)
+            "short_5-15s": (5, 15),  # 5-15秒 (短音效、通知音)
+            "medium_15-60s": (15, 60),  # 15-60秒 (循环音乐、短背景音)
+            "long_60-300s": (60, 300),  # 1-5分钟 (完整音乐、长背景音)
+            "ultra_long_300s+": (300, float('inf'))  # 5分钟+ (长音乐、语音)
+        }
+
+        # 按文件大小分类 (字节)
         self.size_categories = {
-            "tiny_0-10KB_very_short": (0, 10 * 1024),  # 0-10KB
-            "small_10-100KB_short": (10 * 1024, 100 * 1024),  # 10-100KB
-            "medium_100KB-1MB_medium": (100 * 1024, 1024 * 1024),  # 100KB-1MB
-            "large_1-5MB_long": (1024 * 1024, 5 * 1024 * 1024),  # 1-5MB
-            "huge_5MB+_very_long": (5 * 1024 * 1024, float('inf'))  # 5MB+
+            "ultra_small_0-50KB": (0, 50 * 1024),  # 0-50KB
+            "small_50-200KB": (50 * 1024, 200 * 1024),  # 50KB-200KB
+            "medium_200KB-1MB": (200 * 1024, 1024 * 1024),  # 200KB-1MB
+            "large_1MB-5MB": (1024 * 1024, 5 * 1024 * 1024),  # 1MB-5MB
+            "ultra_large_5MB+": (5 * 1024 * 1024, float('inf'))  # 5MB+
         }
 
         # 为每个类别创建目录
         self.category_dirs = {}
-        for category in self.size_categories:
+
+        # 根据分类方法选择要使用的类别
+        if self.classification_method == ClassificationMethod.DURATION:
+            categories = self.duration_categories
+        else:
+            categories = self.size_categories
+
+        for category in categories:
             path = os.path.join(self.output_dir, category)
             os.makedirs(path, exist_ok=True)
             self.category_dirs[category] = path
@@ -970,43 +1093,103 @@ class RobloxAudioExtractor:
         # 检查OGG文件头
         return content[:4] == b'OggS'
 
+    def _get_audio_duration(self, file_path: str) -> float:
+        """获取音频文件的时长（秒）"""
+        try:
+            if subprocess is None:
+                import_libs()
+
+            subprocess_flags = 0
+            if os.name == 'nt':  # Windows
+                subprocess_flags = subprocess.CREATE_NO_WINDOW
+
+            # 使用ffprobe获取音频时长
+            result = subprocess.run(
+                ["ffprobe", "-v", "quiet", "-show_entries", "format=duration",
+                 "-of", "csv=p=0", file_path],
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                creationflags=subprocess_flags,
+                text=True
+            )
+
+            if result.returncode == 0 and result.stdout.strip():
+                return float(result.stdout.strip())
+
+            return 0.0  # 默认时长为0，会被分类到最短的类别
+        except Exception:
+            return 0.0  # 如果获取失败，默认为0秒
+
+    def _get_duration_category(self, file_path: str) -> str:
+        """根据音频时长确定类别"""
+        duration = self._get_audio_duration(file_path)
+
+        for category, (min_duration, max_duration) in self.duration_categories.items():
+            if min_duration <= duration < max_duration:
+                return category
+
+        # 默认类别：如果没有匹配项，分配到第一个类别
+        return next(iter(self.duration_categories.keys()))
+
     def _get_size_category(self, file_size: int) -> str:
         """根据文件大小确定类别"""
         for category, (min_size, max_size) in self.size_categories.items():
             if min_size <= file_size < max_size:
                 return category
-        # 默认类别：如果没有匹配项
+
+        # 默认类别：如果没有匹配项，分配到第一个类别
         return next(iter(self.size_categories.keys()))
 
     def _save_ogg_file(self, source_path: str, content: bytes) -> Optional[str]:
         """保存提取的OGG文件 - 使用更高效的文件写入"""
         try:
-            # 获取文件大小并确定类别
-            file_size = len(content)
-            category = self._get_size_category(file_size)
-            output_dir = self.category_dirs[category]
-
-            # 生成唯一的文件名
+            # 生成临时文件名
             base_name = os.path.basename(source_path)
             timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-            # 使用更短的随机后缀
             if random is None:
                 import_libs()
             random_suffix = ''.join(random.choices(string.ascii_lowercase + string.digits, k=4))
+            temp_name = f"temp_{base_name}_{timestamp}_{random_suffix}.ogg"
+            temp_path = os.path.join(self.output_dir, temp_name)
+
+            # 保存临时文件
+            with open(temp_path, 'wb', buffering=1024 * 8) as f:
+                f.write(content)
+
+            # 确定分类类别
+            if self.classification_method == ClassificationMethod.DURATION:
+                # 按时长分类
+                category = self._get_duration_category(temp_path)
+            else:
+                # 按大小分类
+                file_size = len(content)
+                category = self._get_size_category(file_size)
+
+            output_dir = self.category_dirs[category]
+
+            # 生成最终文件名
             output_name = f"{base_name}_{timestamp}_{random_suffix}.ogg"
             output_path = os.path.join(output_dir, output_name)
 
-            # 使用缓冲写入保存文件
-            with open(output_path, 'wb', buffering=1024 * 8) as f:
-                f.write(content)
+            # 移动文件到正确的类别目录
+            if shutil is None:
+                import_libs()
+            shutil.move(temp_path, output_path)
 
             return output_path
+
         except Exception as e:
+            # 如果处理失败，删除临时文件
+            if 'temp_path' in locals() and os.path.exists(temp_path):
+                try:
+                    os.remove(temp_path)
+                except:
+                    pass
             self._log_error(source_path, f"Failed to save file: {str(e)}")
             return None
 
     def _get_file_hash(self, file_path: str) -> str:
-        """计算文件的哈希值 """
+        """计算文件的哈希值"""
         # 使用文件路径和修改时间作为简单哈希，避免读取文件内容
         try:
             file_stat = os.stat(file_path)
@@ -1029,18 +1212,43 @@ class RobloxAudioExtractor:
     def create_readme(self) -> None:
         """创建README文件解释音频类别"""
         try:
-            # 创建自述文件，解释不同的文件大小类别
+            # 创建自述文件，解释不同的分类类别
             readme_path = os.path.join(self.output_dir, "README.txt")
             with open(readme_path, 'w', encoding='utf-8') as f:
                 f.write(f"{lang.get('readme_title')}\n")
                 f.write("=" * 60 + "\n\n")
-                f.write(f"\n: {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+
+                # 添加分类方法信息
+                if self.classification_method == ClassificationMethod.DURATION:
+                    f.write(f"{lang.get('classification_method_used', lang.get('classification_by_duration'))}\n\n")
+                    f.write(f"{lang.get('readme_duration_title')}\n\n")
+                    f.write(
+                        "1. ultra_short_0-5s     (0-5 seconds / 0-5秒)      - Sound effects, notification sounds / 音效、提示音\n")
+                    f.write(
+                        "2. short_5-15s          (5-15 seconds / 5-15秒)     - Short effects, alerts / 短音效、通知音\n")
+                    f.write(
+                        "3. medium_15-60s        (15-60 seconds / 15-60秒)   - Loop music, short BGM / 循环音乐、短背景音\n")
+                    f.write(
+                        "4. long_60-300s         (1-5 minutes / 1-5分钟)     - Full music, long BGM / 完整音乐、长背景音\n")
+                    f.write("5. ultra_long_300s+     (5+ minutes / 5分钟以上)    - Long music, voice / 长音乐、语音\n\n")
+                    f.write(
+                        f"Note: Duration classification requires FFmpeg to be installed. / 注意：时长分类需要安装FFmpeg。\n")
+                else:
+                    f.write(f"{lang.get('classification_method_used', lang.get('classification_by_size'))}\n\n")
+                    f.write(f"{lang.get('readme_size_title')}\n\n")
+                    f.write("1. ultra_small_0-50KB     (0-50KB)       - Very small audio clips / 极小音频片段\n")
+                    f.write("2. small_50-200KB         (50KB-200KB)   - Small audio clips / 小型音频片段\n")
+                    f.write("3. medium_200KB-1MB       (200KB-1MB)    - Medium size audio / 中等大小音频\n")
+                    f.write("4. large_1MB-5MB          (1MB-5MB)      - Large audio files / 大型音频文件\n")
+                    f.write("5. ultra_large_5MB+       (5MB+)         - Very large audio files / 极大音频文件\n\n")
+
+                f.write(f"Extraction Time / 提取时间: {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
         except Exception:
             pass  # 非关键操作
 
 
 class MP3Converter:
-    """将OGG文件转换为MP3"""
+    """将OGG文件转换为MP3，保持时长分类结构"""
 
     def __init__(self, input_dir: str, output_dir: str, num_threads: int = None):
         """初始化MP3转换器"""
@@ -1193,7 +1401,7 @@ class MP3Converter:
         }
 
     def convert_file(self, ogg_path: str) -> bool:
-        """转换单个OGG文件为MP3"""
+        """转换单个OGG文件为MP3，保持目录结构"""
         if self.cancelled:
             return False
 
@@ -1215,7 +1423,7 @@ class MP3Converter:
             basename = os.path.basename(ogg_path)
             basename_noext = os.path.splitext(basename)[0]
 
-            # 为输出文件创建目录
+            # 为输出文件创建目录（保持时长分类结构）
             output_dir = os.path.join(self.output_dir, rel_dir)
             os.makedirs(output_dir, exist_ok=True)
 
@@ -1257,7 +1465,7 @@ class MP3Converter:
             return False
 
     def _get_file_hash(self, file_path: str) -> str:
-        """计算文件的哈希值 """
+        """计算文件的哈希值"""
         # 使用文件路径和修改时间作为简单哈希，避免读取文件内容
         try:
             file_stat = os.stat(file_path)
@@ -1469,10 +1677,8 @@ class GUILogger:
             self.thread.join(timeout=2)
 
 
-
-
 class RobloxAudioExtractorGUI:
-    """Roblox 音频提取器 GUI 界面 """
+    """Roblox 音频提取器 GUI 界面"""
 
     def __init__(self, root):
         """初始化 GUI 界面"""
@@ -1498,7 +1704,7 @@ class RobloxAudioExtractorGUI:
         self.download_history = ExtractedHistory(history_file)
 
         # 设置主窗口属性
-        self.root.title("Roblox Audio Extractor")
+        self.root.title("Roblox Audio Extractor (Multiple Classification Methods)")
         self.root.geometry("901x552")  # 初始窗口大小
         self.root.minsize(900, 300)  # 最小窗口大小
 
@@ -1514,7 +1720,8 @@ class RobloxAudioExtractorGUI:
         self.main_frame.pack(fill=tk.BOTH, expand=True)
 
         # 创建顶部标题
-        self.header = ttk.Label(self.main_frame, text="Roblox Audio Extractor", style='Header.TLabel')
+        self.header = ttk.Label(self.main_frame, text="Roblox Audio Extractor (Multiple Classification Methods)",
+                                style='Header.TLabel')
         self.header.pack(pady=(0, 10))
 
         # 创建主布局为左侧菜单和右侧内容
@@ -1556,6 +1763,9 @@ class RobloxAudioExtractorGUI:
         # 当前活动任务
         self.active_task = None
         self.task_cancelled = False
+
+        # 分类方法
+        self.classification_method = ClassificationMethod.DURATION
 
         # 显示欢迎消息
         self.gui_logger.info(lang.get('welcome_message'))
@@ -1642,7 +1852,6 @@ class RobloxAudioExtractorGUI:
         )
         self.btn_clear_cache.pack(fill=tk.X, padx=5, pady=5)
 
-
         self.btn_history = ttk.Button(
             self.menu_buttons_frame,
             text="2. View History",
@@ -1667,7 +1876,6 @@ class RobloxAudioExtractorGUI:
         )
         self.btn_about.pack(fill=tk.X, padx=5, pady=5)
 
-
     def show_clear_cache_frame(self):
         """显示清除缓存界面"""
         # 清除右侧框架
@@ -1689,7 +1897,7 @@ class RobloxAudioExtractorGUI:
 
         # 添加操作按钮
         clear_btn = ttk.Button(content_frame, text=lang.get('clear_cache'),
-                              command=self.clear_audio_cache)
+                               command=self.clear_audio_cache)
         clear_btn.pack(anchor=tk.CENTER, pady=10)
 
         # 显示日志框架
@@ -1789,13 +1997,47 @@ class RobloxAudioExtractorGUI:
         browse_btn = ttk.Button(dir_frame, text="Browse...", command=self.browse_directory)
         browse_btn.pack(side=tk.LEFT, padx=5)
 
-        # 处理选项
-        options_frame = ttk.LabelFrame(content_frame, text=lang.get('processing_info'))
-        options_frame.pack(fill=tk.X, padx=5, pady=5)
+        # 分类方法选择
+        classification_frame = ttk.LabelFrame(content_frame, text=lang.get('classification_method'))
+        classification_frame.pack(fill=tk.X, padx=5, pady=5)
 
-        ttk.Label(options_frame, text=lang.get('info_size_categories')).pack(anchor=tk.W, padx=5, pady=2)
-        ttk.Label(options_frame, text=lang.get('info_mp3_conversion')).pack(anchor=tk.W, padx=5, pady=2)
-        ttk.Label(options_frame, text=lang.get('info_skip_downloaded')).pack(anchor=tk.W, padx=5, pady=2)
+        self.classification_var = tk.StringVar(value="duration")
+
+        # 创建单选按钮
+        ttk.Radiobutton(
+            classification_frame,
+            text=lang.get('classify_by_duration'),
+            variable=self.classification_var,
+            value="duration",
+            command=self.update_classification_info
+        ).pack(anchor=tk.W, padx=10, pady=2)
+
+        ttk.Radiobutton(
+            classification_frame,
+            text=lang.get('classify_by_size'),
+            variable=self.classification_var,
+            value="size",
+            command=self.update_classification_info
+        ).pack(anchor=tk.W, padx=10, pady=2)
+
+        # 检查FFmpeg是否可用
+        if not self._is_ffmpeg_available():
+            ttk.Label(
+                classification_frame,
+                text=lang.get('ffmpeg_not_found_warning'),
+                foreground="red"
+            ).pack(anchor=tk.W, padx=10, pady=2)
+
+        # 处理选项
+        self.options_frame = ttk.LabelFrame(content_frame, text=lang.get('processing_info'))
+        self.options_frame.pack(fill=tk.X, padx=5, pady=5)
+
+        # 动态显示分类信息
+        self.classification_info_label = ttk.Label(self.options_frame, text=lang.get('info_duration_categories'))
+        self.classification_info_label.pack(anchor=tk.W, padx=5, pady=2)
+
+        ttk.Label(self.options_frame, text=lang.get('info_mp3_conversion')).pack(anchor=tk.W, padx=5, pady=2)
+        ttk.Label(self.options_frame, text=lang.get('info_skip_downloaded')).pack(anchor=tk.W, padx=5, pady=2)
 
         # 线程设置
         threads_frame = ttk.Frame(content_frame)
@@ -1825,8 +2067,6 @@ class RobloxAudioExtractorGUI:
         self.extract_btn = ttk.Button(buttons_frame, text=lang.get('extract_audio'), command=self.start_extraction)
         self.extract_btn.pack(side=tk.RIGHT, padx=5)
 
-
-
         # 进度条
         self.progress_frame = ttk.Frame(content_frame)
         self.progress_frame.pack(fill=tk.X, padx=5, pady=5)
@@ -1840,6 +2080,37 @@ class RobloxAudioExtractorGUI:
 
         # 显示日志框架
         self.log_frame.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
+
+    def update_classification_info(self):
+        """根据所选分类方法更新显示信息"""
+        selected = self.classification_var.get()
+
+        if selected == "duration":
+            self.classification_method = ClassificationMethod.DURATION
+            self.classification_info_label.config(text=lang.get('duration_classification_info'))
+        else:
+            self.classification_method = ClassificationMethod.SIZE
+            self.classification_info_label.config(text=lang.get('size_classification_info'))
+
+    def _is_ffmpeg_available(self) -> bool:
+        """检查FFmpeg是否可用"""
+        try:
+            if subprocess is None:
+                import_libs()
+
+            subprocess_flags = 0
+            if os.name == 'nt':  # Windows
+                subprocess_flags = subprocess.CREATE_NO_WINDOW
+
+            result = subprocess.run(
+                ["ffmpeg", "-version"],
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                creationflags=subprocess_flags
+            )
+            return result.returncode == 0
+        except Exception:
+            return False
 
     def clear_audio_cache(self):
         """清除音频缓存文件"""
@@ -1892,8 +2163,6 @@ class RobloxAudioExtractorGUI:
         except Exception as e:
             self.gui_logger.error(lang.get('clear_cache_failed', str(e)))
 
-        except Exception as e:
-            self.gui_logger.error(lang.get('clear_cache_failed', str(e)))
     def browse_directory(self):
         """浏览并选择目录"""
         directory = filedialog.askdirectory(initialdir=self.dir_var.get())
@@ -1947,13 +2216,29 @@ class RobloxAudioExtractorGUI:
             self.gui_logger.warning(lang.get('input_invalid'))
             num_threads = min(32, multiprocessing.cpu_count() * 2)
             self.threads_var.set(str(num_threads))
+
+        # 获取分类方法
+        classification_method = ClassificationMethod.DURATION if self.classification_var.get() == "duration" else ClassificationMethod.SIZE
+
+        # 如果选择时长分类但没有ffmpeg，显示警告
+        if classification_method == ClassificationMethod.DURATION and not self._is_ffmpeg_available():
+            result = messagebox.askquestion(
+                "Warning",
+                lang.get('ffmpeg_not_installed') + "\n" + lang.get('operation_cancelled'),
+                icon='warning'
+            )
+            if result != 'yes':
+                self.gui_logger.warning(lang.get('operation_cancelled'))
+                return
+
         # 创建并启动提取线程
         self.task_cancelled = False
-        self.active_task = threading.Thread(target=self.run_extraction_process, args=(selected_dir, num_threads))
+        self.active_task = threading.Thread(target=self.run_extraction_process,
+                                            args=(selected_dir, num_threads, classification_method))
         self.active_task.daemon = True
         self.active_task.start()
 
-    def run_extraction_process(self, selected_dir, num_threads):
+    def run_extraction_process(self, selected_dir, num_threads, classification_method):
         """运行提取过程"""
         try:
             # 更新状态栏
@@ -1961,7 +2246,8 @@ class RobloxAudioExtractorGUI:
 
             # 初始化并运行提取器
             start_time = time.time()
-            extractor = RobloxAudioExtractor(selected_dir, num_threads, "oggs", self.download_history)
+            extractor = RobloxAudioExtractor(selected_dir, num_threads, "oggs",
+                                             self.download_history, classification_method)
 
             # 覆盖extractor的cancelled属性，使其检查self.task_cancelled的当前值
             def is_cancelled():
@@ -1983,7 +2269,6 @@ class RobloxAudioExtractorGUI:
                 self.gui_logger.warning(lang.get('no_files_found'))
                 self.status_bar.config(text="Ready / 就绪")
                 self.extract_btn.configure(state='normal')
-
                 self.active_task = None
                 return
 
@@ -2094,8 +2379,10 @@ class RobloxAudioExtractorGUI:
             self.gui_logger.error(lang.get('error_occurred', str(e)))
             self.gui_logger.error(traceback.format_exc())
             self.status_bar.config(text="Error / 错误")
-
-
+        finally:
+            # 确保提取按钮重新启用
+            self.extract_btn.configure(state='normal')
+            self.active_task = None
 
     def run_mp3_conversion(self, mp3_converter):
         """运行MP3转换"""
@@ -2286,7 +2573,7 @@ class RobloxAudioExtractorGUI:
             if sys.platform.startswith("win"):
                 # Windows: 使用PhotoImage加载ico文件
                 from PIL import Image, ImageTk
-                icon = Image.open(resource_path(os.path.join(".readme", "ui-images  ", "Roblox-Audio-Extractor.ico")))
+                icon = Image.open(resource_path(os.path.join(".readme", "ui-images", "Roblox-Audio-Extractor.ico")))
                 app_icon = ImageTk.PhotoImage(icon)
 
             # 创建标签显示图标
@@ -2295,13 +2582,13 @@ class RobloxAudioExtractorGUI:
             icon_label.pack(side=tk.LEFT, padx=10)
 
             # 创建标题标签
-            title_label = ttk.Label(top_frame, text="Roblox Audio Extractor",
+            title_label = ttk.Label(top_frame, text="Roblox Audio Extractor (Multiple Classification Methods)",
                                     font=("Arial", 16, "bold"))
             title_label.pack(side=tk.LEFT, padx=10)
 
         except Exception as e:
             # 如果无法加载图标，只显示标题
-            title_label = ttk.Label(top_frame, text="Roblox Audio Extractor",
+            title_label = ttk.Label(top_frame, text="Roblox Audio Extractor (Multiple Classification Methods)",
                                     font=("Arial", 16, "bold"))
             title_label.pack(side=tk.LEFT, padx=10)
 
@@ -2315,14 +2602,53 @@ class RobloxAudioExtractorGUI:
         # 分隔线
         ttk.Separator(content_frame, orient=tk.HORIZONTAL).pack(fill=tk.X, padx=10, pady=10)
 
+
+        # # 显示分类信息
+        # classification_info_frame = ttk.LabelFrame(content_frame, text="Classification Methods / 分类方法")
+        # classification_info_frame.pack(fill=tk.X, padx=10, pady=10)
+        #
+        # # 先显示按时长分类信息
+        # ttk.Label(classification_info_frame, text="Duration Classification / 按时长分类:",
+        #           font=("Arial", 11, "bold")).pack(anchor=tk.W, padx=5, pady=2)
+        # ttk.Label(classification_info_frame,
+        #           text="Ultra Short (0-5s): Sound effects, notifications / 超短 (0-5秒): 音效、通知",
+        #           wraplength=600).pack(anchor=tk.W, padx=10, pady=2)
+        # ttk.Label(classification_info_frame, text="Short (5-15s): Short effects, alerts / 短 (5-15秒): 短音效、通知音",
+        #           wraplength=600).pack(anchor=tk.W, padx=10, pady=2)
+        # ttk.Label(classification_info_frame,
+        #           text="Medium (15-60s): Loop music, short BGM / 中等 (15-60秒): 循环音乐、短背景音",
+        #           wraplength=600).pack(anchor=tk.W, padx=10, pady=2)
+        # ttk.Label(classification_info_frame,
+        #           text="Long (1-5min): Full music, long BGM / 长 (1-5分钟): 完整音乐、长背景音",
+        #           wraplength=600).pack(anchor=tk.W, padx=10, pady=2)
+        # ttk.Label(classification_info_frame, text="Ultra Long (5min+): Long music, voices / 超长 (5分钟+): 长音乐、语音",
+        #           wraplength=600).pack(anchor=tk.W, padx=10, pady=2)
+        #
+        # # 再显示按大小分类信息
+        # ttk.Label(classification_info_frame, text="Size Classification / 按大小分类:",
+        #           font=("Arial", 11, "bold")).pack(anchor=tk.W, padx=5, pady=(10, 2))
+        # ttk.Label(classification_info_frame, text="Ultra Small (0-50KB): Very small audio clips / 极小音频片段",
+        #           wraplength=600).pack(anchor=tk.W, padx=10, pady=2)
+        # ttk.Label(classification_info_frame, text="Small (50KB-200KB): Small audio clips / 小型音频片段",
+        #           wraplength=600).pack(anchor=tk.W, padx=10, pady=2)
+        # ttk.Label(classification_info_frame, text="Medium (200KB-1MB): Medium size audio / 中等大小音频",
+        #           wraplength=600).pack(anchor=tk.W, padx=10, pady=2)
+        # ttk.Label(classification_info_frame, text="Large (1MB-5MB): Large audio files / 大型音频文件",
+        #           wraplength=600).pack(anchor=tk.W, padx=10, pady=2)
+        # ttk.Label(classification_info_frame, text="Ultra Large (5MB+): Very large audio files / 极大音频文件",
+        #           wraplength=600).pack(anchor=tk.W, padx=10, pady=2)
+
+
+        # 分隔线
+        ttk.Separator(content_frame, orient=tk.HORIZONTAL).pack(fill=tk.X, padx=10, pady=10)
+
         # 链接和许可信息
         ttk.Label(content_frame, text="GitHub: https://github.com/JustKanade/Roblox-Audio-Extractor").pack(anchor=tk.W,
                                                                                                            padx=10,
                                                                                                            pady=5)
         ttk.Label(content_frame, text="License: GNU Affero General Public License v3.0 (AGPLv3)").pack(anchor=tk.W,
                                                                                                        padx=10, pady=5)
-        ttk.Label(content_frame, text="Feel free to submit issues and contribute on GitHub!", wraplength=600).pack(
-            anchor=tk.W, padx=10, pady=5)
+
 
         # 显示内存使用情况
         try:
@@ -2344,21 +2670,8 @@ class RobloxAudioExtractorGUI:
         # 显示日志框架
         self.log_frame.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
 
-def get_roblox_default_dir():
-    """获取Roblox缓存的默认目录"""
-    try:
-        username = os.getenv('USERNAME') or os.getenv('USER')
 
-        # 根据操作系统选择合适的路径
-        if os.name == 'nt':  # Windows
-            return os.path.join("C:", os.sep, "Users", username, "AppData", "Local", "Temp", "Roblox", "http")
-        elif sys.platform == 'darwin':  # macOS
-            return os.path.join("/Users", username, "Library", "Caches", "Roblox", "http")
-        else:  # Linux 或其他
-            return os.path.join(os.path.expanduser("~"), ".local", "share", "Roblox", "http")
-    except:
-        # 如果发生错误，回退到当前目录
-        return os.path.join(os.getcwd(), "Roblox")
+
 
 
 def main():
