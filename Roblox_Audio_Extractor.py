@@ -14,6 +14,10 @@ warnings.filterwarnings("ignore", category=DeprecationWarning)
 
 import os
 import sys
+from PyQt5.QtCore import QCoreApplication
+
+if hasattr(sys, '_MEIPASS'):
+    os.environ['QT_QPA_PLATFORM_PLUGIN_PATH'] = os.path.join(sys._MEIPASS, 'PyQt5', 'Qt', 'plugins')
 import time
 import json
 import logging
@@ -27,28 +31,25 @@ from functools import lru_cache
 from typing import Dict, List, Any, Tuple, Set, Optional
 from enum import Enum, auto
 
-# PyQt Import
-from PyQt5.QtWidgets import (QApplication, QWidget, QVBoxLayout, QHBoxLayout,
-                             QFileDialog, QMessageBox, QScrollArea, QLabel,
-                             QLineEdit, QSpinBox, QCheckBox, QRadioButton,
-                             QButtonGroup, QSplitter, QFrame, QGraphicsDropShadowEffect,
-                             QSizePolicy, QGridLayout)
-from PyQt5.QtCore import Qt, QTimer, QThread, pyqtSignal, QUrl, QSize, QPropertyAnimation, QEasingCurve, QRect
-from PyQt5.QtGui import QIcon, QPixmap, QFont, QColor, QPalette
 
-# PyQt-Fluent-Widgets Import (标准版本)
-from qfluentwidgets import (FluentWindow, NavigationItemPosition, setTheme, Theme,
-                            SplashScreen, InfoBar, FluentIcon, PushButton,
-                            PrimaryPushButton, ComboBox, BodyLabel, CardWidget,
-                            TitleLabel, CaptionLabel, ProgressBar, CheckBox,
-                            RadioButton, TextEdit, TransparentToolButton,
-                            MessageBox, StateToolTip, InfoBarPosition, SwitchButton,
-                            StrongBodyLabel, SubtitleLabel, DisplayLabel,
-                            HyperlinkButton, ToolButton, TransparentPushButton,
-                            ScrollArea, Icon, IconWidget,
-                            ProgressRing, IndeterminateProgressRing,
-                            SpinBox, LineEdit, PillPushButton, MSFluentWindow,
-                            FlowLayout)
+from PyQt5.QtWidgets import (
+    QApplication, QWidget, QVBoxLayout, QHBoxLayout,QButtonGroup,
+    QFileDialog, QLabel, QFrame, QSizePolicy, QGridLayout
+)
+from PyQt5.QtCore import Qt, QTimer, QThread, pyqtSignal, QSize
+from PyQt5.QtGui import QIcon, QPixmap, QFont
+
+
+from qfluentwidgets import (
+    MSFluentWindow, NavigationItemPosition, setTheme, Theme,
+    InfoBar, FluentIcon, PushButton, PrimaryPushButton,
+    ComboBox, BodyLabel, CardWidget, TitleLabel, CaptionLabel,
+    ProgressBar, CheckBox, RadioButton, TextEdit,
+    MessageBox, StateToolTip, InfoBarPosition,
+    StrongBodyLabel, SubtitleLabel, DisplayLabel,
+    HyperlinkButton, TransparentPushButton, ScrollArea,
+    IconWidget, SpinBox, LineEdit, PillPushButton, FlowLayout
+)
 
 # 设置日志记录
 logging.basicConfig(level=logging.INFO, format='%(message)s')
