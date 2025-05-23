@@ -14,7 +14,7 @@ English | [简体中文](README_ZH.md)
 
 </div>
 
-## 🎯 Features
+##  Features
 
 - **Modern GUI Interface** - Built with PyQt5 and PyQt-Fluent-Widgets for a beautiful, responsive user experience
 - **Automatic Scanning** - Intelligently scans Roblox cache directories to quickly locate audio files
@@ -35,7 +35,7 @@ English | [简体中文](README_ZH.md)
   <img src="https://github.com/JustKanade/Roblox-Audio-Extractor/blob/main/.readme/images/GUI-Screenshot.png" alt="GUI Interface" width="600">
 </p>
 
-## 📋 System Requirements
+##  System Requirements
 
 - **Python**: 3.7 or higher
 - **Operating System**: Windows, macOS, Linux
@@ -71,7 +71,7 @@ English | [简体中文](README_ZH.md)
 
 Download the latest `.exe` release from the [Releases page](https://github.com/JustKanade/Roblox-Audio-Extractor/releases).
 
-## 🎮 Usage Guide
+##  Usage Guide
 
 ### Main Interface
 
@@ -121,7 +121,7 @@ Use the Cache tab to clear audio cache files before extracting from a specific g
 
 This ensures you only extract audio from the specific game you want.
 
-## 🔧 Advanced Features
+##  Advanced Features
 
 ### Configuration
 
@@ -144,7 +144,7 @@ Settings are automatically saved in `~/.roblox_audio_extractor/config.json`:
 - **Recommended**: 2x CPU cores (automatically calculated)
 - **Maximum**: 128 threads (use with caution)
 
-## 🛠️ Troubleshooting
+##  Troubleshooting
 
 **Q: The extractor can't find any audio files?**  
 A: Make sure you're pointing to the correct cache directory. The default is usually:
