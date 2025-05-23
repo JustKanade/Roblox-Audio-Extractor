@@ -3,122 +3,167 @@
   
 <img src="https://github.com/JustKanade/Roblox-Audio-Extractor/blob/main/.readme/images/Roblox-Audio-Extractor%20Logo.png" alt="" width="300px">
 
-**An efficient tool for extracting and converting audio files from Roblox cache with one click**
+**An efficient tool with modern GUI for extracting and converting audio files from Roblox cache**
 
 ![GitHub Release](https://img.shields.io/github/v/release/JustKanade/Roblox-Audio-Extractor?label=Release&color=green&logo=github)
 [![License: AGPL v3](https://img.shields.io/badge/License-AGPL%20v3-orange.svg)](https://www.gnu.org/licenses/agpl-3.0)
 [![Python 3.7+](https://img.shields.io/badge/python-3.7+-blue.svg)](https://www.python.org/downloads/)
 [![GitHub stars](https://img.shields.io/github/stars/JustKanade/Roblox-Audio-Extractor?style=social)](https://github.com/JustKanade/Roblox-Audio-Extractor/stargazers)
 
-
 English | [简体中文](README_ZH.md)
 
 </div>
 
-## Features
+##  Features
 
+- **Modern GUI Interface** - Built with PyQt5 and PyQt-Fluent-Widgets for a beautiful, responsive user experience
 - **Automatic Scanning** - Intelligently scans Roblox cache directories to quickly locate audio files
-- **Audio Extraction** - Extracts hidden OGG audio files from cache files
-- **Format Conversion** - Optional conversion of extracted OGG files to widely compatible MP3 format
-- **Smart Classification** - Automatically categorizes audio files by size (tiny, small, medium, large, huge)
-- **Multi-threading** - Utilizes multi-threading technology to significantly increase processing speed
-- **Deduplication** - Intelligently records download history to avoid extracting duplicate files
-- **Multi-language Support** - Built-in Chinese and English interfaces, easy to switch
-- **Smart Naming** - Extracted files are named with timestamps and random strings to prevent overwriting
+- **Audio Extraction** - Extracts hidden OGG audio files from cache with optimized algorithms
+- **Smart Classification** - Two classification methods:
+  - **By Duration**: Categorizes audio by length (requires FFmpeg)
+  - **By File Size**: Categorizes audio by file size (no FFmpeg required)
+- **Format Conversion** - Optional conversion of OGG files to MP3 format with FFmpeg
+- **Multi-threading** - Utilizes configurable multi-threading (1-128 threads) for blazing fast extraction
+- **Duplicate Detection** - Smart hash-based detection prevents extracting the same files multiple times
+- **Extraction History** - Maintains history of extracted files to skip already processed content
+- **Cache Management** - Built-in cache cleaner to remove audio cache files before extracting specific game audio
+- **Multi-language Support** - Full support for English and Chinese interfaces
+- **Theme Support** - Dark mode, light mode, and system theme following
+- **Real-time Progress** - Live progress tracking with speed metrics and ETA
+
 <p align="center">
-  <img src="https://github.com/JustKanade/Roblox-Audio-Extractor/blob/main/.readme/images/Folder.png" alt="" width="200">
+  <img src="https://github.com/JustKanade/Roblox-Audio-Extractor/blob/main/.readme/images/GUI-Screenshot.png" alt="GUI Interface" width="600">
 </p>
 
-## System Requirements
+##  System Requirements
 
-- Python 3.7+
-- Supports Windows, macOS, 和 Linux
-- For MP3 conversion functionality, [FFmpeg](https://ffmpeg.org/download.html) must be installed
+- **Python**: 3.7 or higher
+- **Operating System**: Windows, macOS, Linux
+- **FFmpeg**: Required for MP3 conversion and duration-based classification
+- **Dependencies**: PyQt5, PyQt-Fluent-Widgets, and other Python packages (see requirements.txt)
 
-## Installation Guide
+## 🚀 Installation
 
-### 1. Clone the Repository
-```bash
-git clone https://github.com/JustKanade/Roblox-Audio-Extractor.git
-cd Roblox-Audio-Extractor
-```
+### Option 1: Run from Source
 
-### 2. Install Dependencies
-```bash
-pip install -r requirements.txt
-```
+1. **Clone the Repository**
+   ```bash
+   git clone https://github.com/JustKanade/Roblox-Audio-Extractor.git
+   cd Roblox-Audio-Extractor
+   ```
 
-### 3. Install FFmpeg (Optional, for MP3 conversion)
-- **Windows**: Download the [official installer](https://ffmpeg.org/download.html) and add to system PATH
-- **macOS**: `brew install ffmpeg`
-- **Linux**: `sudo apt install ffmpeg` or the command suitable for your distribution
+2. **Install Dependencies**
+   ```bash
+   pip install -r requirements.txt
+   ```
 
-## Usage
+3. **Install FFmpeg** (Optional but recommended)
+   - **Windows**: Download from [official website](https://ffmpeg.org/download.html) and add to PATH
+   - **macOS**: `brew install ffmpeg`
+   - **Linux**: `sudo apt install ffmpeg` (or equivalent for your distribution)
 
-Run the main program:
-```bash
-python Roblox_Audio_Extractor.py
-```
+4. **Run the Application**
+   ```bash
+   python Roblox_Audio_Extractor.py
+   ```
 
-### Main Menu Options:
+### Option 2: Use Pre-built Executable (Windows)
 
-1. **Extract Audio Files** - Scan Roblox cache and extract audio
-2. **View Download History** - Display statistics of processed files  
-3. **Clear Download History** - Reset records of processed files
-4. **Language Settings** - Switch between Chinese/English interface
-5. **About** - Display program information
-6. **Exit** - Exit the program
+Download the latest `.exe` release from the [Releases page](https://github.com/JustKanade/Roblox-Audio-Extractor/releases).
 
-## Interface Preview
+##  Usage Guide
 
-<div align="center">
-  
-<img src="https://github.com/JustKanade/Roblox-Audio-Extractor/blob/main/.readme/images/Extraction-Process.png" alt="Audio Extraction Process" width="500px">
-</div>
+### Main Interface
 
-## Extraction Process Details
+The application features a modern tabbed interface with the following sections:
 
-1. **Scanning Phase**: The program scans the Roblox cache directory (default at `C:\Users\username\AppData\Local\Temp\Roblox\http`)
-2. **Extraction Phase**: Extracts OGG audio from cache files
-3. **Classification Phase**: Categorizes audio into 5 classes (tiny, small, medium, large, huge) based on file size
-4. **Conversion Phase** (optional): Converts OGG files to MP3 format
-5. **Organization Phase**: Generates a classification description file to help users understand the categorization
+1. **Home** - Quick overview and shortcuts to main features
+2. **Extract** - Main extraction interface with all options
+3. **Cache** - Cache management tools
+4. **History** - View and manage extraction history
+5. **Settings** - Language, theme, and performance settings
+6. **About** - Application information and links
 
-## Output Directory Structure
+### Audio Extraction Process
 
-```
-Output Directory/
-├── tiny_0-100KB_short/         - Tiny files (0-100KB, usually short sound effects)
-├── small_100-500KB_medium/     - Small files (100-500KB, medium length audio)
-├── medium_500KB-1MB_normal/    - Medium files (500KB-1MB, normal length audio)
-├── large_1-5MB_long/           - Large files (1-5MB, longer audio)
-├── huge_5MB+_very_long/        - Huge files (5MB+, very long audio)
-└── README.txt                  - Classification description file
-```
+1. **Select Directory**: Choose the Roblox cache directory (default path is auto-detected)
+2. **Choose Classification**: 
+   - **By Duration**: Organizes files by audio length (requires FFmpeg)
+   - **By Size**: Organizes files by file size
+3. **Configure Options**:
+   - Thread count (1-128, default: 2x CPU cores)
+   - MP3 conversion (on/off)
+4. **Start Extraction**: Click "Start Extraction" and monitor real-time progress
+5. **View Results**: Output directory opens automatically upon completion
 
-## Advanced Settings
+### Classification Categories
 
-- **Thread Count**: The program defaults to using twice the number of CPU cores as threads, up to a maximum of 32. This can be manually adjusted.
-- **Custom Input Directory**: If the Roblox cache is in a non-default location, you can manually specify the directory path.
-- **History Records**: History records are saved in `~/.roblox_audio_extractor/download_history.json`.
+#### Duration-based Classification:
+- `ultra_short_0-5s` - Sound effects, notification sounds (0-5 seconds)
+- `short_5-15s` - Short effects, alerts (5-15 seconds)
+- `medium_15-60s` - Loop music, short BGM (15-60 seconds)
+- `long_60-300s` - Full music tracks, long BGM (1-5 minutes)
+- `ultra_long_300s+` - Extended music, voice recordings (5+ minutes)
 
-## FAQ
+#### Size-based Classification:
+- `ultra_small_0-50KB` - Very small audio clips (0-50KB)
+- `small_50-200KB` - Small audio clips (50KB-200KB)
+- `medium_200KB-1MB` - Medium size audio (200KB-1MB)
+- `large_1MB-5MB` - Large audio files (1MB-5MB)
+- `ultra_large_5MB+` - Very large audio files (5MB+)
 
-**Q: What if the program can't find the Roblox cache directory?**  
-A: You can manually specify the directory, or check if your Roblox has a custom installation location.
+### Cache Management
 
-**Q: What if the extracted audio files won't play?**  
-A: Make sure the file is a valid audio file. Some cache may not be complete audio files or may be corrupted.
+Use the Cache tab to clear audio cache files before extracting from a specific game:
+1. Clear the cache
+2. Launch and fully load the target game
+3. Return to the extractor and extract audio
 
-**Q: The MP3 conversion feature doesn't work?**  
-A: Please make sure FFmpeg is correctly installed and added to the system path.
+This ensures you only extract audio from the specific game you want.
 
-**Q: How do I find the best audio files?**  
-A: Usually larger files (in the large and huge directories) contain more complete, higher quality audio.
+##  Advanced Features
 
-## Contribution Guidelines
+### Configuration
 
-Pull Requests and Issues are welcome!
+Settings are automatically saved in `~/.roblox_audio_extractor/config.json`:
+- Default thread count
+- Language preference (en/zh/auto)
+- Theme preference (dark/light/auto)
+- MP3 conversion default
+- Last used directory
+
+### Extraction History
+
+- History stored in `~/.roblox_audio_extractor/extracted_history.json`
+- Prevents re-extracting identical files
+- Can be cleared from the History tab
+
+### Performance Optimization
+
+- **Thread Count**: Higher thread counts improve speed but use more CPU
+- **Recommended**: 2x CPU cores (automatically calculated)
+- **Maximum**: 128 threads (use with caution)
+
+##  Troubleshooting
+
+**Q: The extractor can't find any audio files?**  
+A: Make sure you're pointing to the correct cache directory. The default is usually:
+- Windows: `C:\Users\[username]\AppData\Local\Temp\Roblox\http`
+- macOS: `/Users/[username]/Library/Caches/Roblox/http`
+- Linux: `~/.local/share/Roblox/http`
+
+**Q: Duration classification isn't working?**  
+A: This feature requires FFmpeg. Make sure it's installed and available in your system PATH.
+
+**Q: Extracted audio files won't play?**  
+A: Some cache files may be corrupted or incomplete. Try the MP3 conversion option, which can sometimes fix playback issues.
+
+**Q: How do I extract audio from a specific game only?**  
+A: Use the Cache Cleaner feature first, then load only the game you want before extracting.
+
+## 🤝 Contributing
+
+Contributions are welcome! Please feel free to submit a Pull Request. For major changes:
 
 1. Fork the repository
 2. Create your feature branch (`git checkout -b feature/AmazingFeature`)
@@ -128,29 +173,28 @@ Pull Requests and Issues are welcome!
 
 ## 📜 License
 
-This project is licensed under the GNU Affero General Public License v3.0 (AGPLv3) - see the [LICENSE](LICENSE) file for details
+This project is licensed under the GNU Affero General Public License v3.0 (AGPLv3) - see the [LICENSE](LICENSE) file for details.
 
 Key requirements of the AGPLv3 license:
-- If you distribute copies of this program, you must also provide the complete source code
+- If you distribute copies of this program, you must provide the complete source code
 - If you modify this program, you must distribute your modifications under the same license
-- If you offer the functionality of this program over a network, you must also provide the complete source code
+- If you offer the functionality of this program over a network, you must provide the complete source code
 - You must maintain the original copyright notice
 
-This license ensures that all users of the software remain free, even those using it through network services.
+## 🙏 Acknowledgements
 
-## 💖 Acknowledgements
+- Thanks to all contributors and users of this tool
+- PyQt5 and PyQt-Fluent-Widgets for the amazing GUI framework
+- FFmpeg for audio processing capabilities
+- The Python community for excellent libraries and support
 
-- Thanks to all users who use and support this tool
-- Thanks to the developers of Python and related open-source libraries
-- Roblox icon is used for identification only and is owned by Roblox Corporation
+## 📬 Contact
 
-## 📬 Contact Information
-
-- GitHub Issues: [https://github.com/JustKanade/Roblox-Audio-Extractor/issues](https://github.com/JustKanade/Roblox-Audio-Extractor/issues)
-- Email: muxian0219@qq.com
+- **GitHub Issues**: [Report bugs or request features](https://github.com/JustKanade/Roblox-Audio-Extractor/issues)
+- **Email**: muxian0219@qq.com
 
 ---
 
 <div align="center">
-  <sub>| Remember to star ⭐ this project!</sub>
+  <sub>Made with ❤️ by JustKanade | Remember to ⭐ this project!</sub>
 </div>
