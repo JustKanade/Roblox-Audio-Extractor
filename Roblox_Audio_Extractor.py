@@ -48,7 +48,8 @@ from qfluentwidgets import (
     MessageBox, StateToolTip, InfoBarPosition,
     StrongBodyLabel, SubtitleLabel, DisplayLabel,
     HyperlinkButton, TransparentPushButton, ScrollArea,
-    IconWidget, SpinBox, LineEdit, PillPushButton, FlowLayout
+    IconWidget, SpinBox, LineEdit, PillPushButton, FlowLayout,
+    SplashScreen  
 )
 
 # 设置日志记录
