@@ -183,9 +183,9 @@ def get_roblox_default_dir():
 
         # 根据操作系统选择合适的路径
         if os.name == 'nt':  # Windows
-            return os.path.join("C:", os.sep, "Users", username, "AppData", "Local", "Temp", "Roblox", "http")
+            return os.path.join("C:", os.sep, "Users", username, "AppData", "Local", "Temp", "Roblox", "sounds") # Roblox changed the http to the folder sounds.
         elif sys.platform == 'darwin':  # macOS
-            return os.path.join("/Users", username, "Library", "Caches", "Roblox", "http")
+            return os.path.join("/Users", username, "Library", "Caches", "Roblox", "http") #i don't know if roblox added the folder on other platforms
         else:  # Linux 或其他
             return os.path.join(os.path.expanduser("~"), ".local", "share", "Roblox", "http")
     except:
