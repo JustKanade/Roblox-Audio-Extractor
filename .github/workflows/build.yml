@@ -2,8 +2,8 @@ name: Build Executable on Push
 
 on:
   push:
-    branches: [ "main" ]  
-  workflow_dispatch:      
+    branches: [ "main" ]
+  workflow_dispatch:
 
 jobs:
   build:
@@ -20,12 +20,11 @@ jobs:
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        if exist requirements.txt pip install -r requirements.txt
+        if (Test-Path "requirements.txt") { pip install -r requirements.txt }
         pip install pyinstaller
         
     - name: Build with PyInstaller
       run: |
-
         $version = "$(Get-Date -Format 'yyyy.MM.dd')-$(git rev-parse --short HEAD)"
         
         pyinstaller --onefile --windowed `
@@ -39,10 +38,3 @@ jobs:
       with:
         name: Roblox_Audio_Extractor
         path: dist/*.exe
-        
-    - name: Create Release (Optional)
-      if: github.ref == 'refs/heads/main'
-      uses: softprops/action-gh-release@v1
-      with:
-        files: dist/*.exe
-        generate_release_notes: true
