@@ -45,7 +45,7 @@ jobs:
           --show-progress \
           --output-dir="./output" \
           --plugin-enable=tk-inter \
-          --include-data-dir=".readme/ui-images=.readme/ui-images" \
+          --include-data-dir="icons" \
           "Roblox_Audio_Extractor.py"
 
     - name: Upload artifacts
