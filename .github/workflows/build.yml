@@ -19,7 +19,7 @@ jobs:
       - name: Set build date
         id: set-date
         run: |
-          DATE=$(date +"%Y-%m-%d %H:%M:%S")
+          DATE=$(date -u +"%Y-%m-%d %H:%M:%S UTC")
           echo "date=$DATE" >> $GITHUB_OUTPUT
       - name: Create release tag
         id: set-tag
@@ -35,20 +35,38 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.10"
-      - run: |
+          cache: 'pip'
+          cache-dependency-path: '**/requirements.txt'
+      - name: Install dependencies
+        run: |
           python -m pip install --upgrade pip
           if (Test-Path "requirements.txt") { pip install -r requirements.txt }
-          pip install pyinstaller
-      - run: |
+          pip install pyinstaller upx
+      - name: Build with PyInstaller (Windows)
+        run: |
+          $env:UPX_DIR = "$env:RUNNER_TEMP\upx"
+          if (-not (Test-Path $env:UPX_DIR)) {
+            New-Item -ItemType Directory -Path $env:UPX_DIR | Out-Null
+            Invoke-WebRequest -Uri "https://github.com/upx/upx/releases/download/v4.0.2/upx-4.0.2-win64.zip" -OutFile "$env:UPX_DIR\upx.zip"
+            Expand-Archive -Path "$env:UPX_DIR\upx.zip" -DestinationPath $env:UPX_DIR
+          }
+          $env:PATH = "$env:UPX_DIR\upx-4.0.2-win64;$env:PATH"
+
           pyinstaller --onefile --windowed `
             --icon=icons/Roblox-Audio-Extractor.ico `
             --add-data="icons/*;icons" `
+            --upx-dir="$env:UPX_DIR\upx-4.0.2-win64" `
             --name Roblox_Audio_Extractor_${{ needs.prepare.outputs.tag }}_win `
             Roblox_Audio_Extractor.py
+      - name: Compress executable
+        run: |
+          $exePath = Get-ChildItem -Path "dist" -Filter "*.exe" | Select-Object -First 1
+          upx --best --ultra-brute "$exePath"
       - uses: actions/upload-artifact@v4
         with:
           name: Windows-Build
           path: dist/*.exe
+          compression-level: 9
 
   build-linux:
     needs: prepare
@@ -58,19 +76,27 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.10"
-      - run: |
+          cache: 'pip'
+          cache-dependency-path: '**/requirements.txt'
+      - name: Install dependencies
+        run: |
           python -m pip install --upgrade pip
-          pip install -r requirements.txt
-          pip install pyinstaller
-      - run: |
+          pip install -r requirements.txt pyinstaller upx
+      - name: Build with PyInstaller (Linux)
+        run: |
           pyinstaller --onefile \
             --add-data="icons/*:icons" \
+            --upx-dir=/usr/bin \
             --name Roblox_Audio_Extractor_${{ needs.prepare.outputs.tag }}_linux \
             Roblox_Audio_Extractor.py
+      - name: Compress executable
+        run: |
+          upx --best --ultra-brute dist/*
       - uses: actions/upload-artifact@v4
         with:
           name: Linux-Build
           path: dist/*
+          compression-level: 9
 
   build-macos:
     needs: prepare
@@ -80,25 +106,32 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.10"
-      - run: |
+          cache: 'pip'
+          cache-dependency-path: '**/requirements.txt'
+      - name: Install dependencies
+        run: |
           python -m pip install --upgrade pip
-          pip install -r requirements.txt
-          pip install pyinstaller
-      - run: |
+          pip install -r requirements.txt pyinstaller upx
+      - name: Build with PyInstaller (macOS)
+        run: |
           pyinstaller --onefile \
             --add-data="icons/*:icons" \
+            --upx-dir=/usr/local/bin \
             --name Roblox_Audio_Extractor_${{ needs.prepare.outputs.tag }}_macos \
             Roblox_Audio_Extractor.py
+      - name: Compress executable
+        run: |
+          upx --best --ultra-brute dist/*
       - uses: actions/upload-artifact@v4
         with:
           name: macOS-Build
           path: dist/*
+          compression-level: 9
 
   release:
     needs: [prepare, build-windows, build-linux, build-macos]
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
       - uses: actions/download-artifact@v4
         with:
           path: artifacts
