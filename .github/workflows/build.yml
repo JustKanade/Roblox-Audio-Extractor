@@ -13,66 +13,37 @@ jobs:
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Set up Python
-        uses: actions/setup-python@v5
+      - uses: actions/setup-python@v5
         with:
           python-version: "3.10"
-      - name: Install dependencies
-        run: |
+      - run: |
           python -m pip install --upgrade pip
           if (Test-Path "requirements.txt") { pip install -r requirements.txt }
           pip install pyinstaller
-      - name: Build with PyInstaller
-        run: |
-          $buildDate = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
-          $commitHash = git rev-parse HEAD
-          $shortHash = git rev-parse --short HEAD
-          
-          echo "BUILD_DATE=$buildDate" >> $env:GITHUB_ENV
-          echo "COMMIT_HASH=$commitHash" >> $env:GITHUB_ENV
-          echo "SHORT_HASH=$shortHash" >> $env:GITHUB_ENV
-          
-          pyinstaller --onefile --windowed `
-                      --icon=icons/Roblox-Audio-Extractor.ico `
-                      --add-data="icons/*;icons" `
-                      --name "Roblox_Audio_Extractor_win_$shortHash" `
-                      Roblox_Audio_Extractor.py
-      - name: Upload Windows Artifact
-        uses: actions/upload-artifact@v4
+      - run: |
+          $date=Get-Date -Format "yyyyMMdd"
+          $hash=git rev-parse --short HEAD
+          echo "TAG=v$date-$hash" >> $env:GITHUB_ENV
+          pyinstaller --onefile --windowed --icon=icons/Roblox-Audio-Extractor.ico --add-data="icons/*;icons" --name Roblox_Audio_Extractor_win Roblox_Audio_Extractor.py
+      - uses: actions/upload-artifact@v4
         with:
           name: Windows-Build
           path: dist/*.exe
 
-  # 可选的独立构建作业（Linux）
   build-linux:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Set up Python
-        uses: actions/setup-python@v5
+      - uses: actions/setup-python@v5
         with:
           python-version: "3.10"
-      - name: Install dependencies
-        run: |
+      - run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
           pip install pyinstaller
-      - name: Build with PyInstaller
-        run: |
-          buildDate=$(date +"%Y-%m-%d %H:%M:%S")
-          commitHash=$(git rev-parse HEAD)
-          shortHash=$(git rev-parse --short HEAD)
-          
-          echo "BUILD_DATE=$buildDate" >> $GITHUB_ENV
-          echo "COMMIT_HASH=$commitHash" >> $GITHUB_ENV
-          echo "SHORT_HASH=$shortHash" >> $GITHUB_ENV
-          
-          pyinstaller --onefile \
-                      --add-data="icons/*:icons" \
-                      --name "Roblox_Audio_Extractor_linux_$shortHash" \
-                      Roblox_Audio_Extractor.py
-      - name: Upload Linux Artifact
-        uses: actions/upload-artifact@v4
+      - run: |
+          pyinstaller --onefile --add-data="icons/*:icons" --name Roblox_Audio_Extractor_linux Roblox_Audio_Extractor.py
+      - uses: actions/upload-artifact@v4
         with:
           name: Linux-Build
           path: dist/*
@@ -81,69 +52,35 @@ jobs:
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Set up Python
-        uses: actions/setup-python@v5
+      - uses: actions/setup-python@v5
         with:
           python-version: "3.10"
-      - name: Install dependencies
-        run: |
+      - run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
           pip install pyinstaller
-      - name: Build with PyInstaller
-        run: |
-          buildDate=$(date +"%Y-%m-%d %H:%M:%S")
-          commitHash=$(git rev-parse HEAD)
-          shortHash=$(git rev-parse --short HEAD)
-          
-          echo "BUILD_DATE=$buildDate" >> $GITHUB_ENV
-          echo "COMMIT_HASH=$commitHash" >> $GITHUB_ENV
-          echo "SHORT_HASH=$shortHash" >> $GITHUB_ENV
-          
-          pyinstaller --onefile \
-                      --add-data="icons/*:icons" \
-                      --name "Roblox_Audio_Extractor_macos_$shortHash" \
-                      Roblox_Audio_Extractor.py
-      - name: Upload macOS Artifact
-        uses: actions/upload-artifact@v4
+      - run: |
+          pyinstaller --onefile --add-data="icons/*:icons" --name Roblox_Audio_Extractor_macos Roblox_Audio_Extractor.py
+      - uses: actions/upload-artifact@v4
         with:
           name: macOS-Build
           path: dist/*
 
   create-release:
-    needs: [build-windows, build-linux, build-macos]  
+    needs: [build-windows, build-linux, build-macos]
     runs-on: ubuntu-latest
     steps:
-      - name: Download all artifacts
-        uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v4
         with:
           path: artifacts
-      
-      - name: Create valid tag name
-        id: tag
-        run: |
-          SHORT_HASH=$(echo "${{ needs.build-windows.outputs.SHORT_HASH }}" | tr -cd '[:alnum:]')
-          TAG_NAME="build-$(date +%Y%m%d)-${SHORT_HASH}"
-          echo "TAG_NAME=${TAG_NAME}" >> $GITHUB_OUTPUT
-      
-      - name: Create Release
-        uses: softprops/action-gh-release@v1
+      - uses: softprops/action-gh-release@v1
         with:
-          tag_name: ${{ steps.tag.outputs.TAG_NAME }}
-          name: "Development Build (${{ needs.build-windows.outputs.BUILD_DATE }})"
+          tag_name: ${{ env.TAG }}
+          name: Development Build
           body: |
-            Development preview build - Bugs may appear, if you are looking to just use the software, use the [latest stable release](https://github.com/JustKanade/Roblox-Audio-Extractor/releases/latest)
+            Development preview build - Use [latest stable release](https://github.com/JustKanade/Roblox-Audio-Extractor/releases/latest) for production
             
-            **Commit:** ${{ needs.build-windows.outputs.COMMIT_HASH }}
-            **Build date:** ${{ needs.build-windows.outputs.BUILD_DATE }}
-            
-            **Available builds:**
-            - Windows: `Roblox_Audio_Extractor_win_${{ needs.build-windows.outputs.SHORT_HASH }}.exe`
-            - Linux: `Roblox_Audio_Extractor_linux_${{ needs.build-windows.outputs.SHORT_HASH }}`
-            - macOS: `Roblox_Audio_Extractor_macos_${{ needs.build-windows.outputs.SHORT_HASH }}`
-          files: |
-            artifacts/Windows-Build/*
-            artifacts/Linux-Build/*
-            artifacts/macOS-Build/*
+            Commit: ${{ env.COMMIT_HASH }}
+            Build date: ${{ env.BUILD_DATE }}
+          files: artifacts/*
           prerelease: true
-          draft: false
