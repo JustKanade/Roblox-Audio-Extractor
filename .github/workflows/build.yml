@@ -1,7 +1,7 @@
 name: Auto Build and Release
 
 on:
-  push:
+ # push:
     #branches: [ "main" ]
   workflow_dispatch:
 
