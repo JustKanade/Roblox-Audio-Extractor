@@ -1,34 +1,32 @@
-name: Build Executable
+name: Build Executable on Push
 
 on:
   push:
-    tags:
-      - 'v*'  
-  workflow_dispatch:  
+    branches: [ "main" ]  
+  workflow_dispatch:     
 
 jobs:
   build:
-    runs-on: windows-latest 
-
+    runs-on: windows-latest
+    
     steps:
-    - uses: actions/checkout@v2 
+    - uses: actions/checkout@v3
     
     - name: Set up Python
-      uses: actions/setup-python@v2
+      uses: actions/setup-python@v4
       with:
-        python-version: '3.10'  
+        python-version: "3.10"
         
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        pip install -r requirements.txt  
+        if exist requirements.txt pip install -r requirements.txt
         pip install pyinstaller
         
     - name: Build with PyInstaller
       run: |
-        # 
-        $version = (Get-Content "version.txt" -ErrorAction SilentlyContinue)
-        if (-not $version) { $version = "1.0.0" }
+
+        $version = "$(Get-Date -Format 'yyyy.MM.dd')-$(git rev-parse --short HEAD)"
         
         pyinstaller --onefile --windowed `
                     --icon=icons/Roblox-Audio-Extractor.ico `
@@ -37,9 +35,14 @@ jobs:
                     Roblox_Audio_Extractor.py
         
     - name: Upload Artifact
-      uses: actions/upload-artifact@v2
+      uses: actions/upload-artifact@v3
       with:
         name: Roblox_Audio_Extractor
-        path: |
-          dist/
-          !dist/*.map 
+        path: dist/
+        
+    - name: Create Release (Optional)
+      if: github.ref == 'refs/heads/main'
+      uses: softprops/action-gh-release@v1
+      with:
+        files: dist/*.exe
+        generate_release_notes: true
