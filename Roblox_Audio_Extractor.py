@@ -4,7 +4,7 @@
 Roblox音频提取器 - 从Roblox缓存中提取音频文件并按音频长度或大小分类
 Roblox Audio Extractor - Extract audio files from Roblox cache and classify by audio duration or size
 作者/Author: JustKanade
-版本/Version: 0.15
+版本/Version: 0.15.1
 许可/License: GNU Affero General Public License v3.0 (AGPLv3)
 """
 
@@ -177,19 +177,16 @@ def import_libs():
 
 
 def get_roblox_default_dir():
-    """获取Roblox缓存的默认目录"""
     try:
         username = os.getenv('USERNAME') or os.getenv('USER')
 
-        # 根据操作系统选择合适的路径
         if os.name == 'nt':  # Windows
-            return os.path.join("C:", os.sep, "Users", username, "AppData", "Local", "Temp", "Roblox", "http")
+            return os.path.join("C:", os.sep, "Users", username, "AppData", "Local", "Roblox", "rbx-storage")
         elif sys.platform == 'darwin':  # macOS
-            return os.path.join("/Users", username, "Library", "Caches", "Roblox", "http")
-        else:  # Linux 或其他
-            return os.path.join(os.path.expanduser("~"), ".local", "share", "Roblox", "http")
+            return os.path.join("/Users", username, "Library", "Caches", "Roblox", "rbx-storage")
+        else:  # Linux 
+            return os.path.join(os.path.expanduser("~"), ".local", "share", "Roblox", "rbx-storage")
     except:
-        # 如果发生错误，回退到当前目录
         return os.path.join(os.getcwd(), "Roblox")
 
 
