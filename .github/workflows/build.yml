@@ -39,12 +39,6 @@ jobs:
           python -m pip install --upgrade pip
           if (Test-Path "requirements.txt") { pip install -r requirements.txt }
           pip install pyinstaller
-      - name: Download UPX (optional)
-        if: false  # 已禁用UPX
-        run: |
-          Invoke-WebRequest -Uri "https://github.com/upx/upx/releases/download/v4.0.2/upx-4.0.2-win64.zip" -OutFile "upx.zip"
-          Expand-Archive -Path "upx.zip" -DestinationPath "upx"
-          echo "$env:GITHUB_WORKSPACE\upx" >> $env:GITHUB_PATH
       - run: |
           pyinstaller `
             --onefile `
@@ -66,7 +60,49 @@ jobs:
           name: Windows-Build
           path: dist/*.exe
 
-  # [保留原有的 build-linux 和 build-macos 作业]
+  build-linux:
+    needs: prepare
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+      - run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pyinstaller
+      - run: |
+          pyinstaller --onefile \
+            --add-data="icons/*:icons" \
+            --name "Roblox_Audio_Extractor_${{ needs.prepare.outputs.tag }}_linux" \
+            Roblox_Audio_Extractor.py
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Linux-Build
+          path: dist/*
+
+  build-macos:
+    needs: prepare
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+      - run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pyinstaller
+      - run: |
+          pyinstaller --onefile \
+            --add-data="icons/*:icons" \
+            --name "Roblox_Audio_Extractor_${{ needs.prepare.outputs.tag }}_macos" \
+            Roblox_Audio_Extractor.py
+      - uses: actions/upload-artifact@v4
+        with:
+          name: macOS-Build
+          path: dist/*
 
   release:
     needs: [prepare, build-windows, build-linux, build-macos]
@@ -76,7 +112,13 @@ jobs:
       - uses: actions/download-artifact@v4
         with:
           path: artifacts
-      - name: Create release
+      - name: Create git tag
+        run: |
+          git config --global user.name "GitHub Actions"
+          git config --global user.email "actions@github.com"
+          git tag ${{ needs.prepare.outputs.tag }}
+          git push origin ${{ needs.prepare.outputs.tag }}
+      - name: Create GitHub Release
         uses: softprops/action-gh-release@v1
         with:
           tag_name: ${{ needs.prepare.outputs.tag }}
@@ -88,9 +130,10 @@ jobs:
             **Build date:** ${{ needs.prepare.outputs.build_date }}
             
             **Security Notes:**
-            - Windows build has Control Flow Guard (CFG) disabled for UPX compatibility
+            - Windows build has Control Flow Guard (CFG) disabled for compatibility
           files: |
             artifacts/Windows-Build/*
             artifacts/Linux-Build/*
             artifacts/macOS-Build/*
           prerelease: true
+          draft: false
