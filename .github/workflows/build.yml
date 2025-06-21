@@ -1,4 +1,4 @@
-name: Build Executable on Push
+name: Build and Release
 
 on:
   push:
@@ -25,12 +25,19 @@ jobs:
         
     - name: Build with PyInstaller
       run: |
-        $version = "$(Get-Date -Format 'yyyy.MM.dd')-$(git rev-parse --short HEAD)"
+        $buildDate = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
+        $commitHash = git rev-parse HEAD
+        $shortHash = git rev-parse --short HEAD
+        
+
+        echo "BUILD_DATE=$buildDate" >> $env:GITHUB_ENV
+        echo "COMMIT_HASH=$commitHash" >> $env:GITHUB_ENV
+        echo "SHORT_HASH=$shortHash" >> $env:GITHUB_ENV
         
         pyinstaller --onefile --windowed `
                     --icon=icons/Roblox-Audio-Extractor.ico `
                     --add-data="icons/*;icons" `
-                    --name "Roblox_Audio_Extractor_$version" `
+                    --name "Roblox_Audio_Extractor_$shortHash" `
                     Roblox_Audio_Extractor.py
         
     - name: Upload Artifact
@@ -38,3 +45,17 @@ jobs:
       with:
         name: Roblox_Audio_Extractor
         path: dist/*.exe
+        
+    - name: Create Development Release
+      uses: softprops/action-gh-release@v1
+      with:
+        tag_name: dev-${{ env.SHORT_HASH }}
+        name: "Development Build (${{ env.BUILD_DATE }})"
+        body: |
+          Development preview build - Bugs may appear, if you are looking to just use the software, use the [latest stable release](https://github.com/JustKanade/Roblox-Audio-Extractor/releases/latest)
+          
+          **Commit:** ${{ env.COMMIT_HASH }}
+          **Build date:** ${{ env.BUILD_DATE }}
+        files: dist/*.exe
+        prerelease: true
+        draft: false
