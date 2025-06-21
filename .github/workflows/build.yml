@@ -1,4 +1,4 @@
-name: Multi-Platform Build and Release
+name: Auto Build and Release
 
 on:
   push:
@@ -9,21 +9,26 @@ permissions:
   contents: write
 
 jobs:
-  setup:
+  prepare:
     runs-on: ubuntu-latest
     outputs:
-      tag: ${{ steps.tag.outputs.value }}
+      tag: ${{ steps.set-tag.outputs.tag }}
+      build_date: ${{ steps.set-date.outputs.date }}
     steps:
       - uses: actions/checkout@v4
-      - name: Create tag
-        id: tag
+      - name: Set build date
+        id: set-date
         run: |
-          DATE=$(date +%Y%m%d)
+          DATE=$(date +"%Y-%m-%d %H:%M:%S")
+          echo "date=$DATE" >> $GITHUB_OUTPUT
+      - name: Create release tag
+        id: set-tag
+        run: |
           SHORT_HASH=$(git rev-parse --short HEAD)
-          echo "value=v$DATE-$SHORT_HASH" >> $GITHUB_OUTPUT
+          echo "tag=dev-$(date +%Y%m%d%H%M)-$SHORT_HASH" >> $GITHUB_OUTPUT
 
   build-windows:
-    needs: setup
+    needs: prepare
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
@@ -35,14 +40,18 @@ jobs:
           if (Test-Path "requirements.txt") { pip install -r requirements.txt }
           pip install pyinstaller
       - run: |
-          pyinstaller --onefile --windowed --icon=icons/Roblox-Audio-Extractor.ico --add-data="icons/*;icons" --name Roblox_Audio_Extractor_${{ needs.setup.outputs.tag }}_win Roblox_Audio_Extractor.py
+          pyinstaller --onefile --windowed `
+            --icon=icons/Roblox-Audio-Extractor.ico `
+            --add-data="icons/*;icons" `
+            --name Roblox_Audio_Extractor_${{ needs.prepare.outputs.tag }}_win `
+            Roblox_Audio_Extractor.py
       - uses: actions/upload-artifact@v4
         with:
           name: Windows-Build
           path: dist/*.exe
 
   build-linux:
-    needs: setup
+    needs: prepare
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -54,14 +63,17 @@ jobs:
           pip install -r requirements.txt
           pip install pyinstaller
       - run: |
-          pyinstaller --onefile --add-data="icons/*:icons" --name Roblox_Audio_Extractor_${{ needs.setup.outputs.tag }}_linux Roblox_Audio_Extractor.py
+          pyinstaller --onefile \
+            --add-data="icons/*:icons" \
+            --name Roblox_Audio_Extractor_${{ needs.prepare.outputs.tag }}_linux \
+            Roblox_Audio_Extractor.py
       - uses: actions/upload-artifact@v4
         with:
           name: Linux-Build
           path: dist/*
 
   build-macos:
-    needs: setup
+    needs: prepare
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
@@ -73,34 +85,42 @@ jobs:
           pip install -r requirements.txt
           pip install pyinstaller
       - run: |
-          pyinstaller --onefile --add-data="icons/*:icons" --name Roblox_Audio_Extractor_${{ needs.setup.outputs.tag }}_macos Roblox_Audio_Extractor.py
+          pyinstaller --onefile \
+            --add-data="icons/*:icons" \
+            --name Roblox_Audio_Extractor_${{ needs.prepare.outputs.tag }}_macos \
+            Roblox_Audio_Extractor.py
       - uses: actions/upload-artifact@v4
         with:
           name: macOS-Build
           path: dist/*
 
-  create-release:
-    needs: [setup, build-windows, build-linux, build-macos]
+  release:
+    needs: [prepare, build-windows, build-linux, build-macos]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: actions/download-artifact@v4
         with:
           path: artifacts
-      - name: Create actual git tag
+      - name: Create git tag
         run: |
           git config --global user.name "GitHub Actions"
           git config --global user.email "actions@github.com"
-          git tag ${{ needs.setup.outputs.tag }}
-          git push origin ${{ needs.setup.outputs.tag }}
-      - uses: softprops/action-gh-release@v1
+          git tag ${{ needs.prepare.outputs.tag }}
+          git push origin ${{ needs.prepare.outputs.tag }}
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v1
         with:
-          tag_name: ${{ needs.setup.outputs.tag }}
-          name: "Build ${{ needs.setup.outputs.tag }}"
+          tag_name: ${{ needs.prepare.outputs.tag }}
+          name: "Development Build (${{ needs.prepare.outputs.build_date }})"
           body: |
-            Automated build
-            
-            Commit: ${{ github.sha }}
-            Build date: $(date +"%Y-%m-%d %H:%M:%S")
-          files: artifacts/*
+            Development preview build - Bugs may appear, if you are looking to just use the software, use the [latest stable release](https://github.com/JustKanade/Roblox-Audio-Extractor/releases/latest)
+
+            **Commit:** ${{ github.sha }}
+            **Build date:** ${{ needs.prepare.outputs.build_date }}
+          files: |
+            artifacts/Windows-Build/*
+            artifacts/Linux-Build/*
+            artifacts/macOS-Build/*
           prerelease: true
+          draft: false
