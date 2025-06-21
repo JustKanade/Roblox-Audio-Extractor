@@ -1,4 +1,4 @@
-name: Secure Build and Release
+name: Auto Build and Release
 
 on:
   push:
@@ -10,22 +10,22 @@ permissions:
 
 jobs:
   prepare:
-    runs-on: windows-latest
+    runs-on: ubuntu-latest
     outputs:
       tag: ${{ steps.set-tag.outputs.tag }}
       build_date: ${{ steps.set-date.outputs.date }}
     steps:
       - uses: actions/checkout@v4
-      - name: Set build info
+      - name: Set build date
         id: set-date
         run: |
-          $date=Get-Date -Format "yyyy-MM-dd HH:mm:ss"
-          echo "date=$date" >> $env:GITHUB_OUTPUT
-      - name: Create version tag
+          DATE=$(date +"%Y-%m-%d %H:%M:%S")
+          echo "date=$DATE" >> $GITHUB_OUTPUT
+      - name: Create release tag
         id: set-tag
         run: |
-          $shortHash=git rev-parse --short HEAD
-          echo "tag=dev-$(Get-Date -Format 'yyyyMMddHHmm')-$shortHash" >> $env:GITHUB_OUTPUT
+          SHORT_HASH=$(git rev-parse --short HEAD)
+          echo "tag=dev-$(date +%Y%m%d%H%M)-$SHORT_HASH" >> $GITHUB_OUTPUT
 
   build-windows:
     needs: prepare
@@ -40,21 +40,11 @@ jobs:
           if (Test-Path "requirements.txt") { pip install -r requirements.txt }
           pip install pyinstaller
       - run: |
-          pyinstaller `
-            --onefile `
-            --windowed `
+          pyinstaller --onefile --windowed `
             --icon=icons/Roblox-Audio-Extractor.ico `
             --add-data="icons/*;icons" `
-            --name "Roblox_Audio_Extractor_${{ needs.prepare.outputs.tag }}_win" `
-            --disable-windowed-traceback `
-            --noconfirm `
-            --clean `
+            --name Roblox_Audio_Extractor_${{ needs.prepare.outputs.tag }}_win `
             Roblox_Audio_Extractor.py
-      - name: Fix CFG (Control Flow Guard)
-        run: |
-          $exePath = "dist\Roblox_Audio_Extractor_${{ needs.prepare.outputs.tag }}_win.exe"
-          editbin.exe /nologo /guard:no $exePath
-        shell: cmd
       - uses: actions/upload-artifact@v4
         with:
           name: Windows-Build
@@ -75,7 +65,7 @@ jobs:
       - run: |
           pyinstaller --onefile \
             --add-data="icons/*:icons" \
-            --name "Roblox_Audio_Extractor_${{ needs.prepare.outputs.tag }}_linux" \
+            --name Roblox_Audio_Extractor_${{ needs.prepare.outputs.tag }}_linux \
             Roblox_Audio_Extractor.py
       - uses: actions/upload-artifact@v4
         with:
@@ -97,7 +87,7 @@ jobs:
       - run: |
           pyinstaller --onefile \
             --add-data="icons/*:icons" \
-            --name "Roblox_Audio_Extractor_${{ needs.prepare.outputs.tag }}_macos" \
+            --name Roblox_Audio_Extractor_${{ needs.prepare.outputs.tag }}_macos \
             Roblox_Audio_Extractor.py
       - uses: actions/upload-artifact@v4
         with:
@@ -128,9 +118,6 @@ jobs:
 
             **Commit:** ${{ github.sha }}
             **Build date:** ${{ needs.prepare.outputs.build_date }}
-            
-            **Security Notes:**
-            - Windows build has Control Flow Guard (CFG) disabled for compatibility
           files: |
             artifacts/Windows-Build/*
             artifacts/Linux-Build/*
