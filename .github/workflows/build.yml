@@ -44,25 +44,24 @@ jobs:
           pip install pyinstaller
       - name: Install UPX
         run: |
-          $env:UPX_DIR = "$env:RUNNER_TEMP\upx"
-          if (-not (Test-Path $env:UPX_DIR)) {
-            New-Item -ItemType Directory -Path $env:UPX_DIR | Out-Null
-            Invoke-WebRequest -Uri "https://github.com/upx/upx/releases/download/v4.0.2/upx-4.0.2-win64.zip" -OutFile "$env:UPX_DIR\upx.zip"
-            Expand-Archive -Path "$env:UPX_DIR\upx.zip" -DestinationPath $env:UPX_DIR
-          }
-          $env:PATH = "$env:UPX_DIR\upx-4.0.2-win64;$env:PATH"
+          $upxDir = "$env:RUNNER_TEMP\upx"
+          New-Item -ItemType Directory -Path $upxDir -Force
+          Invoke-WebRequest -Uri "https://github.com/upx/upx/releases/download/v4.0.2/upx-4.0.2-win64.zip" -OutFile "$upxDir\upx.zip"
+          Expand-Archive -Path "$upxDir\upx.zip" -DestinationPath $upxDir
+          $upxPath = (Get-ChildItem -Path "$upxDir\upx-4.0.2-win64" -Filter "upx.exe" -Recurse).FullName
+          echo "UPX_PATH=$upxPath" >> $env:GITHUB_ENV
       - name: Build with PyInstaller (Windows)
         run: |
           pyinstaller --onefile --windowed `
             --icon=icons/Roblox-Audio-Extractor.ico `
             --add-data="icons/*;icons" `
-            --upx-dir="$env:UPX_DIR\upx-4.0.2-win64" `
+            --upx-dir="$env:RUNNER_TEMP\upx\upx-4.0.2-win64" `
             --name Roblox_Audio_Extractor_${{ needs.prepare.outputs.tag }}_win `
             Roblox_Audio_Extractor.py
       - name: Compress executable
         run: |
-          $exePath = Get-ChildItem -Path "dist" -Filter "*.exe" | Select-Object -First 1
-          & "$env:UPX_DIR\upx-4.0.2-win64\upx.exe" --best --ultra-brute "$exePath"
+          $exePath = (Get-ChildItem -Path "dist" -Filter "*.exe").FullName
+          & "$env:UPX_PATH" --best --ultra-brute "$exePath"
       - uses: actions/upload-artifact@v4
         with:
           name: Windows-Build
