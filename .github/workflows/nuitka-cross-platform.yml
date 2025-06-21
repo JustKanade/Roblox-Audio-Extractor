@@ -3,35 +3,38 @@ name: Nuitka Cross-Platform Build
 on:
   push:
     branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
   workflow_dispatch:
 
 jobs:
   build:
     strategy:
-      fail-fast: false  # 允许其他任务继续运行
+      fail-fast: false  
       matrix:
         os: [windows-latest, ubuntu-latest, macos-latest]
-        python-version: ["3.11"]
+        python-version: ["3.11"]  
 
     runs-on: ${{ matrix.os }}
 
     steps:
-    - uses: actions/checkout@v4
+    - name: Checkout code
+      uses: actions/checkout@v4
 
     - name: Set up Python
       uses: actions/setup-python@v5
       with:
         python-version: ${{ matrix.python-version }}
 
-    - name: Install system dependencies (Linux)
+    - name: Install Linux dependencies
       if: runner.os == 'Linux'
       run: |
         sudo apt-get update
-        sudo apt-get install -y gcc python3-dev
+        sudo apt-get install -y gcc python3-dev  # Nuitka 必需
 
     - name: Install dependencies
       run: |
-        pip install --upgrade pip
+        python -m pip install --upgrade pip
         pip install nuitka -r requirements.txt
 
     - name: Compile with Nuitka
@@ -46,7 +49,8 @@ jobs:
           "Roblox_Audio_Extractor.py"
 
     - name: Upload artifacts
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4  
       with:
         name: Build-${{ runner.os }}-Py${{ matrix.python-version }}
         path: output
+        retention-days: 7  
