@@ -19,7 +19,7 @@ jobs:
       - name: Set build date
         id: set-date
         run: |
-          DATE=$(date -u +"%Y-%m-%d %H:%M:%S UTC")
+          DATE=$(date +"%Y-%m-%d %H:%M:%S")
           echo "date=$DATE" >> $GITHUB_OUTPUT
       - name: Create release tag
         id: set-tag
@@ -35,107 +35,70 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.10"
-          cache: 'pip'
-          cache-dependency-path: '**/requirements.txt'
-      - name: Install dependencies
-        run: |
+      - run: |
           python -m pip install --upgrade pip
           if (Test-Path "requirements.txt") { pip install -r requirements.txt }
           pip install pyinstaller
-      - name: Install UPX
-        run: |
-          $upxDir = "$env:RUNNER_TEMP\upx"
-          New-Item -ItemType Directory -Path $upxDir -Force
-          Invoke-WebRequest -Uri "https://github.com/upx/upx/releases/download/v4.0.2/upx-4.0.2-win64.zip" -OutFile "$upxDir\upx.zip"
-          Expand-Archive -Path "$upxDir\upx.zip" -DestinationPath $upxDir
-          $upxPath = (Get-ChildItem -Path "$upxDir\upx-4.0.2-win64" -Filter "upx.exe" -Recurse).FullName
-          echo "UPX_PATH=$upxPath" >> $env:GITHUB_ENV
-      - name: Build with PyInstaller (Windows)
-        run: |
+      - run: |
           pyinstaller --onefile --windowed `
             --icon=icons/Roblox-Audio-Extractor.ico `
             --add-data="icons/*;icons" `
-            --upx-dir="$env:RUNNER_TEMP\upx\upx-4.0.2-win64" `
             --name Roblox_Audio_Extractor_${{ needs.prepare.outputs.tag }}_win `
             Roblox_Audio_Extractor.py
-      - name: Compress executable
-        run: |
-          $exePath = (Get-ChildItem -Path "dist" -Filter "*.exe").FullName
-          & "$env:UPX_PATH" --best --ultra-brute "$exePath"
       - uses: actions/upload-artifact@v4
         with:
           name: Windows-Build
           path: dist/*.exe
-          compression-level: 9
 
   build-linux:
     needs: prepare
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Install UPX
-        run: sudo apt-get update && sudo apt-get install -y upx
       - uses: actions/setup-python@v5
         with:
           python-version: "3.10"
-          cache: 'pip'
-          cache-dependency-path: '**/requirements.txt'
-      - name: Install dependencies
-        run: |
+      - run: |
           python -m pip install --upgrade pip
-          pip install -r requirements.txt pyinstaller
-      - name: Build with PyInstaller (Linux)
-        run: |
+          pip install -r requirements.txt
+          pip install pyinstaller
+      - run: |
           pyinstaller --onefile \
             --add-data="icons/*:icons" \
-            --upx-dir=/usr/bin \
             --name Roblox_Audio_Extractor_${{ needs.prepare.outputs.tag }}_linux \
             Roblox_Audio_Extractor.py
-      - name: Compress executable
-        run: |
-          upx --best --ultra-brute dist/*
       - uses: actions/upload-artifact@v4
         with:
           name: Linux-Build
           path: dist/*
-          compression-level: 9
 
   build-macos:
     needs: prepare
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Install UPX
-        run: brew install upx
       - uses: actions/setup-python@v5
         with:
           python-version: "3.10"
-          cache: 'pip'
-          cache-dependency-path: '**/requirements.txt'
-      - name: Install dependencies
-        run: |
+      - run: |
           python -m pip install --upgrade pip
-          pip install -r requirements.txt pyinstaller
-      - name: Build with PyInstaller (macOS)
-        run: |
+          pip install -r requirements.txt
+          pip install pyinstaller
+      - run: |
           pyinstaller --onefile \
             --add-data="icons/*:icons" \
-            --upx-dir=/usr/local/bin \
             --name Roblox_Audio_Extractor_${{ needs.prepare.outputs.tag }}_macos \
             Roblox_Audio_Extractor.py
-      - name: Compress executable
-        run: |
-          upx --best --ultra-brute dist/*
       - uses: actions/upload-artifact@v4
         with:
           name: macOS-Build
           path: dist/*
-          compression-level: 9
 
   release:
     needs: [prepare, build-windows, build-linux, build-macos]
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v4
       - uses: actions/download-artifact@v4
         with:
           path: artifacts
