@@ -51,7 +51,7 @@ jobs:
       with:
         tag_name: dev-${{ env.SHORT_HASH }}
         name: "Development Build (${{ env.BUILD_DATE }})"
-        body: |
+        body: | 
           Development preview build - Bugs may appear, if you are looking to just use the software, use the [latest stable release](https://github.com/JustKanade/Roblox-Audio-Extractor/releases/latest)
           
           **Commit:** ${{ env.COMMIT_HASH }}
