@@ -1,10 +1,18 @@
-name: Optimized Auto Build and Release with UPX
+name: Auto Build, Compress & Release
 
 on:
+  push:
+    branches: ["main"]
+    tags: ["v*.*.*"]
   workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 permissions:
   contents: write
+  id-token: write
 
 jobs:
   prepare:
@@ -13,167 +21,104 @@ jobs:
       tag: ${{ steps.set-tag.outputs.tag }}
       build_date: ${{ steps.set-date.outputs.date }}
     steps:
-      - uses: actions/checkout@v4
-        with:
-          # 增加超时时间避免被取消
-          timeout-minutes: 5
-          # 只获取最近提交减少数据量
-          fetch-depth: 1
-      - name: Set build date
-        id: set-date
-        run: |
-          echo "date=$(date +'%Y-%m-%d %H:%M:%S %Z')" >> $GITHUB_OUTPUT
-      - name: Create release tag
+      - name: Set up Git
+        uses: actions/checkout@v4
+
+      - name: Determine Tag
         id: set-tag
         run: |
-          SHORT_HASH=$(git rev-parse --short HEAD)
-          echo "tag=dev-$(date +%Y%m%d%H%M)-$SHORT_HASH" >> $GITHUB_OUTPUT
+          if [[ "${{ github.ref }}" == refs/tags/* ]]; then
+            TAG_NAME=${{ github.ref_name }}
+          else
+            TAG_NAME="dev-$(date +'%Y%m%d%H%M')"
+          fi
+          echo "::set-output name=tag::$TAG_NAME"
 
-  setup-upx:
-    runs-on: ubuntu-latest
-    outputs:
-      upx-version: ${{ steps.get-version.outputs.version }}
-    steps:
-      - name: Get latest UPX version
-        id: get-version
+      - name: Determine Build Date
+        id: set-date
         run: |
-          VERSION=$(curl -s "https://api.github.com/repos/upx/upx/releases/latest" | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/')
-          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          BUILD_DATE=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+          echo "::set-output name=date::$BUILD_DATE"
 
   build:
-    needs: [prepare, setup-upx]
+    needs: prepare
+    runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [windows-latest, ubuntu-latest, macos-latest]
-        include:
-          - os: windows-latest
-            name_suffix: win
-            data_separator: ';'
-            icon_arg: --icon=icons/Roblox-Audio-Extractor.ico
-            windowed_arg: --windowed
-            upx_dir: 'C:\\upx'
-            upx_bin: 'upx.exe'
-            upx_suffix: 'win64.zip'
-          - os: ubuntu-latest
-            name_suffix: linux
-            data_separator: ':'
-            icon_arg: ''
-            windowed_arg: ''
-            upx_dir: '/opt/upx'
-            upx_bin: 'upx'
-            upx_suffix: 'amd64_linux.tar.xz'
-          - os: macos-latest
-            name_suffix: macos
-            data_separator: ':'
-            icon_arg: ''
-            windowed_arg: ''
-            upx_dir: '/opt/upx'
-            upx_bin: 'upx'
-            # 修复 macOS 文件名模式
-            upx_suffix: '${{ runner.arch == ''ARM64'' ? ''arm64_macos'' : ''amd64_macos'' }}.tar.xz'
-    runs-on: ${{ matrix.os }}
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    env:
+      BUILD_DATE: ${{ needs.prepare.outputs.build_date }}
+      TAG_NAME: ${{ needs.prepare.outputs.tag }}
     steps:
-      - uses: actions/checkout@v4
-        with:
-          timeout-minutes: 5
-          fetch-depth: 1
-      
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.10"
-      
-      # 下载并安装 UPX
-      - name: Download and install UPX
-        run: |
-          VERSION="${{ needs.setup-upx.outputs.upx-version }}"
-          VERSION_NUM="${VERSION:1}"  # 去除版本号前的 'v'
-          SUFFIX="${{ matrix.upx_suffix }}"
-          
-          echo "Installing UPX $VERSION ($SUFFIX)"
-          
-          if [ "${{ runner.os }}" == "Windows" ]; then
-            URL="https://github.com/upx/upx/releases/download/$VERSION/upx-$VERSION_NUM-$SUFFIX"
-            curl -L -o upx.zip "$URL"
-            mkdir -p "${{ matrix.upx_dir }}"
-            unzip upx.zip -d "${{ matrix.upx_dir }}"
-            # 添加 UPX 到 PATH
-            echo "${{ matrix.upx_dir }}" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
-          else
-            # macOS/Linux
-            URL="https://github.com/upx/upx/releases/download/$VERSION/upx-$VERSION_NUM-$SUFFIX"
-            curl -L -o upx.tar.xz "$URL"
-            mkdir -p "${{ matrix.upx_dir }}"
-            tar -xvf upx.tar.xz -C "${{ matrix.upx_dir }}" --strip-components=1
-            echo "${{ matrix.upx_dir }}" >> $GITHUB_PATH
-          fi
-          
-          # 验证安装
-          ${{ matrix.upx_bin }} --version
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-      - name: Cache dependencies
+      - name: Cache pip
         uses: actions/cache@v3
         with:
-          path: |
-            ~/.cache/pip
-            venv/
-          key: ${{ runner.os }}-pip-${{ hashFiles('requirements.txt') }}
-          restore-keys: |
-            ${{ runner.os }}-pip-
-      
-      - name: Install dependencies
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.x'
+
+      - name: Install Dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install -r requirements.txt pyinstaller
-      
-      - name: Build executable with UPX
-        shell: bash
-        run: |
-          pyinstaller --onefile ${{ matrix.windowed_arg }} \
-            ${{ matrix.icon_arg }} \
-            --add-data="icons/*${{ matrix.data_separator }}icons" \
-            --upx-dir "${{ matrix.upx_dir }}" \
-            --name Roblox_Audio_Extractor_${{ needs.prepare.outputs.tag }}_${{ matrix.name_suffix }} \
-            Roblox_Audio_Extractor.py
-          
-          # 应用最大压缩 (级别 9)
-          ${{ matrix.upx_bin }} --best --lzma -9 dist/*
+          pip install -r requirements.txt
+          pip install nuitka upx
 
-      - uses: actions/upload-artifact@v4
+      - name: Build with Nuitka
+        run: |
+          nuitka \
+            --standalone \
+            --show-progress \
+            --remove-output \
+            --lto=no \
+            --output-dir=dist/${{ matrix.os }} \
+            main.py
+
+      - name: Compress with UPX (max)
+        run: |
+          find dist/${{ matrix.os }} -type f \( -name '*.exe' -o -perm /111 \) -print0 \
+            | xargs -0 --max-procs=4 --no-run-if-empty upx --best --ultra-brute
+
+      - name: Upload Artifacts
+        uses: actions/upload-artifact@v3
         with:
-          name: ${{ matrix.os }}-Build
-          path: dist/*
+          name: ${{ matrix.os }}-build
+          path: dist/${{ matrix.os }}
 
   release:
-    needs: [prepare, build]
+    needs: build
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/download-artifact@v4
+      - name: Download Artifacts
+        uses: actions/download-artifact@v3
         with:
           path: artifacts
-      
-      - name: Create git tag
-        run: |
-          git config --global user.name "GitHub Actions"
-          git config --global user.email "actions@github.com"
-          git tag ${{ needs.prepare.outputs.tag }}
-          git push origin ${{ needs.prepare.outputs.tag }}
-      
+
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v1
         with:
           tag_name: ${{ needs.prepare.outputs.tag }}
-          name: "Dev Build (${{ needs.prepare.outputs.build_date }})"
+          name: "Build ${{ needs.prepare.outputs.tag }} (${{ needs.prepare.outputs.build_date }})"
           body: |
-            **Development preview** - For stable version use [latest release](https://github.com/JustKanade/Roblox-Audio-Extractor/releases/latest)
-            
-            | Metadata | Value |
-            |----------|-------|
-            | **Commit** | ${{ github.sha }} |
-            | **Build date** | ${{ needs.prepare.outputs.build_date }} |
-            | **UPX version** | ${{ needs.setup-upx.outputs.upx-version }} |
+            Automatic build of version ${{ needs.prepare.outputs.tag }}.
+
+            **Commit**: ${{ github.sha }}
+            **Built at**: ${{ needs.prepare.outputs.build_date }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload Release Assets
+        uses: softprops/action-gh-release@v1
+        with:
           files: |
-            artifacts/windows-latest-Build/*
-            artifacts/ubuntu-latest-Build/*
-            artifacts/macos-latest-Build/*
-          prerelease: true
-          draft: false
+            artifacts/ubuntu-latest/**
+            artifacts/windows-latest/**
+            artifacts/macos-latest/**
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
