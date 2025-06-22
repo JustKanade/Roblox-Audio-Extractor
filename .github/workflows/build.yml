@@ -1,4 +1,3 @@
-```yaml
 name: Auto Build and Release
 
 on:
@@ -147,4 +146,4 @@ jobs:
             macOS-Build/*
           prerelease: true
           draft: false
-```
+
