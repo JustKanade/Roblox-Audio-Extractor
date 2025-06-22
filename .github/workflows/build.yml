@@ -46,7 +46,8 @@ jobs:
         run: choco install upx -y --no-progress
       - name: Compress Executable
         run: |
-          upx --ultra-brute dist\*.exe
+          # 添加 --force 以支持 GUIARD_CF 启用的 PE 文件
+          upx --ultra-brute --force dist\\*.exe
       - uses: actions/upload-artifact@v4
         with:
           name: Windows-Build
@@ -133,4 +134,3 @@ jobs:
             macOS-Build/*
           prerelease: true
           draft: false
-
