@@ -14,7 +14,7 @@ warnings.filterwarnings("ignore", category=DeprecationWarning)
 
 import os
 import sys
-from PyQt5.QtCore import QCoreApplication
+
 
 if hasattr(sys, '_MEIPASS'):
     os.environ['QT_QPA_PLATFORM_PLUGIN_PATH'] = os.path.join(sys._MEIPASS, 'PyQt5', 'Qt', 'plugins')
@@ -28,7 +28,7 @@ import traceback
 import hashlib
 import multiprocessing
 from functools import lru_cache
-from typing import Dict, List, Any, Tuple, Set, Optional
+from typing import Dict, List, Any, Set, Optional
 from enum import Enum, auto
 
 
@@ -58,7 +58,7 @@ logger = logging.getLogger(__name__)
 
 # 延迟导入库列表
 _LIBS_IMPORTED = False
-gzip = shutil = random = string = getpass = subprocess = ThreadPoolExecutor = Fore = Style = init = None
+gzip = shutil = random = string = subprocess  = Fore = Style = init = None
 
 
 def resource_path(relative_path):
@@ -135,7 +135,7 @@ class ClassificationMethod(Enum):
 
 def import_libs():
     """按需导入库，减少启动时间和内存占用"""
-    global gzip, shutil, random, string, hashlib, getpass, multiprocessing
+    global gzip, shutil, random, string, hashlib, multiprocessing
     global subprocess, ThreadPoolExecutor, Fore, Style, init, _LIBS_IMPORTED
 
     if _LIBS_IMPORTED:
@@ -147,14 +147,12 @@ def import_libs():
     import random
     import string
     import hashlib
-    import getpass
     import multiprocessing
     import subprocess
-    from concurrent.futures import ThreadPoolExecutor
 
     # 导入第三方库
     try:
-        from colorama import Fore, Style, init
+        from colorama import init
         init()
     except ImportError:
         # 创建假的colorama对象
@@ -890,11 +888,6 @@ class LanguageManager:
         self._cache[cache_key] = message
         return message
 
-    def set_language(self, language: Language) -> None:
-        """设置当前语言"""
-        if self.current_language != language:
-            self.current_language = language
-            self._cache.clear()  # 清除缓存
 
     def get_language_name(self) -> str:
         """获取当前语言的名称"""
@@ -2319,7 +2312,7 @@ class MainWindow(MSFluentWindow):
         system_card = CardWidget()
         system_card.setMinimumWidth(250)  # 设置最小宽度
         system_layout = QVBoxLayout(system_card)
-        system_layout.setContentsMargins(15, 12, 15, 12)
+        system_layout.setContentsMargins(20, 15, 20, 15)
 
         system_title = StrongBodyLabel(lang.get("system_info"))
         system_layout.addWidget(system_title)
@@ -2758,27 +2751,26 @@ class MainWindow(MSFluentWindow):
         self.extractLogHandler = LogHandler(self.extractLogText)
 
     def setupClearCacheInterface(self):
-        """设置清除缓存界面"""
-        # 创建滚动区域
         scroll = ScrollArea(self.clearCacheInterface)
         scroll.setWidgetResizable(True)
         scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
 
-        # 主内容容器
         content_widget = QWidget()
         content_layout = QVBoxLayout(content_widget)
+        # 与Extract界面保持一致的边距和间隔
         content_layout.setContentsMargins(30, 30, 30, 30)
         content_layout.setSpacing(20)
 
         # 缓存信息卡片
         info_card = CardWidget()
+        info_card.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Maximum)
         info_layout = QVBoxLayout(info_card)
-        info_layout.setContentsMargins(25, 20, 25, 20)
-        info_layout.setSpacing(15)
+        info_layout.setContentsMargins(20, 15, 20, 15)
+        info_layout.setSpacing(12)
+        content_layout.addWidget(info_card)
 
         # 标题
         info_title = TitleLabel(lang.get("clear_cache"))
-        info_title.setObjectName("cacheTitle")
         info_layout.addWidget(info_title)
 
         # 描述
@@ -2821,24 +2813,26 @@ class MainWindow(MSFluentWindow):
         info_layout.addLayout(quick_actions)
         content_layout.addWidget(info_card)
 
+
         # 操作控制卡片
         control_card = CardWidget()
+        control_card.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Maximum)
         control_layout = QVBoxLayout(control_card)
         control_layout.setContentsMargins(25, 20, 25, 20)
         control_layout.setSpacing(15)
+        content_layout.addWidget(control_card)
 
         # 进度显示
         progress_layout = QVBoxLayout()
-
         self.cacheProgressBar = ProgressBar()
         self.cacheProgressBar.setValue(0)
         self.cacheProgressBar.setTextVisible(True)
-
         self.cacheProgressLabel = CaptionLabel(lang.get("ready"))
         self.cacheProgressLabel.setAlignment(Qt.AlignCenter)
-
         progress_layout.addWidget(self.cacheProgressBar)
         progress_layout.addWidget(self.cacheProgressLabel)
+
+        control_layout.addLayout(progress_layout)
 
         # 操作按钮
         button_layout = QHBoxLayout()
@@ -2863,8 +2857,7 @@ class MainWindow(MSFluentWindow):
 
         # 日志区域
         log_card = CardWidget()
-        log_card.setFixedHeight(300)
-
+        log_card.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Maximum)
         log_layout = QVBoxLayout(log_card)
         log_layout.setContentsMargins(20, 10, 20, 15)
         log_layout.setSpacing(10)
@@ -2929,6 +2922,7 @@ class MainWindow(MSFluentWindow):
 
         # 历史统计卡片
         stats_card = CardWidget()
+        stats_card.setMaximumHeight(220)  # 限制最大高度，防止异常放大
         stats_layout = QVBoxLayout(stats_card)
         stats_layout.setContentsMargins(25, 20, 25, 20)
         stats_layout.setSpacing(15)
@@ -3000,6 +2994,8 @@ class MainWindow(MSFluentWindow):
 
         # 历史记录概览卡片（固定结构）
         self.historyOverviewCard = CardWidget()
+        self.historyOverviewCard.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)  # 关键：自适应宽度
+        self.historyOverviewCard.setMaximumHeight(120)
         overview_layout = QVBoxLayout(self.historyOverviewCard)
         overview_layout.setContentsMargins(20, 15, 20, 15)
 
@@ -3009,8 +3005,8 @@ class MainWindow(MSFluentWindow):
         self.historyStatsLabel = CaptionLabel("")
         overview_layout.addWidget(self.historyStatsLabel)
 
-        # 更新概览信息
-        self.updateHistoryOverview(history_size)
+        # 添加弹性空间
+        overview_layout.addStretch()
 
         content_layout.addWidget(self.historyOverviewCard)
 
@@ -3192,12 +3188,17 @@ class MainWindow(MSFluentWindow):
 
         # 语言设置卡片
         language_card = CardWidget()
-        lang_card_layout = QVBoxLayout(language_card)
+        lang_card_widget = QWidget()
+        lang_card_layout = QVBoxLayout(lang_card_widget)
+        lang_card_widget.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Maximum)
         lang_card_layout.setContentsMargins(20, 15, 20, 15)
         lang_card_layout.setSpacing(15)
 
-        lang_title = StrongBodyLabel(lang.get('language_region'))
-        lang_card_layout.addWidget(lang_title)
+        # 然后将 lang_card_widget 添加到 language_card
+        language_card_layout = QVBoxLayout(language_card)
+        language_card_layout.addWidget(lang_card_widget)
+
+
 
         # 当前语言显示
         current_lang_row = QHBoxLayout()
@@ -3235,12 +3236,12 @@ class MainWindow(MSFluentWindow):
 
         # 外观设置卡片
         appearance_card = CardWidget()
+        appearance_card.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Maximum)  # 正确
         appearance_card_layout = QVBoxLayout(appearance_card)
         appearance_card_layout.setContentsMargins(20, 15, 20, 15)
         appearance_card_layout.setSpacing(15)
 
-        appearance_title = StrongBodyLabel(lang.get('appearance'))
-        appearance_card_layout.addWidget(appearance_title)
+
 
         # 主题选择
         theme_row = QHBoxLayout()
@@ -3273,12 +3274,10 @@ class MainWindow(MSFluentWindow):
 
         # 性能设置卡片
         performance_card = CardWidget()
-        perf_card_layout = QVBoxLayout(performance_card)
+        performance_card.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Maximum)
+        perf_card_layout = QVBoxLayout(performance_card)  # 正确：定义 perf_card_layout
         perf_card_layout.setContentsMargins(20, 15, 20, 15)
         perf_card_layout.setSpacing(15)
-
-        perf_title = StrongBodyLabel(lang.get('performance'))
-        perf_card_layout.addWidget(perf_title)
 
         # 默认线程数设置
         threads_row = QHBoxLayout()
@@ -3355,8 +3354,9 @@ class MainWindow(MSFluentWindow):
 
         # 关于应用卡片
         about_card = CardWidget()
+        about_card.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Maximum)  # 防止高度异常拉伸
         about_layout = QVBoxLayout(about_card)
-        about_layout.setContentsMargins(30, 25, 30, 25)
+        about_layout.setContentsMargins(12, 10, 12, 10)
         about_layout.setSpacing(20)
 
         # 应用头部
@@ -3423,6 +3423,7 @@ class MainWindow(MSFluentWindow):
             lang.get("feature_4")
         ]
 
+
         for i, feature in enumerate(feature_items, 1):
             feature_label = CaptionLabel(f"{i}. {feature}")
             features_layout.addWidget(feature_label)
@@ -3433,6 +3434,7 @@ class MainWindow(MSFluentWindow):
 
         # 链接和支持卡片
         links_card = CardWidget()
+        links_card.setMaximumHeight(180)  # 限制最大高度，防止异常放大
         links_layout = QVBoxLayout(links_card)
         links_layout.setContentsMargins(20, 15, 20, 15)
         links_layout.setSpacing(15)
@@ -3466,6 +3468,8 @@ class MainWindow(MSFluentWindow):
 
         # 系统信息卡片
         system_card = CardWidget()
+        system_card.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Maximum)  # 关键：防止高度异常拉伸
+
         system_layout = QVBoxLayout(system_card)
         system_layout.setContentsMargins(20, 15, 20, 15)
         system_layout.setSpacing(10)
@@ -4176,11 +4180,11 @@ def main():
             splash_icon = resource_path(os.path.join("icons", "Roblox-Audio-Extractor.png"))
             if os.path.exists(splash_icon):
                 splash = SplashScreen(QIcon(splash_icon), main_window)
-                splash.setIconSize(QSize(64, 64))
+                splash.setIconSize(QSize(150, 150))
                 splash.raise_()
 
                 # 显示启动画面2秒后关闭
-                QTimer.singleShot(2000, splash.finish)
+                QTimer.singleShot(1000, splash.finish)
         except Exception as e:
             print(f"无法显示启动画面: {e}")
 
