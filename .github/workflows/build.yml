@@ -1,4 +1,4 @@
-
+```yaml
 name: Auto Build and Release
 
 on:
@@ -23,8 +23,17 @@ jobs:
 
   build-windows:
     needs: prepare
-    runs-on: windows-latest
+    runs-on: windows-latest    # Windows Runner (2022) 包含 Visual Studio Build Tools
     steps:
+      - name: Verify Visual Studio Build Tools
+        run: |
+          echo "Checking for editbin..."
+          where editbin || echo "editbin not found"
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+      - name: Install Dependencies
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
@@ -42,11 +51,15 @@ jobs:
             --add-data "icons/*;icons" \
             --name Roblox_Audio_Extractor_${{ needs.prepare.outputs.tag }}_win \
             Roblox_Audio_Extractor.py
+      - name: Remove Control-Flow Guard
+        run: |
+          # 使用 Visual Studio 的 editbin 工具去除 CFG 标志
+          editbin /guard:cf- dist\\*.exe
+        # 需要预装 Visual Studio Build Tools，或使用 Visual Studio 环境中的 editbin
       - name: Install UPX
         run: choco install upx -y --no-progress
       - name: Compress Executable
         run: |
-          # 添加 --force 以支持 GUIARD_CF 启用的 PE 文件
           upx --ultra-brute --force dist\\*.exe
       - uses: actions/upload-artifact@v4
         with:
@@ -134,3 +147,4 @@ jobs:
             macOS-Build/*
           prerelease: true
           draft: false
+```
