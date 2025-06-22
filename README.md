@@ -9,6 +9,7 @@
 [![License: AGPL v3](https://img.shields.io/badge/License-AGPL%20v3-orange.svg)](https://www.gnu.org/licenses/agpl-3.0)
 [![Python 3.7+](https://img.shields.io/badge/python-3.7+-blue.svg)](https://www.python.org/downloads/)
 [![GitHub stars](https://img.shields.io/github/stars/JustKanade/Roblox-Audio-Extractor?style=social)](https://github.com/JustKanade/Roblox-Audio-Extractor/stargazers)
+[![Auto Build and Release](https://github.com/JustKanade/Roblox-Audio-Extractor/actions/workflows/build.yml/badge.svg)](https://github.com/JustKanade/Roblox-Audio-Extractor/actions/workflows/build.yml)
 
 English | [简体中文](README_ZH.md)
 
