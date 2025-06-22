@@ -6,9 +6,10 @@ on:
     tags: ["v*.*.*"]
   workflow_dispatch:
 
+# 不取消正在运行的请求，而是排队等待，以避免因优先级问题被取消
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 permissions:
   contents: write
