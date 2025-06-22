@@ -32,13 +32,13 @@ jobs:
           else
             TAG_NAME="dev-$(date +'%Y%m%d%H%M')"
           fi
-          echo "::set-output name=tag::$TAG_NAME"
+          echo "tag=$TAG_NAME" >> $GITHUB_OUTPUT
 
       - name: Determine Build Date
         id: set-date
         run: |
           BUILD_DATE=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
-          echo "::set-output name=date::$BUILD_DATE"
+          echo "date=$BUILD_DATE" >> $GITHUB_OUTPUT
 
   build:
     needs: prepare
