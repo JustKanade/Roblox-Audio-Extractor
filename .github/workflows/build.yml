@@ -2,7 +2,7 @@ name: Auto Build and Release
 
 on:
  # push:
-   # branches: [ "main" ]
+   # branches: [ "main" ]  uncomment thesse notes when you want to get auto-release when you change shoemthing 
   workflow_dispatch:
 
 permissions:
