@@ -14,6 +14,11 @@ jobs:
       build_date: ${{ steps.set-date.outputs.date }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          # 增加超时时间避免被取消
+          timeout-minutes: 5
+          # 只获取最近提交减少数据量
+          fetch-depth: 1
       - name: Set build date
         id: set-date
         run: |
@@ -34,11 +39,6 @@ jobs:
         run: |
           VERSION=$(curl -s "https://api.github.com/repos/upx/upx/releases/latest" | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/')
           echo "version=$VERSION" >> $GITHUB_OUTPUT
-      - name: Upload UPX version
-        uses: actions/upload-artifact@v4
-        with:
-          name: upx-version
-          path: ${{ steps.get-version.outputs.version }}
 
   build:
     needs: [prepare, setup-upx]
@@ -53,6 +53,7 @@ jobs:
             windowed_arg: --windowed
             upx_dir: 'C:\\upx'
             upx_bin: 'upx.exe'
+            upx_suffix: 'win64.zip'
           - os: ubuntu-latest
             name_suffix: linux
             data_separator: ':'
@@ -60,6 +61,7 @@ jobs:
             windowed_arg: ''
             upx_dir: '/opt/upx'
             upx_bin: 'upx'
+            upx_suffix: 'amd64_linux.tar.xz'
           - os: macos-latest
             name_suffix: macos
             data_separator: ':'
@@ -67,9 +69,15 @@ jobs:
             windowed_arg: ''
             upx_dir: '/opt/upx'
             upx_bin: 'upx'
+            # 修复 macOS 文件名模式
+            upx_suffix: '${{ runner.arch == ''ARM64'' ? ''arm64_macos'' : ''amd64_macos'' }}.tar.xz'
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          timeout-minutes: 5
+          fetch-depth: 1
+      
       - uses: actions/setup-python@v5
         with:
           python-version: "3.10"
@@ -77,28 +85,30 @@ jobs:
       # 下载并安装 UPX
       - name: Download and install UPX
         run: |
-          echo "Installing UPX ${{ needs.setup-upx.outputs.upx-version }}"
+          VERSION="${{ needs.setup-upx.outputs.upx-version }}"
+          VERSION_NUM="${VERSION:1}"  # 去除版本号前的 'v'
+          SUFFIX="${{ matrix.upx_suffix }}"
+          
+          echo "Installing UPX $VERSION ($SUFFIX)"
+          
           if [ "${{ runner.os }}" == "Windows" ]; then
-            curl -L -o upx.zip "https://github.com/upx/upx/releases/download/${{ needs.setup-upx.outputs.upx-version }}/upx-${{ needs.setup-upx.outputs.upx-version }}-win64.zip"
+            URL="https://github.com/upx/upx/releases/download/$VERSION/upx-$VERSION_NUM-$SUFFIX"
+            curl -L -o upx.zip "$URL"
             mkdir -p "${{ matrix.upx_dir }}"
             unzip upx.zip -d "${{ matrix.upx_dir }}"
+            # 添加 UPX 到 PATH
             echo "${{ matrix.upx_dir }}" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
-          elif [ "${{ runner.os }}" == "Linux" ]; then
-            curl -L -o upx.tar.xz "https://github.com/upx/upx/releases/download/${{ needs.setup-upx.outputs.upx-version }}/upx-${{ needs.setup-upx.outputs.upx-version }}-amd64_linux.tar.xz"
-            mkdir -p "${{ matrix.upx_dir }}"
-            tar -xvf upx.tar.xz -C "${{ matrix.upx_dir }}" --strip-components=1
-            echo "${{ matrix.upx_dir }}" >> $GITHUB_PATH
-          elif [ "${{ runner.os }}" == "macOS" ]; then
-            curl -L -o upx.tar.xz "https://github.com/upx/upx/releases/download/${{ needs.setup-upx.outputs.upx-version }}/upx-${{ needs.setup-upx.outputs.upx-version }}-apple-macosx.tar.xz"
+          else
+            # macOS/Linux
+            URL="https://github.com/upx/upx/releases/download/$VERSION/upx-$VERSION_NUM-$SUFFIX"
+            curl -L -o upx.tar.xz "$URL"
             mkdir -p "${{ matrix.upx_dir }}"
             tar -xvf upx.tar.xz -C "${{ matrix.upx_dir }}" --strip-components=1
             echo "${{ matrix.upx_dir }}" >> $GITHUB_PATH
           fi
           
-      - name: Verify UPX installation
-        run: |
+          # 验证安装
           ${{ matrix.upx_bin }} --version
-          echo "UPX installed at $(which ${{ matrix.upx_bin }})"
 
       - name: Cache dependencies
         uses: actions/cache@v3
