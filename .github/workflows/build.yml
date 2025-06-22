@@ -35,10 +35,11 @@ jobs:
           if (Test-Path "requirements.txt") { pip install -r requirements.txt }
           pip install pyinstaller
       - name: Build Executable
+        shell: bash
         run: |
           pyinstaller --onefile --windowed \
             --icon=icons/Roblox-Audio-Extractor.ico \
-            --add-data="icons/*;icons" \
+            --add-data "icons/*;icons" \
             --name Roblox_Audio_Extractor_${{ needs.prepare.outputs.tag }}_win \
             Roblox_Audio_Extractor.py
       - name: Install UPX
@@ -67,7 +68,7 @@ jobs:
       - name: Build Executable
         run: |
           pyinstaller --onefile \
-            --add-data="icons/*:icons" \
+            --add-data "icons/*:icons" \
             --name Roblox_Audio_Extractor_${{ needs.prepare.outputs.tag }}_linux \
             Roblox_Audio_Extractor.py
       - name: Install UPX
@@ -96,14 +97,15 @@ jobs:
       - name: Build Executable
         run: |
           pyinstaller --onefile \
-            --add-data="icons/*:icons" \
+            --add-data "icons/*:icons" \
             --name Roblox_Audio_Extractor_${{ needs.prepare.outputs.tag }}_macos \
             Roblox_Audio_Extractor.py
       - name: Install UPX
         run: brew install upx
-      - name: Compress Executable
+      - name: Compress Executable (macOS)
         run: |
-          upx --ultra-brute dist/*
+          # macOS requires --force-macos to pack Mach-O binaries
+          upx --ultra-brute --force-macos dist/*
       - uses: actions/upload-artifact@v4
         with:
           name: macOS-Build
@@ -131,3 +133,4 @@ jobs:
             macOS-Build/*
           prerelease: true
           draft: false
+
