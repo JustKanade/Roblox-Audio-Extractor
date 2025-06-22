@@ -1,141 +1,128 @@
-name: Auto Build, Compress & Release
+name: Auto Build and Release
 
 on:
-  push:
-    branches: ["main"]
-    tags: ["v*.*.*"]
-  workflow_dispatch:
 
+# push:
 
-concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: false
+# branches: \[ "main" ]
+
+workflow\_dispatch:
 
 permissions:
-  contents: write
-  id-token: write
+contents: write
 
 jobs:
-  prepare:
-    runs-on: ubuntu-latest
-    outputs:
-      tag: ${{ steps.set-tag.outputs.tag }}
-      build_date: ${{ steps.set-date.outputs.date }}
-    steps:
-      - name: Set up Git
-        uses: actions/checkout@v4
+prepare:
+runs-on: ubuntu-latest
+outputs:
+tag: \${{ steps.set-tag.outputs.tag }}
+build\_date: \${{ steps.set-date.outputs.date }}
+steps:
+\# (prepare tag and date steps...)
 
-      - name: Determine Tag
-        id: set-tag
-        run: |
-          if [[ "${{ github.ref }}" == refs/tags/* ]]; then
-            TAG_NAME=${{ github.ref_name }}
-          else
-            TAG_NAME="dev-$(date +'%Y%m%d%H%M')"
-          fi
-          echo "tag=$TAG_NAME" >> $GITHUB_OUTPUT
+build-windows:
+needs: prepare
+runs-on: windows-latest
+steps:
+\- uses: actions/checkout\@v4
+\- uses: actions/setup-python\@v5
+with:
+python-version: "3.10"
+\- run: |
+python -m pip install --upgrade pip
+if (Test-Path "requirements.txt") { pip install -r requirements.txt }
+pip install pyinstaller
+\- run: |
+pyinstaller --onefile --windowed `            --icon=icons/Roblox-Audio-Extractor.ico`
+\--add-data="icons/*;icons" `            --name Roblox_Audio_Extractor_${{ needs.prepare.outputs.tag }}_win`
+Roblox\_Audio\_Extractor.py
+\- name: Install UPX
+run: choco install upx -y --no-progress
+\- name: Compress Windows executable
+run: |
+\# 使用更激进的 ultra-brute 模式进行压缩
+upx --ultra-brute dist\*.exe
+\- uses: actions/upload-artifact\@v4
+with:
+name: Windows-Build
+path: dist/*
 
-      - name: Determine Build Date
-        id: set-date
-        run: |
-          BUILD_DATE=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
-          echo "date=$BUILD_DATE" >> $GITHUB_OUTPUT
+build-linux:
+needs: prepare
+runs-on: ubuntu-latest
+steps:
+\- uses: actions/checkout\@v4
+\- uses: actions/setup-python\@v5
+with:
+python-version: "3.10"
+\- run: |
+python -m pip install --upgrade pip
+pip install -r requirements.txt
+pip install pyinstaller
+\- run: |
+pyinstaller --onefile&#x20;
+\--add-data="icons/*:icons"&#x20;
+\--name Roblox\_Audio\_Extractor\_\${{ needs.prepare.outputs.tag }}\_linux&#x20;
+Roblox\_Audio\_Extractor.py
+\- name: Install UPX
+run: sudo apt-get update && sudo apt-get install -y upx
+\- name: Compress Linux executable
+run: |
+\# 使用更激进的 ultra-brute 模式进行压缩
+upx --ultra-brute dist/*
+\- uses: actions/upload-artifact\@v4
+with:
+name: Linux-Build
+path: dist/\*
 
-  build:
-    needs: prepare
-    runs-on: ${{ matrix.os }}
-    strategy:
-      matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
-    env:
-      BUILD_DATE: ${{ needs.prepare.outputs.build_date }}
-      TAG_NAME: ${{ needs.prepare.outputs.tag }}
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+build-macos:
+needs: prepare
+runs-on: macos-latest
+steps:
+\- uses: actions/checkout\@v4
+\- uses: actions/setup-python\@v5
+with:
+python-version: "3.10"
+\- run: |
+python -m pip install --upgrade pip
+pip install -r requirements.txt
+pip install pyinstaller
+\- run: |
+pyinstaller --onefile&#x20;
+\--add-data="icons/*:icons"&#x20;
+\--name Roblox\_Audio\_Extractor\_\${{ needs.prepare.outputs.tag }}\_macos&#x20;
+Roblox\_Audio\_Extractor.py
+\- name: Install UPX via Homebrew
+run: brew install upx
+\- name: Compress macOS executable
+run: |
+upx --best --lzma dist/*
+\- uses: actions/upload-artifact\@v4
+with:
+name: macOS-Build
+path: dist/\*
 
-      - name: Cache pip
-        uses: actions/cache@v3
-        with:
-          path: ~/.cache/pip
-          key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
+release:
+needs:
+\- build-windows
+\- build-linux
+\- build-macos
+runs-on: ubuntu-latest
+steps:
+\- uses: softprops/action-gh-release\@v1
+with:
+tag\_name: \${{ needs.prepare.outputs.tag }}
+name: "Development Build (\${{ needs.prepare.outputs.build\_date }})"
+body: |
+Development preview build – Bugs may appear, if you notice issues please report.
 
-      - name: Set up Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: '3.x'
-
-      - name: Install Dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install nuitka
-          pip install -r requirements.txt
-
-      - name: Install UPX on Linux
-        if: runner.os == 'Linux'
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y upx-ucl
-
-      - name: Install UPX on Windows
-        if: runner.os == 'Windows'
-        run: |
-          choco install upx -y
-
-      - name: Install UPX on macOS
-        if: runner.os == 'macOS'
-        run: |
-          brew install upx
-
-      - name: Build with Nuitka
-        run: |
-          nuitka \
-            --standalone \
-            --show-progress \
-            --remove-output \
-            --lto=no \
-            --output-dir=dist/${{ matrix.os }} \
-            main.py
-
-      - name: Compress with UPX (max)
-        run: |
-          find dist/${{ matrix.os }} -type f \( -name '*.exe' -o -perm /111 \) -print0 \
-            | xargs -0 --max-procs=4 --no-run-if-empty upx --best --ultra-brute
-
-      - name: Upload Artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: ${{ matrix.os }}-build
-          path: dist/${{ matrix.os }}
-
-  release:
-    needs: build
-    runs-on: ubuntu-latest
-    steps:
-      - name: Download Artifacts
-        uses: actions/download-artifact@v4
-        with:
-          path: artifacts
-
-      - name: Create GitHub Release
-        uses: softprops/action-gh-release@v1
-        with:
-          tag_name: ${{ needs.prepare.outputs.tag }}
-          name: "Build ${{ needs.prepare.outputs.tag }} (${{ needs.prepare.outputs.build_date }})"
-          body: |
-            Automatic build of version ${{ needs.prepare.outputs.tag }}.
-
-            **Commit**: ${{ github.sha }}
-            **Built at**: ${{ needs.prepare.outputs.build_date }}
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Upload Release Assets
-        uses: softprops/action-gh-release@v1
-        with:
-          files: |
-            artifacts/ubuntu-latest/**
-            artifacts/windows-latest/**
-            artifacts/macos-latest/**
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+```
+        **Commit:** ${{ github.sha }}
+        **Build date:** ${{ needs.prepare.outputs.build_date }}
+      files: |
+        artifacts/Windows-Build/*
+        artifacts/Linux-Build/*
+        artifacts/macOS-Build/*
+      prerelease: true
+      draft: false
+```
