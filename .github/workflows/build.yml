@@ -3,7 +3,7 @@ name: Auto Build and Release
 on:
   push:
     branches: ["main"]
-    tags: ["v*"]        
+    tags: ["v*"]       
   workflow_dispatch:
 
 permissions:
@@ -52,7 +52,10 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install nuitka upx-python-plugin
+          pip install nuitka
+          if [[ "${{ matrix.os }}" == "ubuntu-latest" ]]; then
+            sudo apt-get update && sudo apt-get install -y upx
+          fi
 
       - name: Build executable (${{ matrix.os }})
         run: |
@@ -66,7 +69,6 @@ jobs:
           upx --force --ultra-brute artifacts/windows-latest/*.exe
 
       - name: Upload artifact
-        # 升级至 v4 以避免 v3 废弃错误
         uses: actions/upload-artifact@v4
         with:
           name: build-${{ matrix.os }}
