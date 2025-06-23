@@ -58,32 +58,15 @@ jobs:
           - os: windows-latest
             platform: win
             artifact_name: Windows-Build
-            pyinstaller_args: '--onefile --windowed --icon=icons/Roblox-Audio-Extractor.ico --add-data="icons/*;icons" --distpath=dist --workpath=build --specpath=spec'
             binary_extension: '.exe'
-            setup_cmd: |
-              python -m pip install --upgrade pip setuptools wheel
-              if (Test-Path "requirements.txt") { pip install -r requirements.txt }
-              pip install pyinstaller
           - os: ubuntu-latest
             platform: linux
             artifact_name: Linux-Build
-            pyinstaller_args: '--onefile --add-data="icons/*:icons" --distpath=dist --workpath=build --specpath=spec'
             binary_extension: ''
-            setup_cmd: |
-              python -m pip install --upgrade pip setuptools wheel
-              pip install -r requirements.txt
-              pip install pyinstaller
-              sudo apt-get update
-              sudo apt-get install -y binutils
           - os: macos-latest
             platform: macos
             artifact_name: macOS-Build
-            pyinstaller_args: '--onefile --add-data="icons/*:icons" --distpath=dist --workpath=build --specpath=spec'
             binary_extension: ''
-            setup_cmd: |
-              python -m pip install --upgrade pip setuptools wheel
-              pip install -r requirements.txt
-              pip install pyinstaller
     
     runs-on: ${{ matrix.os }}
     
@@ -97,8 +80,19 @@ jobs:
           python-version: ${{ env.PYTHON_VERSION }}
           cache: 'pip'
 
-      - name: Install dependencies
-        run: ${{ matrix.setup_cmd }}
+      - name: Install system dependencies (Linux)
+        if: matrix.platform == 'linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y binutils
+
+      - name: Install Python dependencies
+        run: |
+          python -m pip install --upgrade pip setuptools wheel
+          pip install pyinstaller
+          if [ -f "requirements.txt" ]; then
+            pip install -r requirements.txt
+          fi
         shell: bash
 
       - name: Cache PyInstaller builds
@@ -115,7 +109,7 @@ jobs:
           pip list | grep -E "(pyinstaller|tkinter|requests)" || true
         shell: bash
 
-      - name: Check application entry point
+      - name: Check application entry point and icons
         run: |
           if [ ! -f "Roblox_Audio_Extractor.py" ]; then
             echo "Main application file not found"
@@ -123,13 +117,60 @@ jobs:
             exit 1
           fi
           python -m py_compile Roblox_Audio_Extractor.py
+          
+          echo "Checking for icons directory..."
+          if [ -d "icons" ]; then
+            echo "Icons directory found:"
+            ls -la icons/
+          else
+            echo "Icons directory not found, creating empty one..."
+            mkdir -p icons
+            echo "# No icons available" > icons/README.md
+          fi
         shell: bash
 
-      - name: Build application
+      - name: Build application (Windows)
+        if: matrix.platform == 'win'
+        run: |
+          $APP_NAME = "Roblox_Audio_Extractor_${{ needs.prepare.outputs.tag }}_${{ matrix.platform }}"
+          Write-Host "Building $APP_NAME"
+          
+          $ARGS = @(
+            "--onefile"
+            "--windowed"
+            "--distpath=dist"
+            "--workpath=build"
+            "--specpath=spec"
+            "--name=$APP_NAME"
+          )
+          
+          if (Test-Path "icons/Roblox-Audio-Extractor.ico") {
+            $ARGS += "--icon=icons/Roblox-Audio-Extractor.ico"
+          }
+          
+          if (Test-Path "icons") {
+            $ARGS += "--add-data=icons/*;icons"
+          }
+          
+          $ARGS += "Roblox_Audio_Extractor.py"
+          
+          & pyinstaller @ARGS
+          Write-Host "Build completed for ${{ matrix.platform }}"
+        shell: powershell
+
+      - name: Build application (Linux/macOS)
+        if: matrix.platform != 'win'
         run: |
           APP_NAME="Roblox_Audio_Extractor_${{ needs.prepare.outputs.tag }}_${{ matrix.platform }}"
           echo "Building $APP_NAME"
-          pyinstaller ${{ matrix.pyinstaller_args }} --name "$APP_NAME" Roblox_Audio_Extractor.py
+          
+          ARGS="--onefile --distpath=dist --workpath=build --specpath=spec --name=$APP_NAME"
+          
+          if [ -d "icons" ] && [ "$(ls -A icons)" ]; then
+            ARGS="$ARGS --add-data=icons/*:icons"
+          fi
+          
+          pyinstaller $ARGS Roblox_Audio_Extractor.py
           echo "Build completed for ${{ matrix.platform }}"
         shell: bash
 
@@ -248,7 +289,11 @@ jobs:
           find artifacts -type f \( -name "*.exe" -o -executable \) ! -name "*.md" -exec cp {} release_files/ \;
           
           cd release_files
-          sha256sum * > SHA256SUMS.txt
+          if [ "$(ls -A .)" ]; then
+            sha256sum * > SHA256SUMS.txt
+          else
+            echo "No files to create checksums for" > SHA256SUMS.txt
+          fi
           cd ..
 
       - name: Check if tag exists
