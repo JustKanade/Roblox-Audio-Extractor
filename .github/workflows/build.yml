@@ -1,444 +1,126 @@
 name: Auto Build and Release
 
 on:
-  push:
-    branches: [ "main" ]   
+ # push:
+   # branches: [ "main" ]   
   workflow_dispatch:
-
-concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
 
 permissions:
   contents: write
 
-env:
-  PYTHON_VERSION: "3.10"
-  
 jobs:
   prepare:
     runs-on: ubuntu-latest
     outputs:
       tag: ${{ steps.set-tag.outputs.tag }}
       build_date: ${{ steps.set-date.outputs.date }}
-      short_sha: ${{ steps.set-tag.outputs.short_sha }}
-      version: ${{ steps.version.outputs.version }}
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: Get version from Python file
-        id: version
-        run: |
-          VERSION=$(grep -E "^__version__|^VERSION" *.py | head -1 | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' || echo "1.0.0")
-          echo "version=$VERSION" >> $GITHUB_OUTPUT
-
-      - name: Set build date and tag
+      - uses: actions/checkout@v4
+      - name: Set build date
         id: set-date
         run: |
-          DATE=$(date -u +"%Y-%m-%d %H:%M:%S UTC")
+          DATE=$(date +"%Y-%m-%d %H:%M:%S")
           echo "date=$DATE" >> $GITHUB_OUTPUT
-
       - name: Create release tag
         id: set-tag
         run: |
           SHORT_HASH=$(git rev-parse --short HEAD)
-          TAG="v${{ steps.version.outputs.version }}-dev.$(date +%Y%m%d%H%M)+$SHORT_HASH"
-          echo "tag=$TAG" >> $GITHUB_OUTPUT
-          echo "short_sha=$SHORT_HASH" >> $GITHUB_OUTPUT
+          echo "tag=dev-$(date +%Y%m%d%H%M)-$SHORT_HASH" >> $GITHUB_OUTPUT
 
-  build:
+  build-windows:
     needs: prepare
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - os: windows-latest
-            platform: win
-            artifact_name: Windows-Build
-            binary_extension: '.exe'
-          - os: ubuntu-latest
-            platform: linux
-            artifact_name: Linux-Build
-            binary_extension: ''
-          - os: macos-latest
-            platform: macos
-            artifact_name: macOS-Build
-            binary_extension: ''
-    
-    runs-on: ${{ matrix.os }}
-    
+    runs-on: windows-latest
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
         with:
-          python-version: ${{ env.PYTHON_VERSION }}
-          cache: 'pip'
-
-      - name: Install system dependencies (Linux)
-        if: matrix.platform == 'linux'
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y binutils
-
-      - name: Install Python dependencies
-        run: |
-          python -m pip install --upgrade pip setuptools wheel
+          python-version: "3.10"
+      - run: |
+          python -m pip install --upgrade pip
+          if (Test-Path "requirements.txt") { pip install -r requirements.txt }
           pip install pyinstaller
-          if [ -f "requirements.txt" ]; then
-            pip install -r requirements.txt
-          fi
-        shell: bash
-
-      - name: Cache PyInstaller builds
-        uses: actions/cache@v4
+      - run: |
+          pyinstaller --onefile --windowed `
+            --icon=icons/Roblox-Audio-Extractor.ico `
+            --add-data="icons/*;icons" `
+            --name Roblox_Audio_Extractor_${{ needs.prepare.outputs.tag }}_win `
+            Roblox_Audio_Extractor.py
+      - uses: actions/upload-artifact@v4
         with:
-          path: |
-            build
-            spec
-          key: pyinstaller-${{ matrix.platform }}-${{ hashFiles('requirements.txt', 'Roblox_Audio_Extractor.py') }}
+          name: Windows-Build
+          path: dist/*.exe
 
-      - name: Verify Python environment
-        run: |
-          python --version
-          pip list | grep -E "(pyinstaller|tkinter|requests)" || true
-        shell: bash
-
-      - name: Check application entry point and icons
-        run: |
-          if [ ! -f "Roblox_Audio_Extractor.py" ]; then
-            echo "Main application file not found"
-            ls -la *.py
-            exit 1
-          fi
-          python -m py_compile Roblox_Audio_Extractor.py
-          
-          echo "Checking for icons directory..."
-          if [ -d "icons" ]; then
-            echo "Icons directory found:"
-            ls -la icons/
-          else
-            echo "Icons directory not found, creating empty one..."
-            mkdir -p icons
-            echo "# No icons available" > icons/README.md
-          fi
-        shell: bash
-
-      - name: Build application (Windows)
-        if: matrix.platform == 'win'
-        run: |
-          $APP_NAME = "Roblox_Audio_Extractor_${{ needs.prepare.outputs.tag }}_${{ matrix.platform }}"
-          Write-Host "Building $APP_NAME"
-          
-          $ARGS = @(
-            "--onefile"
-            "--windowed"
-            "--distpath=dist"
-            "--workpath=build"
-            "--specpath=spec"
-            "--name=$APP_NAME"
-          )
-          
-          if (Test-Path "icons/Roblox-Audio-Extractor.ico") {
-            $ARGS += "--icon=icons/Roblox-Audio-Extractor.ico"
-          }
-          
-          if (Test-Path "icons") {
-            $ARGS += "--add-data=icons/*;icons"
-          }
-          
-          $ARGS += "Roblox_Audio_Extractor.py"
-          
-          & pyinstaller @ARGS
-          Write-Host "Build completed for ${{ matrix.platform }}"
-        shell: powershell
-
-      - name: Build application (Linux/macOS)
-        if: matrix.platform != 'win'
-        run: |
-          APP_NAME="Roblox_Audio_Extractor_${{ needs.prepare.outputs.tag }}_${{ matrix.platform }}"
-          echo "Building $APP_NAME"
-          
-          ARGS="--onefile --distpath=dist --workpath=build --specpath=spec --name=$APP_NAME"
-          
-          if [ -d "icons" ] && [ "$(ls -A icons)" ]; then
-            ARGS="$ARGS --add-data=icons/*:icons"
-          fi
-          
-          pyinstaller $ARGS Roblox_Audio_Extractor.py
-          echo "Build completed for ${{ matrix.platform }}"
-        shell: bash
-
-      - name: Verify build output
-        run: |
-          echo "Build directory contents:"
-          ls -la dist/
-          
-          if [ "${{ matrix.platform }}" = "win" ]; then
-            BINARY=$(find dist -name "*.exe" | head -1)
-            if [ -f "$BINARY" ]; then
-              echo "Windows executable created: $BINARY"
-              ls -lh "$BINARY"
-            else
-              echo "Windows executable not found"
-              exit 1
-            fi
-          else
-            BINARY=$(find dist -type f -executable | head -1)
-            if [ -f "$BINARY" ]; then
-              echo "Binary created: $BINARY"
-              ls -lh "$BINARY"
-              file "$BINARY"
-            else
-              echo "Binary not found"
-              exit 1
-            fi
-          fi
-        shell: bash
-
-      - name: Upload build artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: ${{ matrix.artifact_name }}
-          path: dist/*${{ matrix.binary_extension }}
-          retention-days: 30
-          compression-level: 6
-
-  verify:
-    needs: [prepare, build]
+  build-linux:
+    needs: prepare
     runs-on: ubuntu-latest
     steps:
-      - name: Download all artifacts
-        uses: actions/download-artifact@v4
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
         with:
-          path: artifacts
-
-      - name: List all build artifacts
-        run: |
-          echo "Build Artifacts Summary"
-          find artifacts -type f -exec ls -lh {} \;
-          echo ""
-          echo "Total sizes"
-          du -sh artifacts/*/
-
-      - name: Verify all platforms built successfully
-        run: |
-          EXPECTED_PLATFORMS=("Windows-Build" "Linux-Build" "macOS-Build")
-          for platform in "${EXPECTED_PLATFORMS[@]}"; do
-            if [ ! -d "artifacts/$platform" ]; then
-              echo "Missing build for $platform"
-              exit 1
-            fi
-            if [ ! "$(ls -A artifacts/$platform)" ]; then
-              echo "Empty build for $platform"
-              exit 1
-            fi
-            echo "$platform build verified"
-          done
-
-      - name: Generate build report
-        run: |
-          echo "# Build Report" > build_report.md
-          echo "" >> build_report.md
-          echo "**Tag:** ${{ needs.prepare.outputs.tag }}" >> build_report.md
-          echo "**Build Date:** ${{ needs.prepare.outputs.build_date }}" >> build_report.md
-          echo "**Commit:** ${{ needs.prepare.outputs.short_sha }}" >> build_report.md
-          echo "" >> build_report.md
-          echo "## Artifacts" >> build_report.md
-          for platform in Windows-Build Linux-Build macOS-Build; do
-            if [ -d "artifacts/$platform" ]; then
-              echo "- $platform: $(ls artifacts/$platform | wc -l) files" >> build_report.md
-              for file in artifacts/$platform/*; do
-                if [ -f "$file" ]; then
-                  size=$(ls -lh "$file" | awk '{print $5}')
-                  echo "  - $(basename "$file") ($size)" >> build_report.md
-                fi
-              done
-            fi
-          done
-
-      - name: Upload build report
-        uses: actions/upload-artifact@v4
+          python-version: "3.10"
+      - run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pyinstaller
+      - run: |
+          pyinstaller --onefile \
+            --add-data="icons/*:icons" \
+            --name Roblox_Audio_Extractor_${{ needs.prepare.outputs.tag }}_linux \
+            Roblox_Audio_Extractor.py
+      - uses: actions/upload-artifact@v4
         with:
-          name: Build-Report
-          path: build_report.md
+          name: Linux-Build
+          path: dist/*
+
+  build-macos:
+    needs: prepare
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+      - run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pyinstaller
+      - run: |
+          pyinstaller --onefile \
+            --add-data="icons/*:icons" \
+            --name Roblox_Audio_Extractor_${{ needs.prepare.outputs.tag }}_macos \
+            Roblox_Audio_Extractor.py
+      - uses: actions/upload-artifact@v4
+        with:
+          name: macOS-Build
+          path: dist/*
 
   release:
-    needs: [prepare, build, verify]
+    needs: [prepare, build-windows, build-linux, build-macos]
     runs-on: ubuntu-latest
-    
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: Download all artifacts
-        uses: actions/download-artifact@v4
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
         with:
           path: artifacts
-
-      - name: Prepare release files
+      - name: Create git tag
         run: |
-          mkdir -p release_files
-          find artifacts -type f \( -name "*.exe" -o -executable \) ! -name "*.md" -exec cp {} release_files/ \;
-          
-          cd release_files
-          if [ "$(ls -A .)" ]; then
-            sha256sum * > SHA256SUMS.txt
-          else
-            echo "No files to create checksums for" > SHA256SUMS.txt
-          fi
-          cd ..
-
-      - name: Check if tag exists
-        id: check_tag
-        run: |
-          TAG="${{ needs.prepare.outputs.tag }}"
-          if git rev-parse "$TAG" >/dev/null 2>&1; then
-            echo "exists=true" >> $GITHUB_OUTPUT
-            echo "Tag $TAG already exists"
-          else
-            echo "exists=false" >> $GITHUB_OUTPUT
-            echo "Tag $TAG does not exist"
-          fi
-
-      - name: Delete existing tag and release
-        if: steps.check_tag.outputs.exists == 'true'
-        uses: actions/github-script@v7
-        with:
-          script: |
-            const tag = "${{ needs.prepare.outputs.tag }}";
-            try {
-              const { data: release } = await github.rest.repos.getReleaseByTag({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                tag: tag
-              });
-              await github.rest.repos.deleteRelease({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                release_id: release.id
-              });
-              console.log(`Deleted existing release for tag ${tag}`);
-            } catch (error) {
-              console.log(`No existing release found for tag ${tag}`);
-            }
-            
-            try {
-              await github.rest.git.deleteRef({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                ref: `tags/${tag}`
-              });
-              console.log(`Deleted existing tag ${tag}`);
-            } catch (error) {
-              console.log(`No existing tag found: ${tag}`);
-            }
-
-      - name: Create and push git tag
-        run: |
-          git config --global user.name "github-actions[bot]"
-          git config --global user.email "github-actions[bot]@users.noreply.github.com"
-          
-          TAG="${{ needs.prepare.outputs.tag }}"
-          git tag -a "$TAG" -m "Development build $TAG"
-          git push origin "$TAG"
-
-      - name: Generate release notes
-        id: release_notes
-        run: |
-          cat > release_notes.md << 'EOF'
-          ## Development Build
-          
-          This is an automated development build. For stable releases, please visit the [latest stable release](https://github.com/JustKanade/Roblox-Audio-Extractor/releases/latest).
-          
-          ### Build Information
-          - **Version:** ${{ needs.prepare.outputs.version }}
-          - **Commit:** [\`${{ needs.prepare.outputs.short_sha }}\`](https://github.com/JustKanade/Roblox-Audio-Extractor/commit/${{ github.sha }})
-          - **Build Date:** ${{ needs.prepare.outputs.build_date }}
-          - **Workflow:** [#${{ github.run_number }}](https://github.com/JustKanade/Roblox-Audio-Extractor/actions/runs/${{ github.run_id }})
-          
-          ### Available Downloads
-          - **Windows:** \`Roblox_Audio_Extractor_${{ needs.prepare.outputs.tag }}_win.exe\`
-          - **Linux:** \`Roblox_Audio_Extractor_${{ needs.prepare.outputs.tag }}_linux\`
-          - **macOS:** \`Roblox_Audio_Extractor_${{ needs.prepare.outputs.tag }}_macos\`
-          
-          ### Security
-          SHA256 checksums are provided in \`SHA256SUMS.txt\` for verification.
-          
-          ### Important Notes
-          - This is a development build and may contain bugs
-          - Not recommended for production use
-          - Report issues in the [Issues section](https://github.com/JustKanade/Roblox-Audio-Extractor/issues)
-          EOF
-
+          git config --global user.name "GitHub Actions"
+          git config --global user.email "actions@github.com"
+          git tag ${{ needs.prepare.outputs.tag }}
+          git push origin ${{ needs.prepare.outputs.tag }}
       - name: Create GitHub Release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v1
         with:
           tag_name: ${{ needs.prepare.outputs.tag }}
-          name: "Development Build - ${{ needs.prepare.outputs.build_date }}"
-          body_path: release_notes.md
+          name: "Development Build (${{ needs.prepare.outputs.build_date }})"
+          body: |
+            Development preview build - Bugs may appear, if you are looking to just use the software, use the [latest stable release](https://github.com/JustKanade/Roblox-Audio-Extractor/releases/latest)
+
+            **Commit:** ${{ github.sha }}
+            **Build date:** ${{ needs.prepare.outputs.build_date }}
           files: |
-            release_files/*
+            artifacts/Windows-Build/*
+            artifacts/Linux-Build/*
+            artifacts/macOS-Build/*
           prerelease: true
           draft: false
-          generate_release_notes: true
-          make_latest: false
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Clean up old development releases
-        uses: actions/github-script@v7
-        with:
-          script: |
-            const { data: releases } = await github.rest.repos.listReleases({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              per_page: 100
-            });
-            
-            const devReleases = releases
-              .filter(release => release.tag_name.includes('-dev.'))
-              .sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
-            
-            const toDelete = devReleases.slice(10);
-            
-            for (const release of toDelete) {
-              console.log(`Deleting old dev release: ${release.tag_name}`);
-              try {
-                await github.rest.repos.deleteRelease({
-                  owner: context.repo.owner,
-                  repo: context.repo.repo,
-                  release_id: release.id
-                });
-                
-                await github.rest.git.deleteRef({
-                  owner: context.repo.owner,
-                  repo: context.repo.repo,
-                  ref: `tags/${release.tag_name}`
-                });
-              } catch (error) {
-                console.log(`Failed to delete ${release.tag_name}: ${error.message}`);
-              }
-            }
-
-  notify:
-    needs: [prepare, release]
-    runs-on: ubuntu-latest
-    if: always()
-    steps:
-      - name: Build status summary
-        run: |
-          if [ "${{ needs.release.result }}" = "success" ]; then
-            echo "Build and release completed successfully"
-            echo "Release: https://github.com/JustKanade/Roblox-Audio-Extractor/releases/tag/${{ needs.prepare.outputs.tag }}"
-          else
-            echo "Build or release failed"
-            exit 1
-          fi
