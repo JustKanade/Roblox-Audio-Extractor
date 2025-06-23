@@ -1,4 +1,4 @@
-```yaml
+
 name: Auto Build and Release
 
 on:
@@ -100,4 +100,4 @@ jobs:
       - name: Output release URL
         run: |
           echo "Release published: https://github.com/${{ github.repository }}/releases/tag/${{ needs.prepare.outputs.tag }}"
-```
+
