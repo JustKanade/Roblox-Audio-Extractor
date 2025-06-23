@@ -59,7 +59,9 @@ jobs:
           fi
 
       - name: Install Nuitka
-        run: python -m pip install --upgrade pip && pip install nuitka
+        run: |
+          python -m pip install --upgrade pip
+          pip install nuitka
 
       - name: Build executable
         run: |
@@ -68,7 +70,7 @@ jobs:
             --main=Roblox_Audio_Extractor.py --plugin-enable=upx
 
       - name: UPX compression
-        if: matrix.os == 'windows-latest'
+        if: ${{ matrix.os == 'windows-latest' }}
         shell: cmd
         run: |
           upx --force --ultra-brute artifacts/windows-latest\*.exe
