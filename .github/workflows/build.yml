@@ -105,6 +105,3 @@ jobs:
           prerelease: false
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Output release URL
-        run: echo "Release published: https://github.com/${{ github.repository }}/releases/tag/${{ needs.prepare.outputs.tag }}"
