@@ -1,10 +1,9 @@
-
 name: Auto Build and Release
 
 on:
   push:
     branches: ["main"]
-    tags: ["v*"]        # 仅在符合 v* 格式的标签时触发
+    tags: ["v*"]        
   workflow_dispatch:
 
 permissions:
@@ -67,7 +66,8 @@ jobs:
           upx --force --ultra-brute artifacts/windows-latest/*.exe
 
       - name: Upload artifact
-        uses: actions/upload-artifact@v3
+        # 升级至 v4 以避免 v3 废弃错误
+        uses: actions/upload-artifact@v4
         with:
           name: build-${{ matrix.os }}
           path: artifacts/${{ matrix.os }}/
@@ -100,4 +100,3 @@ jobs:
       - name: Output release URL
         run: |
           echo "Release published: https://github.com/${{ github.repository }}/releases/tag/${{ needs.prepare.outputs.tag }}"
-
