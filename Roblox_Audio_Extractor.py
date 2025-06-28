@@ -22,6 +22,13 @@ except ImportError:
     CustomThemeColorCard = None
     print("无法导入CustomThemeColorCard，将禁用自定义主题颜色功能")
 
+# 导入版本检测卡片
+try:
+    from version_check_card import VersionCheckCard
+except ImportError:
+    VersionCheckCard = None
+    print("无法导入VersionCheckCard，将禁用版本检测功能")
+
 if hasattr(sys, '_MEIPASS'):
     os.environ['QT_QPA_PLATFORM_PLUGIN_PATH'] = os.path.join(sys._MEIPASS, 'PyQt5', 'Qt', 'plugins')
 import time
@@ -1051,6 +1058,55 @@ class LanguageManager:
                 self.ENGLISH: "Log save option toggled",
                 self.CHINESE: "日志保存选项已切换"
             },
+            # 版本检测卡片相关翻译
+            "version_check_settings": {
+                self.ENGLISH: "Version Check Settings",
+                self.CHINESE: "版本检测设置"
+            },
+            "auto_check_update": {
+                self.ENGLISH: "Auto-check for updates on startup",
+                self.CHINESE: "启动时自动检测更新"
+            },
+            "check_update_now": {
+                self.ENGLISH: "Check Now",
+                self.CHINESE: "立即检查更新"
+            },
+            "checking_update": {
+                self.ENGLISH: "Checking for updates...",
+                self.CHINESE: "正在检查更新..."
+            },
+            "latest_version": {
+                self.ENGLISH: "Latest version: {}",
+                self.CHINESE: "最新版本: {}"
+            },
+            "current_version": {
+                self.ENGLISH: "Current version: {}",
+                self.CHINESE: "当前版本: {}"
+            },
+            "update_available": {
+                self.ENGLISH: "New Version Available!",
+                self.CHINESE: "有新版本可用！"
+            },
+            "already_latest": {
+                self.ENGLISH: "You have the latest version",
+                self.CHINESE: "您已经使用的是最新版本"
+            },
+            "check_failed": {
+                self.ENGLISH: "Update check failed: {}",
+                self.CHINESE: "检查更新失败: {}"
+            },
+            "release_notes": {
+                self.ENGLISH: "Release Notes",
+                self.CHINESE: "更新内容"
+            },
+            "go_to_update": {
+                self.ENGLISH: "Get Update",
+                self.CHINESE: "获取更新"
+            },
+            "close": {
+                self.ENGLISH: "Close",
+                self.CHINESE: "关闭"
+            }
         }
 
     @lru_cache(maxsize=128)
@@ -3127,6 +3183,11 @@ class MainWindow(MSFluentWindow):
         if CustomThemeColorCard is not None:
             import custom_theme_color_card
             custom_theme_color_card.lang = lang
+            
+        # 如果导入了VersionCheckCard，设置全局lang变量
+        if VersionCheckCard is not None:
+            import version_check_card
+            version_check_card.lang = lang
 
         # 创建滚动区域
         scroll = ScrollArea(self.settingsInterface)
@@ -3305,6 +3366,23 @@ class MainWindow(MSFluentWindow):
         
         # 添加输出设置卡片
         app_group_layout.addWidget(output_card)
+        
+        # 添加版本检测卡片
+        if VersionCheckCard is not None:
+            version_card = CardWidget()
+            version_card.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Maximum)
+            version_card_layout = QVBoxLayout(version_card)
+            version_card_layout.setContentsMargins(0, 0, 0, 0)  # 让VersionCheckCard处理内边距
+            
+            # 获取当前版本号（从注释中提取）
+            current_version = "0.13"  # 与文件顶部注释保持一致
+            
+            # 创建版本检测卡片
+            self.versionCheckCard = VersionCheckCard(self.config_manager, current_version)
+            version_card_layout.addWidget(self.versionCheckCard)
+            
+            # 添加版本检测卡片
+            app_group_layout.addWidget(version_card)
 
         content_layout.addWidget(app_group)
 
@@ -4236,9 +4314,3 @@ if __name__ == "__main__":
             pass
 
         sys.exit(1)
-
-
-
-
-
-
