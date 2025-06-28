@@ -15,6 +15,12 @@ warnings.filterwarnings("ignore", category=DeprecationWarning)
 import os
 import sys
 
+# 导入自定义主题颜色卡片
+try:
+    from custom_theme_color_card import CustomThemeColorCard
+except ImportError:
+    CustomThemeColorCard = None
+    print("无法导入CustomThemeColorCard，将禁用自定义主题颜色功能")
 
 if hasattr(sys, '_MEIPASS'):
     os.environ['QT_QPA_PLATFORM_PLUGIN_PATH'] = os.path.join(sys._MEIPASS, 'PyQt5', 'Qt', 'plugins')
@@ -37,7 +43,7 @@ from PyQt5.QtWidgets import (
     QFileDialog, QLabel, QFrame, QSizePolicy, QGridLayout
 )
 from PyQt5.QtCore import Qt, QTimer, QThread, pyqtSignal, QSize
-from PyQt5.QtGui import QIcon, QPixmap, QFont
+from PyQt5.QtGui import QIcon, QPixmap, QFont, QColor
 
 
 from qfluentwidgets import (
@@ -49,12 +55,179 @@ from qfluentwidgets import (
     StrongBodyLabel, SubtitleLabel, DisplayLabel,
     HyperlinkButton, TransparentPushButton, ScrollArea,
     IconWidget, SpinBox, LineEdit, PillPushButton, FlowLayout,
-    SplashScreen  
+    SplashScreen, setThemeColor, SwitchButton  
 )
 
 # 设置日志记录
 logging.basicConfig(level=logging.INFO, format='%(message)s')
 logger = logging.getLogger(__name__)
+
+# 中央日志处理系统
+class CentralLogHandler:
+    """中央日志处理系统，管理所有界面的日志显示"""
+
+    _instance = None  # 单例实例
+    _log_entries = []  # 存储所有日志条目
+    _text_edits = []   # 所有要更新的TextEdit控件
+    _max_entries = 200  # 最大日志条目数
+    _theme = "dark"    # 默认主题
+    _config_manager = None  # 配置管理器
+    _log_file_path = None  # 日志文件路径
+
+    @classmethod
+    def getInstance(cls):
+        """获取单例实例"""
+        if cls._instance is None:
+            cls._instance = CentralLogHandler()
+        return cls._instance
+    
+    def init_with_config(self, config_manager):
+        """使用配置管理器初始化日志处理器"""
+        self._config_manager = config_manager
+        # 设置日志文件路径
+        custom_output_dir = config_manager.get("custom_output_dir", "")
+        if custom_output_dir and os.path.isdir(custom_output_dir):
+            # 使用自定义路径
+            log_dir = os.path.join(custom_output_dir, "logs")
+        else:
+            # 使用默认路径
+            log_dir = os.path.join(os.path.expanduser("~"), ".roblox_audio_extractor", "logs")
+        
+        os.makedirs(log_dir, exist_ok=True)
+        self._log_file_path = os.path.join(log_dir, f"app_log_{datetime.datetime.now().strftime('%Y%m%d')}.txt")
+
+    def register_text_edit(self, text_edit):
+        """注册TextEdit控件以接收日志更新"""
+        if text_edit not in self._text_edits:
+            self._text_edits.append(text_edit)
+            # 初始化显示已有日志
+            text_edit.clear()
+            # 根据当前主题重新生成所有日志条目
+            self._refresh_logs_in_text_edit(text_edit)
+
+    def _refresh_logs_in_text_edit(self, text_edit):
+        """根据当前主题刷新TextEdit中的所有日志"""
+        text_edit.clear()
+        for entry in self._log_entries:
+            # 解析纯文本日志以提取前缀和消息
+            parts = entry.split("] ", 1)
+            if len(parts) == 2:
+                timestamp = parts[0] + "] "
+                rest = parts[1]
+                
+                # 检查前缀
+                prefix = ""
+                message = rest
+                if rest.startswith("✓ "):
+                    prefix = "✓ "
+                    message = rest[2:]
+                elif rest.startswith("⚠ "):
+                    prefix = "⚠ "
+                    message = rest[2:]
+                elif rest.startswith("✗ "):
+                    prefix = "✗ "
+                    message = rest[2:]
+                
+                # 根据前缀和当前主题确定颜色
+                if prefix == "✓ ":
+                    color = "#008800"  # 成功消息 - 绿色
+                elif prefix == "⚠ ":
+                    color = "#FF8C00"  # 警告消息 - 橙色
+                elif prefix == "✗ ":
+                    color = "#FF0000"  # 错误消息 - 红色
+                else:
+                    # 根据当前主题设置默认颜色
+                    if self._theme == "light":
+                        color = "black"  # 浅色模式下默认黑色
+                    else:
+                        color = "white"  # 深色模式下默认白色
+                
+                # 创建HTML格式的日志条目
+                html_entry = f'<span style="color:{color}">{timestamp}{prefix}{message}</span>'
+                text_edit.append(html_entry)
+            else:
+                # 如果无法解析，直接添加原始条目
+                text_edit.append(entry)
+        
+        text_edit.ensureCursorVisible()
+
+    def set_theme(self, theme):
+        """设置当前主题并刷新所有日志显示"""
+        # 只有当主题实际变化时才进行刷新
+        if self._theme != theme:
+            self._theme = theme
+            # 刷新所有TextEdit控件中的日志
+            for text_edit in self._text_edits:
+                try:
+                    self._refresh_logs_in_text_edit(text_edit)
+                except Exception:
+                    pass  # 忽略刷新失败的控件
+
+    def add_log(self, message, prefix=""):
+        """添加日志条目并更新所有TextEdit控件"""
+        # 添加时间戳
+        timestamp = datetime.datetime.now().strftime("[%Y-%m-%d %H:%M:%S] ")
+        
+        # 根据前缀确定消息类型和颜色
+        # 根据当前主题设置默认颜色
+        if self._theme == "light":
+            color = "black"  # 浅色模式下默认黑色
+        else:
+            color = "white"  # 深色模式下默认白色
+            
+        # 特殊消息类型覆盖默认颜色
+        if prefix == "✓ ":
+            color = "#008800"  # 成功消息 - 绿色
+        elif prefix == "⚠ ":
+            color = "#FF8C00"  # 警告消息 - 橙色
+        elif prefix == "✗ ":
+            color = "#FF0000"  # 错误消息 - 红色
+            
+        # 创建带颜色的HTML格式日志条目
+        html_entry = f'<span style="color:{color}">{timestamp}{prefix}{message}</span>'
+        plain_entry = f"{timestamp}{prefix}{message}"
+        
+        # 添加到日志条目列表 (保存纯文本版本用于后续处理)
+        self._log_entries.append(plain_entry)
+        
+        # 限制日志条目数量
+        if len(self._log_entries) > self._max_entries:
+            self._log_entries = self._log_entries[-self._max_entries:]
+            
+        # 更新所有TextEdit控件
+        for text_edit in self._text_edits:
+            try:
+                text_edit.append(html_entry)
+                text_edit.ensureCursorVisible()
+            except Exception:
+                pass  # 忽略更新失败的控件
+                
+        # 如果启用了日志保存，保存到文件
+        self._save_log_to_file(plain_entry)
+
+    def clear_logs(self):
+        """清除所有日志"""
+        self._log_entries.clear()
+        for text_edit in self._text_edits:
+            try:
+                text_edit.clear()
+            except Exception:
+                pass
+                
+    def _save_log_to_file(self, log_entry):
+        """将日志保存到文件"""
+        if not self._config_manager or not self._config_manager.get("save_logs", False):
+            return
+            
+        if not self._log_file_path:
+            return
+            
+        try:
+            with open(self._log_file_path, 'a', encoding='utf-8') as f:
+                f.write(f"{log_entry}\n")
+        except Exception as e:
+            # 避免递归错误，不记录保存日志时的错误
+            pass
 
 # 延迟导入库列表
 _LIBS_IMPORTED = False
@@ -89,8 +262,9 @@ class ConfigManager:
             "theme": "dark",  # light, dark, auto
             "last_directory": "",
             "threads": min(32, multiprocessing.cpu_count() * 2),
-            "convert_to_mp3": True,
-            "classification_method": "duration"
+            "classification_method": "duration",
+            "custom_output_dir": "",  # 自定义输出目录，空字符串表示使用默认路径
+            "save_logs": False  # 是否保存日志
         }
 
         try:
@@ -176,7 +350,7 @@ def import_libs():
 
 def get_roblox_default_dir():
     try:
-        username = os.getenv('USERNAME') or os.getenv('USER')
+        username = os.getenv('USERNAME') or os.getenv('USER') or "DefaultUser"  # 添加默认值
 
         if os.name == 'nt':  # Windows
             return os.path.join("C:", os.sep, "Users", username, "AppData", "Local", "Roblox", "rbx-storage")
@@ -440,8 +614,8 @@ class LanguageManager:
                 self.CHINESE: "稍后重启"
             },
             "about_description": {
-                self.ENGLISH: "An open-source tool for extracting audio files from Roblox cache and converting them to MP3/OGG. Files can be classified by audio duration or file size.",
-                self.CHINESE: "一个用于从 Roblox 缓存中提取音频文件并将其转换为 MP3/OGG 的开源工具。文件可以按音频时长或文件大小分类。"
+                self.ENGLISH: "An open-source tool for extracting audio files from Roblox cache. Files can be classified by audio duration or file size.",
+                self.CHINESE: "一个用于从 Roblox 缓存中提取音频文件的开源工具。文件可以按音频时长或文件大小分类。"
             },
             "features": {
                 self.ENGLISH: "Features",
@@ -452,8 +626,8 @@ class LanguageManager:
                 self.CHINESE: "快速多线程提取"
             },
             "feature_2": {
-                self.ENGLISH: "Smart duplicate detection",
-                self.CHINESE: "智能重复检测"
+                self.ENGLISH: "Auto duplicate detection",
+                self.CHINESE: "重复检测"
             },
             "feature_3": {
                 self.ENGLISH: "Audio classification by duration or size",
@@ -838,7 +1012,45 @@ class LanguageManager:
             "no": {
                 self.ENGLISH: "No",
                 self.CHINESE: "否"
-            }
+            },
+            # 主题颜色设置相关的翻译
+            "theme_color_settings": {
+                self.ENGLISH: "Theme Color Settings",
+                self.CHINESE: "主题颜色设置"
+            },
+            "theme_color_default": {
+                self.ENGLISH: "Default Color",
+                self.CHINESE: "默认颜色"
+            },
+            "theme_color_custom": {
+                self.ENGLISH: "Custom Color",
+                self.CHINESE: "自定义颜色"
+            },
+            "theme_color_choose": {
+                self.ENGLISH: "Choose Color",
+                self.CHINESE: "选择颜色"
+            },
+            # 新增翻译项
+            "output_settings": {
+                self.ENGLISH: "Output Settings",
+                self.CHINESE: "输出设置"
+            },
+            "custom_output_dir": {
+                self.ENGLISH: "Custom Output Directory",
+                self.CHINESE: "自定义输出目录"
+            },
+            "output_dir_placeholder": {
+                self.ENGLISH: "Default: extracted_oggs folder under extraction directory",
+                self.CHINESE: "默认使用提取目录下的extracted_oggs文件夹"
+            },
+            "save_logs": {
+                self.ENGLISH: "Save logs to file",
+                self.CHINESE: "保存日志到文件"
+            },
+            "log_save_option_toggled": {
+                self.ENGLISH: "Log save option toggled",
+                self.CHINESE: "日志保存选项已切换"
+            },
         }
 
     @lru_cache(maxsize=128)
@@ -1023,9 +1235,6 @@ class ProcessingStats:
                 'duplicate_files': 0,
                 'already_processed': 0,
                 'error_files': 0,
-                'mp3_converted': 0,
-                'mp3_skipped': 0,
-                'mp3_errors': 0,
                 'last_update': time.time()
             }
             self._last_update_time = 0
@@ -1061,7 +1270,8 @@ class RobloxAudioExtractor:
 
     def __init__(self, base_dir: str, num_threads: int = None, keyword: str = "oggs",
                  download_history: Optional['ExtractedHistory'] = None,
-                 classification_method: ClassificationMethod = ClassificationMethod.DURATION):
+                 classification_method: ClassificationMethod = ClassificationMethod.DURATION,
+                 custom_output_dir: Optional[str] = None):
         """初始化提取器"""
         import_libs()  # 确保已导入所需库
 
@@ -1072,7 +1282,13 @@ class RobloxAudioExtractor:
         self.classification_method = classification_method
 
         # 输出目录
-        self.output_dir = os.path.join(self.base_dir, "extracted_oggs")
+        if custom_output_dir and os.path.isdir(custom_output_dir):
+            # 使用自定义输出路径
+            self.output_dir = os.path.abspath(custom_output_dir)
+        else:
+            # 使用默认输出路径
+            self.output_dir = os.path.join(self.base_dir, "extracted_oggs")
+        
         self.logs_dir = os.path.join(self.output_dir, "logs")
 
         # 创建日志和临时目录
@@ -1500,264 +1716,6 @@ class RobloxAudioExtractor:
             pass  # 非关键操作
 
 
-class MP3Converter:
-    """将OGG文件转换为MP3，保持时长分类结构"""
-
-    def __init__(self, input_dir: str, output_dir: str, num_threads: int = None):
-        """初始化MP3转换器"""
-        import_libs()  # 确保已导入所需库
-
-        self.input_dir = input_dir
-        self.output_dir = output_dir
-        self.num_threads = num_threads or min(16, multiprocessing.cpu_count())
-        self.stats = ProcessingStats()
-        self.file_lock = threading.Lock()
-        self.cancelled = False
-        self.processed_count = 0
-
-        # 缓存已经转换过的文件哈希
-        self.converted_hashes = set()
-
-        # 创建输出目录
-        os.makedirs(self.output_dir, exist_ok=True)
-
-    def find_ogg_files(self) -> List[str]:
-        """查找所有OGG文件 - 使用os.scandir优化"""
-        ogg_files = []
-
-        def scan_directory(dir_path):
-            try:
-                with os.scandir(dir_path) as entries:
-                    for entry in entries:
-                        if entry.is_dir():
-                            scan_directory(entry.path)
-                        elif entry.is_file() and entry.name.lower().endswith('.ogg'):
-                            ogg_files.append(entry.path)
-            except (PermissionError, OSError):
-                pass
-
-        scan_directory(self.input_dir)
-        return ogg_files
-
-    def convert_all(self) -> Dict[str, Any]:
-        """转换所有找到的OGG文件"""
-        # 检查ffmpeg是否可用
-        if not self._is_ffmpeg_available():
-            return {
-                "success": False,
-                "error": lang.get("ffmpeg_not_installed")
-            }
-
-        # 查找所有的OGG文件
-        ogg_files = self.find_ogg_files()
-
-        if not ogg_files:
-            return {
-                "success": False,
-                "error": lang.get("no_ogg_files")
-            }
-
-        # 创建相应的输出目录结构
-        self._create_output_structure()
-
-        # 重置统计
-        self.stats.reset()
-        self.converted_hashes.clear()
-        self.processed_count = 0
-        self.cancelled = False
-
-        # 显示转换进度
-        print(f"\n• {lang.get('mp3_conversion', len(ogg_files))}")
-
-        # 使用线程池处理文件
-        start_time = time.time()
-
-        # 创建工作队列
-        work_queue = queue.Queue()
-
-        # 填充工作队列
-        for file_path in ogg_files:
-            work_queue.put(file_path)
-
-        # 创建工作线程
-        def worker():
-            while not self.cancelled:
-                try:
-                    # 从队列获取项目，如果队列为空5秒则退出
-                    file_path = work_queue.get(timeout=5)
-                    try:
-                        self.convert_file(file_path)
-                    finally:
-                        work_queue.task_done()
-                        # 更新进度
-                        self.processed_count += 1
-                except queue.Empty:
-                    break
-                except Exception:
-                    # 确保任何一个任务的失败不会中断整个处理
-                    pass
-
-        # 启动工作线程
-        threads = []
-        for _ in range(self.num_threads):
-            thread = threading.Thread(target=worker)
-            thread.daemon = True
-            thread.start()
-            threads.append(thread)
-
-        # 等待所有工作完成
-        try:
-            # 等待所有工作完成
-            work_queue.join()
-        except KeyboardInterrupt:
-            # 允许用户中断处理
-            self.cancelled = True
-            print("\n操作被用户取消.")
-
-        # 计算结果统计
-        stats = self.stats.get_all()
-        total_time = time.time() - start_time
-
-        return {
-            "success": True,
-            "converted": stats['mp3_converted'],
-            "skipped": stats['mp3_skipped'],
-            "errors": stats['mp3_errors'],
-            "total": len(ogg_files),
-            "duration": total_time,
-            "output_dir": self.output_dir
-        }
-
-    def convert_file(self, ogg_path: str) -> bool:
-        """转换单个OGG文件为MP3，保持目录结构"""
-        if self.cancelled:
-            return False
-
-        try:
-            # 计算文件哈希以检测重复转换
-            file_hash = self._get_file_hash(ogg_path)
-
-            # 检查是否已转换
-            with self.file_lock:
-                if file_hash in self.converted_hashes:
-                    self.stats.increment('mp3_skipped')
-                    return False
-                # 记录哈希
-                self.converted_hashes.add(file_hash)
-
-            # 获取相对输入路径以构建输出路径
-            rel_path = os.path.relpath(ogg_path, self.input_dir)
-            rel_dir = os.path.dirname(rel_path)
-            basename = os.path.basename(ogg_path)
-            basename_noext = os.path.splitext(basename)[0]
-
-            # 为输出文件创建目录（保持时长分类结构）
-            output_dir = os.path.join(self.output_dir, rel_dir)
-            os.makedirs(output_dir, exist_ok=True)
-
-            # 创建MP3文件名，保留原始格式
-            timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-            if random is None:
-                import_libs()
-            random_suffix = ''.join(random.choices(string.ascii_lowercase + string.digits, k=4))
-            mp3_filename = f"{basename_noext}_{timestamp}_{random_suffix}.mp3"
-            mp3_path = os.path.join(output_dir, mp3_filename)
-
-            # 使用ffmpeg转换文件 - 使用更高效的参数
-            try:
-                subprocess_flags = 0
-                if os.name == 'nt':  # Windows
-                    if subprocess is None:
-                        import_libs()
-                    subprocess_flags = subprocess.CREATE_NO_WINDOW
-
-                # 使用更好的ffmpeg参数 - 增加转换速度
-                result = subprocess.run(
-                    ["ffmpeg", "-y", "-loglevel", "error", "-i", ogg_path,
-                     "-codec:a", "libmp3lame", "-qscale:a", "2", "-threads", "2", mp3_path],
-                    stdout=subprocess.PIPE,
-                    stderr=subprocess.PIPE,
-                    check=True,
-                    creationflags=subprocess_flags
-                )
-                # 转换成功
-                self.stats.increment('mp3_converted')
-                return True
-            except subprocess.CalledProcessError as e:
-                self.stats.increment('mp3_errors')
-                self._log_error(ogg_path, f"Conversion failed: {e.stderr.decode('utf-8', errors='ignore')}")
-                return False
-        except Exception as e:
-            self.stats.increment('mp3_errors')
-            self._log_error(ogg_path, f"Unexpected error: {str(e)}")
-            return False
-
-    def _get_file_hash(self, file_path: str) -> str:
-        """计算文件的哈希值"""
-        # 使用文件路径和修改时间作为简单哈希，避免读取文件内容
-        try:
-            file_stat = os.stat(file_path)
-            return hashlib.md5(f"{file_path}_{file_stat.st_size}_{file_stat.st_mtime}".encode()).hexdigest()
-        except Exception:
-            # 如果无法获取文件信息，使用文件路径
-            return hashlib.md5(file_path.encode()).hexdigest()
-
-    def _is_ffmpeg_available(self) -> bool:
-        """检查ffmpeg是否可用"""
-        try:
-            if subprocess is None:
-                import_libs()
-
-            subprocess_flags = 0
-            if os.name == 'nt':  # Windows
-                subprocess_flags = subprocess.CREATE_NO_WINDOW
-
-            result = subprocess.run(
-                ["ffmpeg", "-version"],
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
-                creationflags=subprocess_flags
-            )
-            return result.returncode == 0
-        except Exception:
-            return False
-
-    def _create_output_structure(self) -> None:
-        """创建与输入目录相对应的输出目录结构"""
-
-        # 使用os.scandir优化性能
-        def create_dirs(base_path, relative_path=""):
-            full_input_path = os.path.join(base_path, relative_path)
-            full_output_path = os.path.join(self.output_dir, relative_path)
-
-            if relative_path:  # 避免创建根目录
-                os.makedirs(full_output_path, exist_ok=True)
-
-            try:
-                with os.scandir(full_input_path) as entries:
-                    for entry in entries:
-                        if entry.is_dir():
-                            new_rel_path = os.path.join(relative_path, entry.name)
-                            create_dirs(base_path, new_rel_path)
-            except (PermissionError, OSError):
-                pass
-
-        create_dirs(self.input_dir)
-
-    def _log_error(self, file_path: str, error_message: str) -> None:
-        """记录转换错误 - 使用缓冲写入"""
-        try:
-            log_dir = os.path.join(self.output_dir, "logs")
-            os.makedirs(log_dir, exist_ok=True)
-            log_file = os.path.join(log_dir, "conversion_errors.log")
-            timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-            with self.file_lock:
-                with open(log_file, 'a', encoding='utf-8', buffering=8192) as f:
-                    f.write(f"[{timestamp}] {file_path}: {error_message}\n")
-        except Exception:
-            pass  # 如果日志记录失败，则没有太大影响
-
-
 def open_directory(path: str) -> bool:
     """在文件资源管理器/Finder中打开目录"""
     try:
@@ -1797,28 +1755,26 @@ def is_ffmpeg_available() -> bool:
 class LogHandler:
     """日志处理类，用于记录消息到PyQt的TextEdit控件"""
 
-    def __init__(self, text_edit: TextEdit):
+    def __init__(self, text_edit):
         self.text_edit = text_edit
+        # 注册到中央日志系统
+        CentralLogHandler.getInstance().register_text_edit(text_edit)
 
     def info(self, message: str):
         """记录信息消息"""
-        self.text_edit.append(message)
-        self.text_edit.ensureCursorVisible()
+        CentralLogHandler.getInstance().add_log(message)
 
     def success(self, message: str):
         """记录成功消息"""
-        self.text_edit.append(f"✓ {message}")
-        self.text_edit.ensureCursorVisible()
+        CentralLogHandler.getInstance().add_log(message, "✓ ")
 
     def warning(self, message: str):
         """记录警告消息"""
-        self.text_edit.append(f"⚠ {message}")
-        self.text_edit.ensureCursorVisible()
+        CentralLogHandler.getInstance().add_log(message, "⚠ ")
 
     def error(self, message: str):
         """记录错误消息"""
-        self.text_edit.append(f"✗ {message}")
-        self.text_edit.ensureCursorVisible()
+        CentralLogHandler.getInstance().add_log(message, "✗ ")
 
 
 # ====== PyQt5 实现部分 ======
@@ -1829,13 +1785,13 @@ class ExtractionWorker(QThread):
     finished = pyqtSignal(dict)  # 完成信号(结果字典)
     logMessage = pyqtSignal(str, str)  # 日志消息信号(消息, 类型)
 
-    def __init__(self, base_dir, num_threads, download_history, classification_method, convert_to_mp3=False):
+    def __init__(self, base_dir, num_threads, download_history, classification_method, custom_output_dir=None):
         super().__init__()
         self.base_dir = base_dir
         self.num_threads = num_threads
         self.download_history = download_history
         self.classification_method = classification_method
-        self.convert_to_mp3 = convert_to_mp3
+        self.custom_output_dir = custom_output_dir
         self.is_cancelled = False
         self.total_files = 0
         self.processed_count = 0
@@ -1853,7 +1809,8 @@ class ExtractionWorker(QThread):
                 self.num_threads,
                 "oggs",
                 self.download_history,
-                self.classification_method
+                self.classification_method,
+                self.custom_output_dir  # 传入自定义输出路径
             )
 
             # 设置取消检查函数
@@ -1909,20 +1866,6 @@ class ExtractionWorker(QThread):
                 except Exception as e:
                     self.logMessage.emit(f"Failed to save history: {str(e)}", 'error')
 
-            # 如果需要，进行MP3转换
-            mp3_result = None
-            if self.convert_to_mp3 and not self.is_cancelled and extraction_result["processed"] > 0:
-                self.logMessage.emit(lang.get('mp3_conversion_info'), 'info')
-                mp3_dir = os.path.join(self.base_dir, "extracted_mp3")
-                mp3_converter = MP3Converter(extraction_result["output_dir"], mp3_dir, self.num_threads)
-
-                # 设置取消函数
-                mp3_converter.cancelled = lambda: self.is_cancelled
-
-                # 转换文件
-                mp3_result = mp3_converter.convert_all()
-                extraction_result["mp3_result"] = mp3_result
-
             # 设置结果
             extraction_result["success"] = True
             self.finished.emit(extraction_result)
@@ -1956,7 +1899,7 @@ class CacheClearWorker(QThread):
             processed_files = 0
 
             # 需要排除的文件夹
-            exclude_dirs = {'extracted_mp3', 'extracted_oggs'}
+            exclude_dirs = {'extracted_oggs'}
             files_to_process = []
 
             # 首先扫描所有文件
@@ -2002,7 +1945,6 @@ class CacheClearWorker(QThread):
 
         except Exception as e:
             self.finished.emit(False, 0, 0, str(e))
-
     def cancel(self):
         """取消操作"""
         self.is_cancelled = True
@@ -2057,32 +1999,38 @@ class MainWindow(MSFluentWindow):
         global lang
         lang = LanguageManager(self.config_manager)
 
+        # 初始化中央日志处理器
+        CentralLogHandler.getInstance().init_with_config(self.config_manager)
+
         # 初始化窗口
         self.initWindow()
 
         # 初始化数据
         self.default_dir = get_roblox_default_dir()
-
+        
         # 创建应用数据目录
         app_data_dir = os.path.join(os.path.expanduser("~"), ".roblox_audio_extractor")
         os.makedirs(app_data_dir, exist_ok=True)
         history_file = os.path.join(app_data_dir, "extracted_history.json")
-
+        
         # 初始化提取历史
         self.download_history = ExtractedHistory(history_file)
-
+        
         # 初始化工作线程
         self.extraction_worker = None
         self.cache_clear_worker = None
-
+        
         # 初始化UI
         self.initUI()
-
+        
         # 显示欢迎消息
         self.add_welcome_message()
-
+        
         # 应用保存的主题设置
         self.applyThemeFromConfig()
+        
+        # 应用响应式布局到所有界面
+        self.applyResponsiveLayoutToAllInterfaces()
 
     def initWindow(self):
         """初始化窗口设置"""
@@ -2128,6 +2076,7 @@ class MainWindow(MSFluentWindow):
 
     def applyThemeFromConfig(self):
         """从配置文件应用主题设置"""
+        # 应用主题模式
         theme_setting = self.config_manager.get("theme", "dark")
         if theme_setting == "light":
             setTheme(Theme.LIGHT)
@@ -2135,6 +2084,24 @@ class MainWindow(MSFluentWindow):
             setTheme(Theme.DARK)
         else:  # auto
             setTheme(Theme.AUTO)
+        
+        # 更新中央日志处理器的主题设置
+        CentralLogHandler.getInstance().set_theme(theme_setting)
+        
+        # 应用主题颜色
+        try:
+            # 确保 setThemeColor 函数可用
+            if 'setThemeColor' in globals():
+                use_custom_color = self.config_manager.get("use_custom_theme_color", False)
+                if use_custom_color:
+                    theme_color = self.config_manager.get("theme_color", "#0078d4")
+                    setThemeColor(QColor(theme_color))
+                else:
+                    setThemeColor(QColor("#0078d4"))  # 默认蓝色
+            else:
+                print("警告: setThemeColor 函数不可用，跳过主题颜色设置")
+        except Exception as e:
+            print(f"应用主题颜色时出错: {e}")
 
         # 确保UI已初始化后再更新样式
         QTimer.singleShot(100, self.updateAllStyles)
@@ -2652,23 +2619,10 @@ class MainWindow(MSFluentWindow):
         threads_row.addStretch()
         threads_row.addWidget(self.threadsSpinBox)
 
-        # MP3转换选项
-        mp3_row = QHBoxLayout()
-        mp3_icon = IconWidget(FluentIcon.MUSIC)
-        mp3_icon.setFixedSize(16, 16)
-        self.mp3CheckBox = CheckBox(lang.get("convert_to_mp3_prompt"))
-        self.mp3CheckBox.setChecked(True)
-
-        mp3_row.addWidget(mp3_icon)
-        mp3_row.addWidget(self.mp3CheckBox)
-        mp3_row.addStretch()
-
         options_card_layout.addLayout(threads_row)
-        options_card_layout.addLayout(mp3_row)
 
         # 添加处理提示
         info_list = [
-            lang.get("info_mp3_conversion"),
             lang.get("info_skip_downloaded")
         ]
 
@@ -3169,6 +3123,11 @@ class MainWindow(MSFluentWindow):
 
     def setupSettingsInterface(self):
         """设置设置界面"""
+        # 如果导入了CustomThemeColorCard，设置全局lang变量
+        if CustomThemeColorCard is not None:
+            import custom_theme_color_card
+            custom_theme_color_card.lang = lang
+
         # 创建滚动区域
         scroll = ScrollArea(self.settingsInterface)
         scroll.setWidgetResizable(True)
@@ -3197,8 +3156,6 @@ class MainWindow(MSFluentWindow):
         # 然后将 lang_card_widget 添加到 language_card
         language_card_layout = QVBoxLayout(language_card)
         language_card_layout.addWidget(lang_card_widget)
-
-
 
         # 当前语言显示
         current_lang_row = QHBoxLayout()
@@ -3241,8 +3198,6 @@ class MainWindow(MSFluentWindow):
         appearance_card_layout.setContentsMargins(20, 15, 20, 15)
         appearance_card_layout.setSpacing(15)
 
-
-
         # 主题选择
         theme_row = QHBoxLayout()
         theme_label = BodyLabel(lang.get("theme_settings"))
@@ -3270,6 +3225,12 @@ class MainWindow(MSFluentWindow):
         theme_row.addWidget(self.themeCombo)
 
         appearance_card_layout.addLayout(theme_row)
+        
+        # 添加自定义主题颜色卡片
+        if CustomThemeColorCard is not None:
+            self.themeColorCard = CustomThemeColorCard(self.config_manager)
+            appearance_card_layout.addWidget(self.themeColorCard)
+        
         app_group_layout.addWidget(appearance_card)
 
         # 性能设置卡片
@@ -3293,20 +3254,57 @@ class MainWindow(MSFluentWindow):
         threads_row.addStretch()
         threads_row.addWidget(self.defaultThreadsSpinBox)
 
-        # 默认MP3转换设置
-        mp3_row = QHBoxLayout()
-        mp3_label = BodyLabel(lang.get("default_mp3_conversion"))
-        self.defaultMp3CheckBox = CheckBox()
-        self.defaultMp3CheckBox.setChecked(self.config_manager.get("convert_to_mp3", True))
-        self.defaultMp3CheckBox.toggled.connect(self.saveMp3Config)
-
-        mp3_row.addWidget(mp3_label)
-        mp3_row.addStretch()
-        mp3_row.addWidget(self.defaultMp3CheckBox)
-
         perf_card_layout.addLayout(threads_row)
-        perf_card_layout.addLayout(mp3_row)
         app_group_layout.addWidget(performance_card)
+        
+        # 输出目录设置卡片
+        output_card = CardWidget()
+        output_card.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Maximum)
+        output_layout = QVBoxLayout(output_card)
+        output_layout.setContentsMargins(20, 15, 20, 15)
+        output_layout.setSpacing(15)
+        
+        output_title = StrongBodyLabel(lang.get("output_settings"))
+        output_layout.addWidget(output_title)
+        
+        # 自定义输出路径设置
+        custom_output_row = QHBoxLayout()
+        custom_output_label = BodyLabel(lang.get("custom_output_dir"))
+        custom_output_row.addWidget(custom_output_label)
+        custom_output_row.addStretch()
+        
+        output_layout.addLayout(custom_output_row)
+        
+        # 输出路径输入框和浏览按钮
+        output_path_layout = QHBoxLayout()
+        self.customOutputPath = LineEdit()
+        self.customOutputPath.setText(self.config_manager.get("custom_output_dir", ""))
+        self.customOutputPath.setPlaceholderText(lang.get("output_dir_placeholder"))
+        
+        browse_output_btn = PushButton(FluentIcon.FOLDER_ADD, lang.get("browse"))
+        browse_output_btn.setFixedSize(80, 33)
+        browse_output_btn.clicked.connect(self.browseOutputDirectory)
+        
+        output_path_layout.addWidget(self.customOutputPath)
+        output_path_layout.addWidget(browse_output_btn)
+        
+        output_layout.addLayout(output_path_layout)
+        
+        # 保存日志选项
+        save_logs_row = QHBoxLayout()
+        save_logs_label = BodyLabel(lang.get("save_logs"))
+        self.saveLogsSwitch = SwitchButton()
+        self.saveLogsSwitch.setChecked(self.config_manager.get("save_logs", False))
+        self.saveLogsSwitch.checkedChanged.connect(self.toggleSaveLogs)
+        
+        save_logs_row.addWidget(save_logs_label)
+        save_logs_row.addStretch()
+        save_logs_row.addWidget(self.saveLogsSwitch)
+        
+        output_layout.addLayout(save_logs_row)
+        
+        # 添加输出设置卡片
+        app_group_layout.addWidget(output_card)
 
         content_layout.addWidget(app_group)
 
@@ -3354,11 +3352,8 @@ class MainWindow(MSFluentWindow):
 
         # 关于应用卡片
         about_card = CardWidget()
-        about_card.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Maximum)  # 防止高度异常拉伸
+        about_card.setMaximumHeight(200)  # 添加最大高度值
         about_layout = QVBoxLayout(about_card)
-        about_layout.setContentsMargins(12, 10, 12, 10)
-        about_layout.setSpacing(20)
-
         # 应用头部
         header_layout = QHBoxLayout()
 
@@ -3409,26 +3404,10 @@ class MainWindow(MSFluentWindow):
         desc_label.setWordWrap(True)
         about_layout.addWidget(desc_label)
 
-        # 功能特色重复展示
-        features_title = StrongBodyLabel(lang.get("features"))
-        about_layout.addWidget(features_title)
-
-        features_layout = QVBoxLayout()
-        features_layout.setSpacing(8)
-
-        feature_items = [
-            lang.get("feature_1"),
-            lang.get("feature_2"),
-            lang.get("feature_3"),
-            lang.get("feature_4")
-        ]
 
 
-        for i, feature in enumerate(feature_items, 1):
-            feature_label = CaptionLabel(f"{i}. {feature}")
-            features_layout.addWidget(feature_label)
 
-        about_layout.addLayout(features_layout)
+
 
         content_layout.addWidget(about_card)
 
@@ -3562,7 +3541,6 @@ class MainWindow(MSFluentWindow):
         log.info(f"{lang.get('default_dir')}: {self.default_dir}")
         log.success(lang.get("ui_upgraded"))
         log.info(lang.get("config_file_location", self.config_manager.config_file))
-
     def browseDirectory(self):
         """浏览目录对话框"""
         directory = QFileDialog.getExistingDirectory(self, lang.get("directory"), self.dirInput.text())
@@ -3582,12 +3560,18 @@ class MainWindow(MSFluentWindow):
         if theme_name == lang.get("theme_dark"):
             setTheme(Theme.DARK)
             self.config_manager.set("theme", "dark")
+            # 更新中央日志处理器的主题设置
+            CentralLogHandler.getInstance().set_theme("dark")
         elif theme_name == lang.get("theme_light"):
             setTheme(Theme.LIGHT)
             self.config_manager.set("theme", "light")
+            # 更新中央日志处理器的主题设置
+            CentralLogHandler.getInstance().set_theme("light")
         else:
             setTheme(Theme.AUTO)
             self.config_manager.set("theme", "auto")
+            # 对于自动模式，默认使用深色主题
+            CentralLogHandler.getInstance().set_theme("dark")
 
         # 重新应用所有界面样式
         self.updateAllStyles()
@@ -3654,13 +3638,6 @@ class MainWindow(MSFluentWindow):
         self.config_manager.set("threads", value)
         if hasattr(self, 'settingsLogHandler'):
             self.settingsLogHandler.info(lang.get("saved", f"{lang.get('default_threads')}: {value}"))
-
-    def saveMp3Config(self, checked):
-        """保存MP3转换配置"""
-        self.config_manager.set("convert_to_mp3", checked)
-        if hasattr(self, 'settingsLogHandler'):
-            status = lang.get('enabled') if checked else lang.get('disabled')
-            self.settingsLogHandler.info(lang.get("saved", f"{lang.get('default_mp3_conversion')}: {status}"))
 
     def startExtraction(self):
         """开始提取音频"""
@@ -3730,8 +3707,7 @@ class MainWindow(MSFluentWindow):
             selected_dir,
             num_threads,
             self.download_history,
-            classification_method,
-            self.mp3CheckBox.isChecked()
+            classification_method
         )
 
         # 连接信号
@@ -3755,7 +3731,6 @@ class MainWindow(MSFluentWindow):
 
         # 启动线程
         self.extraction_worker.start()
-
     def cancelExtraction(self):
         """取消提取操作"""
         if self.extraction_worker and self.extraction_worker.isRunning():
@@ -3793,7 +3768,6 @@ class MainWindow(MSFluentWindow):
         # 更新UI
         self.progressBar.setValue(progress)
         self.progressLabel.setText(status_text)
-
         # 更新状态提示
         if hasattr(self, 'extractionStateTooltip'):
             self.extractionStateTooltip.setContent(status_text)
@@ -3820,34 +3794,14 @@ class MainWindow(MSFluentWindow):
                 self.extractLogHandler.info(lang.get("files_per_sec", result.get('files_per_second', 0)))
                 self.extractLogHandler.info(lang.get("output_dir", result.get('output_dir', '')))
 
-                # 检查MP3转换结果
-                if "mp3_result" in result and result["mp3_result"]:
-                    mp3_result = result["mp3_result"]
-                    if mp3_result.get("success", False):
-                        self.extractLogHandler.success(lang.get("mp3_conversion_complete"))
-                        self.extractLogHandler.info(
-                            lang.get("converted", mp3_result.get('converted', 0), mp3_result.get('total', 0)))
-                        self.extractLogHandler.info(f"跳过重复: {mp3_result.get('skipped', 0)} 文件")
-                        self.extractLogHandler.info(f"转换错误: {mp3_result.get('errors', 0)} 文件")
-                        self.extractLogHandler.info(f"总耗时: {mp3_result.get('duration', 0):.2f} 秒")
-                    else:
-                        self.extractLogHandler.info(
-                            f"在 {mp3_result.get('duration', 0):.2f} 秒内找到 {mp3_result.get('total', 0)} 个文件")
-
-                # 确定最终输出目录
-                final_dir = ""
-                if "mp3_result" in result and result["mp3_result"] and result["mp3_result"].get("success", False):
-                    final_dir = result["mp3_result"].get("output_dir", "")
-                    dir_type = lang.get("mp3_category")
-                else:
-                    final_dir = result.get("output_dir", "")
-                    dir_type = lang.get("ogg_category")
+                # 输出目录
+                final_dir = result.get("output_dir", "")
 
                 # 尝试打开目录
                 if final_dir and os.path.exists(final_dir):
                     open_success = open_directory(final_dir)
                     if open_success:
-                        self.extractLogHandler.info(lang.get("opening_output_dir", dir_type))
+                        self.extractLogHandler.info(lang.get("opening_output_dir", lang.get("ogg_category")))
                     else:
                         self.extractLogHandler.info(lang.get("manual_navigate", final_dir))
 
@@ -4141,6 +4095,62 @@ class MainWindow(MSFluentWindow):
                 parent=self
             )
 
+    def setResponsiveContentWidget(self, scroll_area):
+        """为滚动区域内的内容容器应用响应式布局设置，防止卡片间距异常"""
+        if not scroll_area or not isinstance(scroll_area, ScrollArea):
+            return
+            
+        content_widget = scroll_area.widget()
+        if not content_widget:
+            return
+            
+        # 设置垂直大小策略为最小值，防止垂直方向上不必要的扩展
+        content_widget.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.MinimumExpanding)
+        
+        # 确保布局设置了顶部对齐
+        if content_widget.layout():
+            content_widget.layout().setAlignment(Qt.AlignTop)
+            
+            # 确保布局末尾有伸缩项
+            if isinstance(content_widget.layout(), QVBoxLayout):
+                has_stretch = False
+                for i in range(content_widget.layout().count()):
+                    item = content_widget.layout().itemAt(i)
+                    if item and item.spacerItem():
+                        has_stretch = True
+                        break
+                        
+                if not has_stretch:
+                    content_widget.layout().addStretch()
+
+    def applyResponsiveLayoutToAllInterfaces(self):
+        """为所有接口页面应用响应式布局"""
+        # 处理每个界面
+        for interface in [self.homeInterface, self.extractInterface, self.clearCacheInterface, 
+                        self.historyInterface, self.settingsInterface, self.aboutInterface]:
+            if not interface or not interface.layout():
+                continue
+                
+            # 查找每个界面中的ScrollArea
+            for i in range(interface.layout().count()):
+                item = interface.layout().itemAt(i)
+                if item and item.widget() and isinstance(item.widget(), ScrollArea):
+                    # 应用响应式布局
+                    self.setResponsiveContentWidget(item.widget())
+
+    def browseOutputDirectory(self):
+        """浏览输出目录对话框"""
+        directory = QFileDialog.getExistingDirectory(self, lang.get("directory"), self.customOutputPath.text())
+        if directory:
+            self.customOutputPath.setText(directory)
+            self.config_manager.set("custom_output_dir", directory)
+
+    def toggleSaveLogs(self):
+        """切换保存日志选项"""
+        self.config_manager.set("save_logs", self.saveLogsSwitch.isChecked())
+        if hasattr(self, 'settingsLogHandler'):
+            self.settingsLogHandler.info(lang.get("log_save_option_toggled"))
+
 
 def main():
     """主函数 - 程序入口点，使用 GUI 界面"""
@@ -4222,3 +4232,9 @@ if __name__ == "__main__":
             pass
 
         sys.exit(1)
+
+
+
+
+
+
