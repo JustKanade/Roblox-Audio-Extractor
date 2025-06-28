@@ -3702,12 +3702,16 @@ class MainWindow(MSFluentWindow):
                 self.extractLogHandler.warning(lang.get("operation_cancelled"))
                 return
 
+        # 获取自定义输出目录
+        custom_output_dir = self.config_manager.get("custom_output_dir", "")
+        
         # 创建并启动提取线程
         self.extraction_worker = ExtractionWorker(
             selected_dir,
             num_threads,
             self.download_history,
-            classification_method
+            classification_method,
+            custom_output_dir  # 传递自定义输出目录参数
         )
 
         # 连接信号
@@ -3763,7 +3767,7 @@ class MainWindow(MSFluentWindow):
         remaining_str = f"{int(remaining // 60)}m {int(remaining % 60)}s"
 
         # 构建状态文本
-        status_text = f"{progress}% - {current}/{total} | {speed:.1f} files/s | ETA: {remaining_str}"
+        status_text = f"{progress}% - {current}/{total} | {speed:.1f} files/s"
 
         # 更新UI
         self.progressBar.setValue(progress)
