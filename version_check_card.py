@@ -1,39 +1,3 @@
-"""
-版本检测卡片 (Version Check Card)
------------------------------------
-
-本模块提供了一个版本检测卡片，用于在应用程序中集成版本检查功能。
-
-主要功能:
-1. 检查GitHub仓库的最新版本
-2. 比较当前版本与最新版本
-3. 显示更新提示和发布说明
-4. 提供自动检查更新的选项
-
-处理GitHub API速率限制:
-- 添加适当的User-Agent和Accept请求头
-- 实现重试逻辑和指数退避策略
-- 检测API速率限制并提供用户友好的错误信息
-- 缓存版本检查结果以减少API调用
-
-控制更新检查行为:
-- 通过环境变量 SKIP_UPDATE_CHECK=1 可完全跳过更新检查
-- 在配置中启用/禁用自动检查更新
-- 提供手动检查按钮
-
-界面支持:
-- 支持PyQt-Fluent-Widgets的美观界面
-- 在不可用时回退到标准PyQt界面
-
-使用方法:
-    # 创建版本检测卡片
-    version_check_card = VersionCheckCard(config_manager, current_version, parent)
-    layout.addWidget(version_check_card)
-    
-    # 跳过启动检查
-    version_check_card = VersionCheckCard(config_manager, current_version, parent, skip_check=True)
-"""
-
 from PyQt5.QtCore import pyqtSignal, Qt, QThread, QUrl, QSize, QPoint, QPropertyAnimation, QEasingCurve, QEvent
 from PyQt5.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel, QDialog, QApplication,
@@ -103,15 +67,7 @@ def get_text(key, *args):
     return DEFAULT_TRANSLATIONS.get(key, key)
 
 class UpdateDialog(MaskDialogBase):
-    """现代化更新对话框，显示版本更新信息并提供下载链接
-    
-    主要特点:
-    1. 美观的Fluent Design风格
-    2. 流畅的动画效果
-    3. 高对比度的按钮区分
-    4. 清晰的版本和内容展示
-    5. 适配暗色和亮色主题
-    """
+
     
     def __init__(self, title, version, release_notes, release_url, parent=None):
         """初始化更新对话框
