@@ -29,6 +29,13 @@ except ImportError:
     VersionCheckCard = None
     print("无法导入VersionCheckCard，将禁用版本检测功能")
 
+# 导入日志控制卡片
+try:
+    from log_control_card import LogControlCard
+except ImportError:
+    LogControlCard = None
+    print("无法导入LogControlCard，将禁用日志管理功能")
+
 if hasattr(sys, '_MEIPASS'):
     os.environ['QT_QPA_PLATFORM_PLUGIN_PATH'] = os.path.join(sys._MEIPASS, 'PyQt5', 'Qt', 'plugins')
 import time
@@ -1106,7 +1113,64 @@ class LanguageManager:
             "close": {
                 self.ENGLISH: "Close",
                 self.CHINESE: "关闭"
-            }
+            },
+            # 日志管理相关翻译
+            "log_management": {
+                self.ENGLISH: "Log Management",
+                self.CHINESE: "日志管理"
+            },
+            "export_logs": {
+                self.ENGLISH: "Export Logs",
+                self.CHINESE: "导出日志"
+            },
+            "clear_logs": {
+                self.ENGLISH: "Clear Logs",
+                self.CHINESE: "清空日志"
+            },
+            "confirm_clear_logs": {
+                self.ENGLISH: "Confirm Clear Logs",
+                self.CHINESE: "确认清空日志"
+            },
+            "confirm_clear_logs_message": {
+                self.ENGLISH: "Are you sure you want to clear all logs? This operation cannot be undone.",
+                self.CHINESE: "确定要清空所有日志吗？此操作无法撤销。"
+            },
+            "logs_cleared": {
+                self.ENGLISH: "All logs have been cleared",
+                self.CHINESE: "所有日志已清空"
+            },
+            "clear_successful": {
+                self.ENGLISH: "Clear Successful",
+                self.CHINESE: "清空成功"
+            },
+            "clear_failed": {
+                self.ENGLISH: "Clear Failed",
+                self.CHINESE: "清空失败"
+            },
+            "error_clearing_logs": {
+                self.ENGLISH: "Error clearing logs: {}",
+                self.CHINESE: "清空日志时出错：{}"
+            },
+            "save_log_file": {
+                self.ENGLISH: "Save Log File",
+                self.CHINESE: "保存日志文件"
+            },
+            "logs_exported_to": {
+                self.ENGLISH: "Logs exported to: {}",
+                self.CHINESE: "日志已导出至：{}"
+            },
+            "export_successful": {
+                self.ENGLISH: "Export Successful",
+                self.CHINESE: "导出成功"
+            },
+            "export_failed": {
+                self.ENGLISH: "Export Failed",
+                self.CHINESE: "导出失败"
+            },
+            "error_exporting_logs": {
+                self.ENGLISH: "Error exporting logs: {}",
+                self.CHINESE: "导出日志时出错：{}"
+            },
         }
 
     @lru_cache(maxsize=128)
@@ -3384,6 +3448,17 @@ class MainWindow(MSFluentWindow):
             # 添加版本检测卡片
             app_group_layout.addWidget(version_card)
 
+        # 在 app_group_layout.addWidget(output_card) 下面添加：
+        
+        # 日志管理卡片
+        if LogControlCard is not None:
+            log_control_card = LogControlCard(
+                parent=self.settingsInterface,
+                lang=lang,
+                central_log_handler=CentralLogHandler.getInstance()
+            )
+            app_group_layout.addWidget(log_control_card)
+
         content_layout.addWidget(app_group)
 
         # 日志区域
@@ -4088,8 +4163,19 @@ class MainWindow(MSFluentWindow):
 
     def clearHistory(self):
         """清除提取历史"""
+        # 确认对话框
+        result = MessageBox(
+            lang.get("clear_history"),
+            lang.get("confirm_clear_history"),
+            self
+        )
+
+        if not result.exec():
+            self.historyLogHandler.info(lang.get("operation_cancelled"))
+            return
+            
         try:
-            # 直接清除历史记录，不显示确认对话框
+            # 清除历史记录
             self.download_history.clear_history()
 
             # 延迟刷新界面，避免立即更新UI导致的问题
