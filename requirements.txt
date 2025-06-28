@@ -1,3 +1,4 @@
 colorama
 PyQt5
 PyQt-Fluent-Widgets
+requests
