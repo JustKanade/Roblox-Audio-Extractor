@@ -61,7 +61,7 @@ from PyQt5.QtGui import QIcon, QPixmap, QFont, QColor
 
 
 from qfluentwidgets import (
-    MSFluentWindow, NavigationItemPosition, setTheme, Theme,
+    FluentWindow, NavigationItemPosition, setTheme, Theme,
     InfoBar, FluentIcon, PushButton, PrimaryPushButton,
     ComboBox, BodyLabel, CardWidget, TitleLabel, CaptionLabel,
     ProgressBar, CheckBox, RadioButton, TextEdit,
@@ -2106,8 +2106,8 @@ class ResponsiveFeatureItem(QWidget):
         layout.addWidget(self.text_label)
 
 
-class MainWindow(MSFluentWindow):
-    """主窗口 - 使用MSFluentWindow而不是自定义标题栏，增强响应式布局"""
+class MainWindow(FluentWindow):
+    """主窗口 - 使用FluentWindow而不是自定义标题栏，增强响应式布局"""
 
     def __init__(self):
         super().__init__()
@@ -2179,7 +2179,7 @@ class MainWindow(MSFluentWindow):
         """设置窗口背景，确保深色模式正确显示"""
         # 为主窗口设置深色背景
         self.setStyleSheet("""
-            MSFluentWindow {
+            FluentWindow {
                 background-color: rgb(32, 32, 32);
             }
             QWidget {
@@ -3752,7 +3752,7 @@ class MainWindow(MSFluentWindow):
 
             # 应用主窗口样式
             self.setStyleSheet(f"""
-                MSFluentWindow {{
+                FluentWindow {{
                     background-color: {main_bg};
                 }}
                 QWidget {{
