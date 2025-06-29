@@ -51,6 +51,17 @@ except ImportError:
         LogControlCard = None
         print("无法导入LogControlCard，将禁用日志管理功能")
 
+# 导入FFmpeg状态卡片
+try:
+    from components.cards.ffmpeg_status_card import FFmpegStatusCard
+except ImportError:
+    try:
+        # 尝试从旧路径导入（向后兼容）
+        from ffmpeg_status_card import FFmpegStatusCard
+    except ImportError:
+        FFmpegStatusCard = None
+        print("无法导入FFmpegStatusCard，将禁用FFmpeg状态检测功能")
+
 if hasattr(sys, '_MEIPASS'):
     os.environ['QT_QPA_PLATFORM_PLUGIN_PATH'] = os.path.join(sys._MEIPASS, 'PyQt5', 'Qt', 'plugins')
 import time
@@ -468,7 +479,7 @@ class LanguageManager:
             },
             'cache_cleared': {
                 self.ENGLISH: "Successfully cleared {0} of {1} audio cache files.",
-                self.CHINESE: "成功清除了 {1} 个缓存文件中的 {0} 个。"
+                self.CHINESE: "成功清除了 {0} 个缓存文件，共 {1} 个。"
             },
             'no_cache_found': {
                 self.ENGLISH: "No audio cache files found.",
@@ -808,7 +819,7 @@ class LanguageManager:
             },
             "found_files": {
                 self.ENGLISH: "Found {} files in {:.2f} seconds",
-                self.CHINESE: "在 {:.2f} 秒内找到 {} 个文件"
+                self.CHINESE: "找到 {} 个文件，耗时 {:.2f} 秒"
             },
             "no_files_found": {
                 self.ENGLISH: "No files found in the specified directory",
@@ -1186,6 +1197,91 @@ class LanguageManager:
                 self.ENGLISH: "Error exporting logs: {}",
                 self.CHINESE: "导出日志时出错：{}"
             },
+            # FFmpeg状态卡片相关翻译
+            "ffmpeg_status_title": {
+                self.ENGLISH: "FFmpeg Status",
+                self.CHINESE: "FFmpeg 状态"
+            },
+            "detect_ffmpeg": {
+                self.ENGLISH: "Detect FFmpeg",
+                self.CHINESE: "检测 FFmpeg"
+            },
+            "browse_ffmpeg": {
+                self.ENGLISH: "Browse FFmpeg",
+                self.CHINESE: "浏览 FFmpeg"
+            },
+            "detecting": {
+                self.ENGLISH: "Detecting",
+                self.CHINESE: "正在检测"
+            },
+            "detecting_ffmpeg": {
+                self.ENGLISH: "Detecting FFmpeg...",
+                self.CHINESE: "正在检测 FFmpeg..."
+            },
+            "verifying": {
+                self.ENGLISH: "Verifying",
+                self.CHINESE: "正在验证"
+            },
+            "verifying_ffmpeg": {
+                self.ENGLISH: "Verifying FFmpeg...",
+                self.CHINESE: "正在验证 FFmpeg..."
+            },
+            "ffmpeg_detected": {
+                self.ENGLISH: "FFmpeg detected",
+                self.CHINESE: "FFmpeg 检测完成"
+            },
+            "ffmpeg_not_detected": {
+                self.ENGLISH: "FFmpeg not detected",
+                self.CHINESE: "未检测到 FFmpeg"
+            },
+            "ffmpeg_available": {
+                self.ENGLISH: "FFmpeg Available",
+                self.CHINESE: "FFmpeg 可用"
+            },
+            "ffmpeg_available_message": {
+                self.ENGLISH: "FFmpeg is installed. Duration classification feature can work properly.",
+                self.CHINESE: "FFmpeg 已安装，按时长分类功能可以正常工作。"
+            },
+            "ffmpeg_not_available": {
+                self.ENGLISH: "FFmpeg Not Available",
+                self.CHINESE: "FFmpeg 不可用"
+            },
+            "ffmpeg_not_available_message": {
+                self.ENGLISH: "FFmpeg not detected. Duration classification may not work properly. Please click 'Browse FFmpeg' to set manually.",
+                self.CHINESE: "未检测到 FFmpeg，按时长分类功能可能无法正常工作。请点击'浏览 FFmpeg'手动设置。"
+            },
+            "ffmpeg_available_info": {
+                self.ENGLISH: "FFmpeg is available. Duration classification feature can work properly.",
+                self.CHINESE: "FFmpeg 可用，按时长分类功能可以正常工作。"
+            },
+            "ffmpeg_available_info_path": {
+                self.ENGLISH: "FFmpeg is available at: {}. Duration classification feature can work properly.",
+                self.CHINESE: "FFmpeg 可用，路径：{}。按时长分类功能可以正常工作。"
+            },
+            "success": {
+                self.ENGLISH: "Success",
+                self.CHINESE: "成功"
+            },
+            "error": {
+                self.ENGLISH: "Error",
+                self.CHINESE: "错误"
+            },
+            "ffmpeg_set_success": {
+                self.ENGLISH: "FFmpeg path set successfully",
+                self.CHINESE: "FFmpeg 路径设置成功"
+            },
+            "invalid_ffmpeg": {
+                self.ENGLISH: "The selected file is not a valid FFmpeg executable",
+                self.CHINESE: "所选文件不是有效的 FFmpeg 可执行文件"
+            },
+            "ffmpeg_error": {
+                self.ENGLISH: "FFmpeg verification failed: {}",
+                self.CHINESE: "FFmpeg 验证失败: {}"
+            },
+            "select_ffmpeg": {
+                self.ENGLISH: "Select FFmpeg Executable",
+                self.CHINESE: "选择 FFmpeg 可执行文件"
+            }
         }
 
     @lru_cache(maxsize=128)
@@ -3158,6 +3254,12 @@ class MainWindow(FluentWindow):
             # 如果切换到历史界面，刷新数据
             if current_widget == self.historyInterface:
                 self.refreshHistoryInterface()
+            # 如果切换到提取界面，更新线程数设置
+            elif current_widget == self.extractInterface:
+                # 从配置中读取默认线程数并更新界面
+                default_threads = self.config_manager.get("threads", min(32, multiprocessing.cpu_count() * 2))
+                if hasattr(self, 'threadsSpinBox'):
+                    self.threadsSpinBox.setValue(default_threads)
         except Exception as e:
             pass
 
@@ -3477,8 +3579,31 @@ class MainWindow(FluentWindow):
             # 添加版本检测卡片
             app_group_layout.addWidget(version_card)
 
-        # 在 app_group_layout.addWidget(output_card) 下面添加：
-        
+        # 添加FFmpeg状态检测卡片
+        if FFmpegStatusCard is not None:
+            # 设置全局语言变量
+            try:
+                import components.cards.ffmpeg_status_card as ffmpeg_status_card
+                ffmpeg_status_card.lang = lang
+            except ImportError:
+                try:
+                    import ffmpeg_status_card
+                    ffmpeg_status_card.lang = lang
+                except ImportError:
+                    pass
+            
+            ffmpeg_card = CardWidget()
+            ffmpeg_card.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Maximum)
+            ffmpeg_card_layout = QVBoxLayout(ffmpeg_card)
+            ffmpeg_card_layout.setContentsMargins(0, 0, 0, 0)  # 让FFmpegStatusCard处理内边距
+            
+            # 创建FFmpeg状态卡片
+            self.ffmpegStatusCard = FFmpegStatusCard()
+            ffmpeg_card_layout.addWidget(self.ffmpegStatusCard)
+            
+            # 添加FFmpeg状态卡片
+            app_group_layout.addWidget(ffmpeg_card)
+
         # 日志管理卡片
         if LogControlCard is not None:
             log_control_card = LogControlCard(
