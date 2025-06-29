@@ -8,6 +8,9 @@ Roblox Audio Extractor - Extract audio files from Roblox cache and classify by a
 许可/License: GNU Affero General Public License v3.0 (AGPLv3)
 """
 
+# 统一的版本号常量
+VERSION = "0.15.1"
+
 import warnings
 
 warnings.filterwarnings("ignore", category=DeprecationWarning)
@@ -412,8 +415,8 @@ class LanguageManager:
         """加载翻译，分离为单独方法以提高可维护性"""
         self.TRANSLATIONS = {
             "title": {
-                self.ENGLISH: "Roblox Audio Extractor v0.15",
-                self.CHINESE: "Roblox Audio Extractor v0.15"
+                self.ENGLISH: f"Roblox Audio Extractor v{VERSION}",
+                self.CHINESE: f"Roblox Audio Extractor v{VERSION}"
             },
             "welcome_message": {
                 self.ENGLISH: "Welcome to Roblox Audio Extractor!",
@@ -836,8 +839,8 @@ class LanguageManager:
                 self.CHINESE: "关于 Roblox 音频提取器"
             },
             "about_version": {
-                self.ENGLISH: "Version 0.15",
-                self.CHINESE: "版本 0.15"
+                self.ENGLISH: f"Version {VERSION}",
+                self.CHINESE: f"版本 {VERSION}"
             },
             "about_author": {
                 self.ENGLISH: "Created by JustKanade",
@@ -3439,7 +3442,7 @@ class MainWindow(FluentWindow):
             version_card_layout.setContentsMargins(0, 0, 0, 0)  # 让VersionCheckCard处理内边距
             
             # 获取当前版本号（从注释中提取）
-            current_version = "0.13"  # 与文件顶部注释保持一致
+            current_version = VERSION  # 使用统一的版本常量
             
             # 创建版本检测卡片
             self.versionCheckCard = VersionCheckCard(self.config_manager, current_version)
@@ -4339,7 +4342,7 @@ def main():
         # 设置应用信息
         app.setApplicationName("Roblox Audio Extractor")
         app.setApplicationDisplayName("Roblox Audio Extractor")
-        app.setApplicationVersion("0.15")
+        app.setApplicationVersion(VERSION)
         app.setOrganizationName("JustKanade")
 
         # 设置应用图标
