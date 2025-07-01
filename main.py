@@ -567,15 +567,10 @@ class LanguageManager:
                 self.CHINESE: "欢迎使用 Roblox Audio Extractor！"
             },
             "extract_audio": {
-
-                self.ENGLISH: "Extract",
-                self.CHINESE: "提取音频"
-            },
-
                 self.ENGLISH: "Extract Audio",
                 self.CHINESE: "提取音频"
             },
-            "extract": {
+               "extract": {
                 self.ENGLISH: "Extract",
                 self.CHINESE: "提取"
             },
