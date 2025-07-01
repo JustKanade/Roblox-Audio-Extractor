@@ -32,46 +32,20 @@ except ImportError:
     try:
         from qfluentwidgets import MaskDialogBase
     except ImportError:
-        print("警告：无法导入 MaskDialogBase，将使用自定义替代类")
+        print("警告：无法导入 MaskDialogBase，版本检测功能可能无法正常工作")
         # 创建一个简单的替代类
         class MaskDialogBase(QDialog):
-            """自定义的MaskDialogBase替代类"""
-            
             def __init__(self, parent=None):
                 super().__init__(parent)
-                self.setWindowFlags(self.windowFlags() | Qt.FramelessWindowHint)
-                self.setAttribute(Qt.WA_TranslucentBackground)
-                
-                # 创建主布局
-                self.layout = QVBoxLayout(self)
-                self.layout.setContentsMargins(0, 0, 0, 0)
-                
-                # 创建一个半透明背景
-                self.mask = QWidget(self)
-                self.mask.setAttribute(Qt.WA_TransparentForMouseEvents)
-                self.mask.setStyleSheet("background-color: rgba(0, 0, 0, 120);")
-                
-                # 创建内容区域
                 self.widget = QWidget(self)
-                self.widget.setObjectName("dialogWidget")
-                
-                # 添加到布局
-                self.layout.addWidget(self.mask)
-                self.layout.addWidget(self.widget)
+                layout = QVBoxLayout(self)
+                layout.addWidget(self.widget)
             
             def setMaskColor(self, color):
-                """设置蒙版颜色"""
-                self.mask.setStyleSheet(f"background-color: {color.name(QColor.HexArgb)};")
-            
+                pass
+                
             def setShadowEffect(self, blurRadius=0, offset=(0, 0), color=None):
-                """设置阴影效果"""
-                if blurRadius > 0:
-                    shadow = QGraphicsDropShadowEffect(self.widget)
-                    shadow.setBlurRadius(blurRadius)
-                    shadow.setOffset(*offset)
-                    if color:
-                        shadow.setColor(color)
-                    self.widget.setGraphicsEffect(shadow)
+                pass
 
 # 全局语言管理器引用，在主程序中初始化
 lang = None
@@ -103,7 +77,7 @@ def get_text(key, *args):
                 return text.format(*args)
             except:
                 return text
-        return text if text is not None else key  # 确保不返回None
+        return text
     if args:
         try:
             text = DEFAULT_TRANSLATIONS.get(key, key)
@@ -383,21 +357,9 @@ class VersionCheckerThread(QThread):
                         current_time = int(time.time())
                         wait_time = max(0, reset_time - current_time)
                         
-                        # 限制最大等待时间为30秒，如果时间更长则告知用户稍后手动检查
-                        if wait_time > 30:
-                            error_msg = f"GitHub API速率限制，请在{wait_time}秒后手动检查更新"
-                            logger.warning(error_msg)
-                            self.check_failed.emit(error_msg)
-                            return
-                        elif wait_time > 0 and retries < self.max_retries - 1:
-                            wait_time = min(wait_time, 10)  # 进一步限制为最多等待10秒
+                        if wait_time > 0 and retries < self.max_retries - 1:
                             logger.warning(f"GitHub API速率限制，将在{wait_time}秒后重试...")
-                            # 使用更小的时间间隔检查是否应该中断
-                            for _ in range(int(wait_time * 2)):
-                                time.sleep(0.5)  # 每0.5秒检查一次
-                                if QThread.currentThread().isInterruptionRequested():
-                                    logger.info("版本检查已取消")
-                                    return
+                            time.sleep(min(wait_time, 30))  # 最多等待30秒
                             retries += 1
                             continue
                         else:
@@ -432,14 +394,9 @@ class VersionCheckerThread(QThread):
                     return
                 else:
                     # 重试前等待（采用指数退避策略）
-                    wait_time = min(2 ** retries, 8)  # 限制最大等待时间为8秒
+                    wait_time = 2 ** retries
                     logger.warning(f"请求失败，{wait_time}秒后重试 ({retries}/{self.max_retries})...")
-                    # 分段等待，检查中断信号
-                    for _ in range(int(wait_time * 2)):
-                        time.sleep(0.5)  # 每0.5秒检查一次
-                        if QThread.currentThread().isInterruptionRequested():
-                            logger.info("版本检查已取消")
-                            return
+                    time.sleep(wait_time)
             
             except Exception as e:
                 error_msg = f"版本检查失败: {str(e)}"
@@ -634,26 +591,16 @@ class VersionCheckCard(QWidget):
     
     def checkUpdate(self):
         """检查更新"""
-        # 如果正在检查，则不再触发新的检查
-        if hasattr(self, "checker") and self.checker is not None and self.checker.isRunning():
-            # 取消正在运行的线程
-            self.checker.requestInterruption()
-            self.checker.wait(1000)  # 等待1秒
-            
-            # 如果线程还在运行，则直接返回
-            if self.checker.isRunning():
-                return
-            
-        # 更新按钮状态
+        # 禁用检查按钮，避免重复点击
         self.check_now_button.setEnabled(False)
-        self.check_now_button.setText(str(get_text("checking_update")))
+        self.check_now_button.setText(get_text("checking_update"))
         
         # 创建并启动检查线程
-        self.checker = VersionCheckerThread(self.current_version)
-        self.checker.version_checked.connect(self.onVersionChecked)
-        self.checker.check_failed.connect(self.onCheckFailed)
-        self.checker.finished.connect(self.onCheckFinished)
-        self.checker.start()
+        self.checker_thread = VersionCheckerThread(self.current_version)
+        self.checker_thread.version_checked.connect(self.onVersionChecked)
+        self.checker_thread.check_failed.connect(self.onCheckFailed)
+        self.checker_thread.finished.connect(self.onCheckFinished)
+        self.checker_thread.start()
     
     def onVersionChecked(self, result):
         """版本检查完成的响应函数"""
@@ -727,11 +674,4 @@ class VersionCheckCard(QWidget):
         """版本检查线程完成的响应函数"""
         # 恢复检查按钮
         self.check_now_button.setEnabled(True)
-        self.check_now_button.setText(str(get_text("check_update_now")))
-        
-        # 检查线程是否已正确完成
-        if hasattr(self, "checker") and self.checker is not None:
-            # 如果线程还在运行，请求终止
-            if self.checker.isRunning():
-                self.checker.requestInterruption()
-                self.checker.wait(500)  # 最多等待500ms 
+        self.check_now_button.setText(get_text("check_update_now")) 

@@ -567,11 +567,6 @@ class LanguageManager:
                 self.CHINESE: "欢迎使用 Roblox Audio Extractor！"
             },
             "extract_audio": {
-
-                self.ENGLISH: "Extract",
-                self.CHINESE: "提取音频"
-            },
-
                 self.ENGLISH: "Extract Audio",
                 self.CHINESE: "提取音频"
             },
@@ -587,7 +582,6 @@ class LanguageManager:
                 self.ENGLISH: "Extract Textures",
                 self.CHINESE: "提取纹理"
             },
-
             "view_history": {
                 self.ENGLISH: "History",
                 self.CHINESE: "提取历史"
@@ -2580,15 +2574,12 @@ class MainWindow(FluentWindow):
         self.extractInterface = QWidget()
         self.extractInterface.setObjectName("extractInterface")
 
-
-
         # 添加新的图像和纹理提取界面
         self.extractImagesInterface = QWidget()
         self.extractImagesInterface.setObjectName("extractImagesInterface")
 
         self.extractTexturesInterface = QWidget()
         self.extractTexturesInterface.setObjectName("extractTexturesInterface")
-
 
         self.clearCacheInterface = QWidget()
         self.clearCacheInterface.setObjectName("clearCacheInterface")
@@ -2604,9 +2595,6 @@ class MainWindow(FluentWindow):
 
         # 设置导航 - 使用固定的路由键，而不是翻译后的文本
         self.addSubInterface(self.homeInterface, FluentIcon.HOME, lang.get("home"))
-
-        self.addSubInterface(self.extractInterface, FluentIcon.DOWNLOAD, lang.get("extract_audio"))
-
         
         # 添加Extract树形菜单
         extract_tree = self.navigationInterface.addItem(
@@ -2659,7 +2647,6 @@ class MainWindow(FluentWindow):
         # 默认收起Extract树形菜单
         extract_tree.setExpanded(False)
         
-
         self.addSubInterface(self.clearCacheInterface, FluentIcon.DELETE, lang.get("clear_cache"))
         self.addSubInterface(self.historyInterface, FluentIcon.HISTORY, lang.get("view_history"))
 
@@ -2690,11 +2677,8 @@ class MainWindow(FluentWindow):
         # 初始化各个界面
         self.setupHomeInterface()
         self.setupExtractInterface()
-
-
         self.setupExtractImagesInterface()
         self.setupExtractTexturesInterface()
-
         self.setupClearCacheInterface()
         self.setupHistoryInterface()
         self.setupSettingsInterface()
@@ -3257,7 +3241,6 @@ class MainWindow(FluentWindow):
         # 创建日志处理器
         self.extractLogHandler = LogHandler(self.extractLogText)
 
-
     def setupExtractImagesInterface(self):
         """设置图像提取界面"""
         # 创建滚动区域
@@ -3331,7 +3314,6 @@ class MainWindow(FluentWindow):
         
         # 设置为响应式
         self.setResponsiveContentWidget(scroll)
-
 
     def setupClearCacheInterface(self):
         scroll = ScrollArea(self.clearCacheInterface)
