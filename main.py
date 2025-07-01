@@ -567,9 +567,27 @@ class LanguageManager:
                 self.CHINESE: "欢迎使用 Roblox Audio Extractor！"
             },
             "extract_audio": {
+
                 self.ENGLISH: "Extract",
                 self.CHINESE: "提取音频"
             },
+
+                self.ENGLISH: "Extract Audio",
+                self.CHINESE: "提取音频"
+            },
+            "extract": {
+                self.ENGLISH: "Extract",
+                self.CHINESE: "提取"
+            },
+            "extract_images": {
+                self.ENGLISH: "Extract Images",
+                self.CHINESE: "提取图像"
+            },
+            "extract_textures": {
+                self.ENGLISH: "Extract Textures",
+                self.CHINESE: "提取纹理"
+            },
+
             "view_history": {
                 self.ENGLISH: "History",
                 self.CHINESE: "提取历史"
@@ -2562,6 +2580,16 @@ class MainWindow(FluentWindow):
         self.extractInterface = QWidget()
         self.extractInterface.setObjectName("extractInterface")
 
+
+
+        # 添加新的图像和纹理提取界面
+        self.extractImagesInterface = QWidget()
+        self.extractImagesInterface.setObjectName("extractImagesInterface")
+
+        self.extractTexturesInterface = QWidget()
+        self.extractTexturesInterface.setObjectName("extractTexturesInterface")
+
+
         self.clearCacheInterface = QWidget()
         self.clearCacheInterface.setObjectName("clearCacheInterface")
 
@@ -2576,7 +2604,62 @@ class MainWindow(FluentWindow):
 
         # 设置导航 - 使用固定的路由键，而不是翻译后的文本
         self.addSubInterface(self.homeInterface, FluentIcon.HOME, lang.get("home"))
+
         self.addSubInterface(self.extractInterface, FluentIcon.DOWNLOAD, lang.get("extract_audio"))
+
+        
+        # 添加Extract树形菜单
+        extract_tree = self.navigationInterface.addItem(
+            routeKey="extract",
+            icon=FluentIcon.DOWNLOAD,
+            text=lang.get("extract"),
+            onClick=None,
+            selectable=False,
+            position=NavigationItemPosition.TOP
+        )
+        
+        # 先确保接口被添加到堆叠窗口小部件
+        self.stackedWidget.addWidget(self.extractInterface)
+        
+        # 添加子菜单项
+        self.navigationInterface.addItem(
+            routeKey=self.extractInterface.objectName(),
+            icon=FluentIcon.MUSIC,
+            text=lang.get("extract_audio"),
+            onClick=lambda: self.switchTo(self.extractInterface),
+            selectable=True,
+            position=NavigationItemPosition.TOP,
+            parentRouteKey="extract"
+        )
+        
+        # 同样确保其他接口被添加到堆叠窗口小部件
+        self.stackedWidget.addWidget(self.extractImagesInterface)
+        self.stackedWidget.addWidget(self.extractTexturesInterface)
+        
+        self.navigationInterface.addItem(
+            routeKey=self.extractImagesInterface.objectName(),
+            icon=FluentIcon.PHOTO,
+            text=lang.get("extract_images"),
+            onClick=lambda: self.switchTo(self.extractImagesInterface),
+            selectable=True,
+            position=NavigationItemPosition.TOP,
+            parentRouteKey="extract"
+        )
+        
+        self.navigationInterface.addItem(
+            routeKey=self.extractTexturesInterface.objectName(),
+            icon=FluentIcon.PALETTE,
+            text=lang.get("extract_textures"),
+            onClick=lambda: self.switchTo(self.extractTexturesInterface),
+            selectable=True,
+            position=NavigationItemPosition.TOP,
+            parentRouteKey="extract"
+        )
+        
+        # 默认收起Extract树形菜单
+        extract_tree.setExpanded(False)
+        
+
         self.addSubInterface(self.clearCacheInterface, FluentIcon.DELETE, lang.get("clear_cache"))
         self.addSubInterface(self.historyInterface, FluentIcon.HISTORY, lang.get("view_history"))
 
@@ -2607,6 +2690,11 @@ class MainWindow(FluentWindow):
         # 初始化各个界面
         self.setupHomeInterface()
         self.setupExtractInterface()
+
+
+        self.setupExtractImagesInterface()
+        self.setupExtractTexturesInterface()
+
         self.setupClearCacheInterface()
         self.setupHistoryInterface()
         self.setupSettingsInterface()
@@ -3168,6 +3256,82 @@ class MainWindow(FluentWindow):
 
         # 创建日志处理器
         self.extractLogHandler = LogHandler(self.extractLogText)
+
+
+    def setupExtractImagesInterface(self):
+        """设置图像提取界面"""
+        # 创建滚动区域
+        scroll = ScrollArea(self.extractImagesInterface)
+        scroll.setWidgetResizable(True)
+        scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+
+        # 主内容容器
+        content_widget = QWidget()
+        content_layout = QVBoxLayout(content_widget)
+        content_layout.setContentsMargins(30, 30, 30, 30)
+        content_layout.setSpacing(20)
+
+        # 添加占位内容
+        placeholder = CardWidget()
+        placeholder_layout = QVBoxLayout(placeholder)
+        placeholder_layout.setContentsMargins(20, 20, 20, 20)
+        
+        title = SubtitleLabel("提取图像")
+        title.setObjectName("extractImagesTitle")
+        placeholder_layout.addWidget(title)
+        
+        desc = BodyLabel("这是提取图像的功能界面占位符，将在后续版本中实现。")
+        desc.setWordWrap(True)
+        placeholder_layout.addWidget(desc)
+        
+        content_layout.addWidget(placeholder)
+        scroll.setWidget(content_widget)
+        
+        # 创建布局
+        layout = QVBoxLayout(self.extractImagesInterface)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.addWidget(scroll)
+        
+        # 设置为响应式
+        self.setResponsiveContentWidget(scroll)
+
+    def setupExtractTexturesInterface(self):
+        """设置纹理提取界面"""
+        # 创建滚动区域
+        scroll = ScrollArea(self.extractTexturesInterface)
+        scroll.setWidgetResizable(True)
+        scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+
+        # 主内容容器
+        content_widget = QWidget()
+        content_layout = QVBoxLayout(content_widget)
+        content_layout.setContentsMargins(30, 30, 30, 30)
+        content_layout.setSpacing(20)
+
+        # 添加占位内容
+        placeholder = CardWidget()
+        placeholder_layout = QVBoxLayout(placeholder)
+        placeholder_layout.setContentsMargins(20, 20, 20, 20)
+        
+        title = SubtitleLabel("提取纹理")
+        title.setObjectName("extractTexturesTitle")
+        placeholder_layout.addWidget(title)
+        
+        desc = BodyLabel("这是提取纹理的功能界面占位符，将在后续版本中实现。")
+        desc.setWordWrap(True)
+        placeholder_layout.addWidget(desc)
+        
+        content_layout.addWidget(placeholder)
+        scroll.setWidget(content_widget)
+        
+        # 创建布局
+        layout = QVBoxLayout(self.extractTexturesInterface)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.addWidget(scroll)
+        
+        # 设置为响应式
+        self.setResponsiveContentWidget(scroll)
+
 
     def setupClearCacheInterface(self):
         scroll = ScrollArea(self.clearCacheInterface)
