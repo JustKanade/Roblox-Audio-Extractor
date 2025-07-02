@@ -1,0 +1,279 @@
+name: Auto Build and Release
+
+on:
+ # push:
+   # branches: [ "main" ]   
+  workflow_dispatch:
+    inputs:
+      release_type:
+        description: '发布类型'
+        required: true
+        default: 'development'
+        type: choice
+        options:
+        - development
+        - beta
+        - stable
+      version_bump:
+        description: '版本变更'
+        required: true
+        default: 'none'
+        type: choice
+        options:
+        - none
+        - patch
+        - minor
+        - major
+
+permissions:
+  contents: write
+
+jobs:
+  prepare:
+    runs-on: ubuntu-latest
+    outputs:
+      tag: ${{ steps.set-tag.outputs.tag }}
+      build_date: ${{ steps.set-date.outputs.date }}
+      version: ${{ steps.get-version.outputs.version }}
+      channel: ${{ inputs.release_type || 'development' }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Set build date
+        id: set-date
+        run: |
+          DATE=$(date +"%Y-%m-%d %H:%M:%S")
+          echo "date=$DATE" >> $GITHUB_OUTPUT
+      - name: Get current version and set build tag
+        id: get-version
+        run: |
+          # 读取当前版本
+          VERSION=$(grep -oP 'VERSION = "\K[^"]+' main.py)
+          echo "Current version: $VERSION"
+          
+          # 根据输入参数修改版本号
+          IFS='.' read -ra VER_PARTS <<< "$VERSION"
+          MAJOR=${VER_PARTS[0]}
+          MINOR=${VER_PARTS[1]}
+          PATCH=${VER_PARTS[2]}
+          
+          if [ "${{ inputs.version_bump }}" = "major" ]; then
+            MAJOR=$((MAJOR + 1))
+            MINOR=0
+            PATCH=0
+          elif [ "${{ inputs.version_bump }}" = "minor" ]; then
+            MINOR=$((MINOR + 1))
+            PATCH=0
+          elif [ "${{ inputs.version_bump }}" = "patch" ]; then
+            PATCH=$((PATCH + 1))
+          fi
+          
+          NEW_VERSION="$MAJOR.$MINOR.$PATCH"
+          echo "Updated version: $NEW_VERSION"
+          echo "version=$NEW_VERSION" >> $GITHUB_OUTPUT
+          
+          # 如果版本有更新，更新main.py文件
+          if [ "$VERSION" != "$NEW_VERSION" ]; then
+            sed -i "s/VERSION = \"$VERSION\"/VERSION = \"$NEW_VERSION\"/" main.py
+            sed -i "s/\"major\": [0-9]\+/\"major\": $MAJOR/" main.py
+            sed -i "s/\"minor\": [0-9]\+/\"minor\": $MINOR/" main.py
+            sed -i "s/\"patch\": [0-9]\+/\"patch\": $PATCH/" main.py
+          fi
+      - name: Create release tag
+        id: set-tag
+        run: |
+          SHORT_HASH=$(git rev-parse --short HEAD)
+          CHANNEL="${{ inputs.release_type || 'development' }}"
+          
+          if [ "$CHANNEL" = "stable" ]; then
+            echo "tag=v${{ steps.get-version.outputs.version }}" >> $GITHUB_OUTPUT
+          elif [ "$CHANNEL" = "beta" ]; then
+            echo "tag=v${{ steps.get-version.outputs.version }}-beta-$(date +%Y%m%d)" >> $GITHUB_OUTPUT
+          else
+            echo "tag=dev-$(date +%Y%m%d%H%M)-$SHORT_HASH" >> $GITHUB_OUTPUT
+          fi
+
+  update-version-info:
+    needs: prepare
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Update version info in source code
+        run: |
+          BUILD_NUMBER=${{ github.run_number }}
+          SHORT_HASH=$(git rev-parse --short HEAD)
+          BUILD_DATE="${{ needs.prepare.outputs.build_date }}"
+          CHANNEL="${{ needs.prepare.outputs.channel }}"
+          VERSION="${{ needs.prepare.outputs.version }}"
+          
+          # 更新版本信息
+          sed -i "s/\"build\": None/\"build\": $BUILD_NUMBER/" main.py
+          sed -i "s/\"channel\": \"stable\"/\"channel\": \"$CHANNEL\"/" main.py
+          sed -i "s/\"build_date\": None/\"build_date\": \"$BUILD_DATE\"/" main.py
+          sed -i "s/\"commit\": None/\"commit\": \"$SHORT_HASH\"/" main.py
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Source-With-Version-Info
+          path: main.py
+          retention-days: 7
+
+  build-windows:
+    needs: [prepare, update-version-info]
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: Source-With-Version-Info
+          path: .
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+          cache: 'pip'
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pyinstaller
+      - name: Build application
+        run: |
+          # 如果是稳定版本，使用简单的命名
+          if ("${{ needs.prepare.outputs.channel }}" -eq "stable") {
+            $name = "Roblox_Audio_Extractor_v${{ needs.prepare.outputs.version }}_win"
+          } else {
+            $name = "Roblox_Audio_Extractor_${{ needs.prepare.outputs.tag }}_win"
+          }
+          
+          pyinstaller --onefile --windowed `
+            --icon=res/icons/Roblox-Audio-Extractor.ico `
+            --add-data="res/*;res/" `
+            --add-data="src/*;src/" `
+            --name $name `
+            main.py
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Windows-Build
+          path: dist/*.exe
+          retention-days: 7
+
+  build-linux:
+    needs: [prepare, update-version-info]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: Source-With-Version-Info
+          path: .
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+          cache: 'pip'
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libxcb-xinerama0 libxkbcommon-x11-0
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pyinstaller
+      - name: Build application
+        run: |
+          # 如果是稳定版本，使用简单的命名
+          if [ "${{ needs.prepare.outputs.channel }}" = "stable" ]; then
+            name="Roblox_Audio_Extractor_v${{ needs.prepare.outputs.version }}_linux"
+          else
+            name="Roblox_Audio_Extractor_${{ needs.prepare.outputs.tag }}_linux"
+          fi
+          
+          pyinstaller --onefile \
+            --add-data="res/*:res/" \
+            --add-data="src/*:src/" \
+            --name $name \
+            main.py
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Linux-Build
+          path: dist/*
+          retention-days: 7
+
+  build-macos:
+    needs: [prepare, update-version-info]
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: Source-With-Version-Info
+          path: .
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+          cache: 'pip'
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pyinstaller
+      - name: Build application
+        run: |
+          # 如果是稳定版本，使用简单的命名
+          if [ "${{ needs.prepare.outputs.channel }}" = "stable" ]; then
+            name="Roblox_Audio_Extractor_v${{ needs.prepare.outputs.version }}_macos"
+          else
+            name="Roblox_Audio_Extractor_${{ needs.prepare.outputs.tag }}_macos"
+          fi
+          
+          pyinstaller --onefile \
+            --add-data="res/*:res/" \
+            --add-data="src/*:src/" \
+            --name $name \
+            main.py
+      - uses: actions/upload-artifact@v4
+        with:
+          name: macOS-Build
+          path: dist/*
+          retention-days: 7
+
+  release:
+    needs: [prepare, build-windows, build-linux, build-macos]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+      - name: Create git tag
+        run: |
+          git config --global user.name "GitHub Actions"
+          git config --global user.email "actions@github.com"
+          git tag ${{ needs.prepare.outputs.tag }}
+          git push origin ${{ needs.prepare.outputs.tag }}
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ needs.prepare.outputs.tag }}
+          name: ${{ needs.prepare.outputs.channel == 'stable' && format('Stable Release v{0}', needs.prepare.outputs.version) || needs.prepare.outputs.channel == 'beta' && format('Beta Release v{0}-beta', needs.prepare.outputs.version) || format('Development Build ({0})', needs.prepare.outputs.build_date) }}
+          body: |
+            ${{ needs.prepare.outputs.channel == 'stable' && '# 稳定版本发布 / Stable Release' || needs.prepare.outputs.channel == 'beta' && '# 测试版本发布 / Beta Release' || '# 开发预览版本 / Development Build' }}
+            
+            ${{ needs.prepare.outputs.channel == 'stable' || needs.prepare.outputs.channel == 'beta' || '开发预览版本 - 可能存在问题，如果您只是想使用软件，请使用[最新稳定版本](https://github.com/JustKanade/Roblox-Audio-Extractor/releases/latest)' }}
+            ${{ needs.prepare.outputs.channel == 'stable' || needs.prepare.outputs.channel == 'beta' || 'Development preview build - Bugs may appear, if you are looking to just use the software, use the [latest stable release](https://github.com/JustKanade/Roblox-Audio-Extractor/releases/latest)' }}
+            
+            **版本 / Version:** ${{ needs.prepare.outputs.version }}
+            **频道 / Channel:** ${{ needs.prepare.outputs.channel }}
+            **提交 / Commit:** ${{ github.sha }}
+            **构建日期 / Build date:** ${{ needs.prepare.outputs.build_date }}
+            **构建编号 / Build number:** ${{ github.run_number }}
+            
+            ## 发布说明 / Release Notes
+            
+            请在此处添加发布说明
+            Please add release notes here
+            
+          files: |
+            artifacts/Windows-Build/*
+            artifacts/Linux-Build/*
+            artifacts/macOS-Build/*
+          prerelease: ${{ needs.prepare.outputs.channel != 'stable' }}
+          draft: true  # 设置为草稿，以便添加发布说明后再正式发布
