@@ -2026,27 +2026,40 @@ class RobloxAudioExtractor:
             return False
 
     def _extract_ogg_content(self, file_path: str) -> Optional[bytes]:
-        """提取文件中的OGG内容 - 使用更高效的文件读取"""
+        """提取文件中的OGG内容
+        
+        提取流程:
+        1. 定位原始文件：从Roblox缓存目录中读取文件
+        2. 文件识别：通过读取前2048字节检查是否包含OggS头部标识
+        3. 提取音频数据：找到OggS头部在文件中的位置，从该位置开始截取剩余所有数据
+        4. 保存文件：将提取的数据保存为带有.ogg扩展名的新文件
+        """
         try:
             # 使用二进制模式打开文件
             with open(file_path, 'rb') as f:
-                # 读取前几个字节检查OGG头
-                header = f.read(4)
-                if header == b'OggS':
-                    # 如果是OGG文件，重置文件指针并读取整个内容
-                    f.seek(0)
+                # 读取前2048字节检查OGG头
+                header_chunk = f.read(2048)
+                
+                # 查找OggS头部标识
+                ogg_start = header_chunk.find(b'OggS')
+                
+                if ogg_start >= 0:
+                    # 如果在前2048字节中找到了OggS头部，重置文件指针到头部位置
+                    f.seek(ogg_start)
+                    # 从该位置开始截取剩余所有数据
                     return f.read()
-
-                # 不是OGG头，检查是否是gzip压缩文件
+                
+                # 如果前2048字节中没有找到OggS头部，检查整个文件
                 f.seek(0)
                 content = f.read()
-
-                # 查找OGG标记
+                
+                # 查找OggS标记
                 ogg_start = content.find(b'OggS')
                 if ogg_start >= 0:
+                    # 从OggS头部位置开始截取剩余所有数据
                     return content[ogg_start:]
-
-                # 尝试gzip解压
+                
+                # 尝试作为gzip解压
                 try:
                     if gzip is None:
                         import_libs()
