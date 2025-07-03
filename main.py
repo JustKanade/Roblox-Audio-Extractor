@@ -2530,7 +2530,7 @@ class MainWindow(FluentWindow):
  
         self.setMinimumSize(750, 570)
 
-        self.setMinimumSize(500, 45)
+        self.setMinimumSize(720, 570)
    
 
         # 设置自动主题
