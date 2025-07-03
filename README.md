@@ -16,7 +16,7 @@ English | [简体中文](README_ZH.md)
 </div>
 
 > [!IMPORTANT]
->  The development builds can be downloaded from the [releases](https://github.com/AeEn123/RoExtract/releases) page.
+>  The development builds can be downloaded from the [releases](https://github.com/JustKanade/Roblox-Audio-Extractor/releases) page.
 
 > [!TIP]
 > If you want to extract a single game, click on cleaning the cache, add the game and wait for the full load to extract
