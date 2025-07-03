@@ -2527,7 +2527,11 @@ class MainWindow(FluentWindow):
         self.resize(990, 700)
 
         # 设置最小窗口大小
+<<<<<<< HEAD
         self.setMinimumSize(750, 570)
+=======
+        self.setMinimumSize(500, 45)
+>>>>>>> 7a701330bcdf92564a5441f0a65bc742eeaac6cd
 
         # 设置自动主题
         setTheme(Theme.AUTO)
@@ -3866,12 +3870,17 @@ class MainWindow(FluentWindow):
 
         # 当前语言显示
         current_lang_row = QHBoxLayout()
+<<<<<<< HEAD
         # 添加语言图标
         current_lang_icon = IconWidget(FluentIcon.LANGUAGE)
         current_lang_icon.setFixedSize(16, 16)
         current_lang_label = BodyLabel(lang.get("current_language"))
         current_lang_value = StrongBodyLabel(lang.get_language_name())
         current_lang_row.addWidget(current_lang_icon)
+=======
+        current_lang_label = BodyLabel(lang.get("current_language"))
+        current_lang_value = StrongBodyLabel(lang.get_language_name())
+>>>>>>> 7a701330bcdf92564a5441f0a65bc742eeaac6cd
         current_lang_row.addWidget(current_lang_label)
         current_lang_row.addStretch()
         current_lang_row.addWidget(current_lang_value)
@@ -3953,9 +3962,12 @@ class MainWindow(FluentWindow):
 
         # 默认线程数设置
         threads_row = QHBoxLayout()
+<<<<<<< HEAD
         # 添加线程图标
         threads_icon = IconWidget(FluentIcon.SPEED_OFF)
         threads_icon.setFixedSize(16, 16)
+=======
+>>>>>>> 7a701330bcdf92564a5441f0a65bc742eeaac6cd
         threads_label = BodyLabel(lang.get("default_threads"))
         self.defaultThreadsSpinBox = SpinBox()
         self.defaultThreadsSpinBox.setRange(1, 128)
@@ -3964,7 +3976,10 @@ class MainWindow(FluentWindow):
         self.defaultThreadsSpinBox.setFixedWidth(120)
         self.defaultThreadsSpinBox.valueChanged.connect(self.saveThreadsConfig)
 
+<<<<<<< HEAD
         threads_row.addWidget(threads_icon)
+=======
+>>>>>>> 7a701330bcdf92564a5441f0a65bc742eeaac6cd
         threads_row.addWidget(threads_label)
         threads_row.addStretch()
         threads_row.addWidget(self.defaultThreadsSpinBox)
