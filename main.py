@@ -4984,13 +4984,58 @@ class MainWindow(FluentWindow):
 
         if restart_dialog.exec():
             # 用户选择立即重启
+            # 创建重启标记文件
+            restart_flag_file = os.path.join(os.path.expanduser("~"), ".roblox_audio_extractor", "restart_flag.txt")
+            with open(restart_flag_file, 'w', encoding='utf-8') as f:
+                f.write(f"restart_timestamp={int(time.time())}")
+                
+            # 创建一个批处理或脚本文件来执行重启
+            is_frozen = getattr(sys, 'frozen', False)
+            app_path = sys.executable
+            
+            if os.name == 'nt':  # Windows
+                # 创建VBS脚本文件来隐藏CMD窗口
+                vbs_file = os.path.join(os.path.expanduser("~"), ".roblox_audio_extractor", "restart.vbs")
+                with open(vbs_file, 'w', encoding='utf-8') as f:
+                    f.write('Set WshShell = CreateObject("WScript.Shell")\n')
+                    f.write('WScript.Sleep 500\n')  # 等待0.5秒
+                    
+                    if is_frozen:
+                        # 使用完整路径启动应用程序
+                        f.write(f'WshShell.Run """{app_path}""", 0, False\n')
+                    else:
+                        # 如果是开发模式，使用python解释器启动
+                        script_path = os.path.abspath(sys.argv[0])
+                        f.write(f'WshShell.Run """{sys.executable}"" ""{script_path}""", 0, False\n')
+                    
+                    # 自删除VBS脚本
+                    f.write('Set fso = CreateObject("Scripting.FileSystemObject")\n')
+                    f.write(f'fso.DeleteFile WScript.ScriptFullName\n')
+                
+                # 启动VBS脚本 - 不会显示任何窗口
+                subprocess.Popen(["wscript.exe", vbs_file], 
+                                shell=False, 
+                                creationflags=subprocess.CREATE_NO_WINDOW)
+            else:  # macOS/Linux
+                # 创建shell脚本
+                shell_file = os.path.join(os.path.expanduser("~"), ".roblox_audio_extractor", "restart.sh")
+                with open(shell_file, 'w') as f:
+                    f.write("#!/bin/bash\n")
+                    f.write("sleep 0.5\n")  # 等待0.5秒
+                    if is_frozen:
+                        f.write(f"open \"{app_path}\" >/dev/null 2>&1 &\n")
+                    else:
+                        f.write(f"\"{sys.executable}\" \"{os.path.abspath(sys.argv[0])}\" >/dev/null 2>&1 &\n")
+                    f.write(f"rm \"$0\"\n")  # 自删除脚本
+                
+                # 设置可执行权限
+                os.chmod(shell_file, 0o755)
+                # 启动shell脚本
+                subprocess.Popen(["sh", shell_file], shell=False,
+                                start_new_session=True)
+            
+            # 退出应用
             QApplication.quit()
-            # 尝试重启应用
-            try:
-                import subprocess
-                subprocess.Popen([sys.executable] + sys.argv)
-            except:
-                pass
         else:
             # 用户选择稍后重启
             InfoBar.info(
@@ -5106,6 +5151,14 @@ class MainWindow(FluentWindow):
 def main():
     """主函数 - 程序入口点，使用 GUI 界面"""
     try:
+        # 检查并清理重启标志文件
+        restart_flag_file = os.path.join(os.path.expanduser("~"), ".roblox_audio_extractor", "restart_flag.txt")
+        if os.path.exists(restart_flag_file):
+            try:
+                os.remove(restart_flag_file)
+            except:
+                pass
+
         # 设置高DPI缩放
         QApplication.setHighDpiScaleFactorRoundingPolicy(Qt.HighDpiScaleFactorRoundingPolicy.PassThrough)
         QApplication.setAttribute(Qt.AA_EnableHighDpiScaling)
