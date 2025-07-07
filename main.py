@@ -71,7 +71,6 @@ import datetime
 import traceback
 import hashlib
 import multiprocessing
-import subprocess 
 from functools import lru_cache
 from typing import Dict, List, Any, Set, Optional
 from enum import Enum, auto
@@ -706,9 +705,17 @@ class LanguageManager:
                 self.ENGLISH: "The language change will take effect after restarting the application.\n\nWould you like to restart now?",
                 self.CHINESE: "语言更改将在重启应用程序后生效。\n\n您想要现在重启吗？"
             },
+            "language_close_message": {
+                self.ENGLISH: "The language change will take effect after restarting the application.\n\nWould you like to close the application now?",
+                self.CHINESE: "语言更改将在重启应用程序后生效。\n\n您想要现在关闭应用程序吗？"
+            },
             "language_saved": {
                 self.ENGLISH: "Language setting saved. Please restart the application.",
                 self.CHINESE: "语言设置已保存。请重启应用程序。"
+            },
+            "language_unchanged": {
+                self.ENGLISH: "Language setting unchanged.",
+                self.CHINESE: "语言设置未改变。"
             },
             "current_language": {
                 self.ENGLISH: "Current language",
@@ -4966,8 +4973,15 @@ class MainWindow(FluentWindow):
     def applyLanguage(self):
         """应用语言设置"""
         selected_language = self.languageCombo.currentText()
-
-        # 保存语言设置到配置文件
+        current_language = lang.get_language_name()
+        
+        # 检查语言是否真的改变了
+        if selected_language == current_language:
+            # 如果语言没有改变，只显示一个通知而不是重启确认框
+            self.settingsLogHandler.info(lang.get("language_unchanged") if lang.get("language_unchanged", None) else "语言设置未改变")
+            return
+            
+        # 语言改变了，保存语言设置到配置文件
         if selected_language == "English":
             lang.save_language_setting("en")
         else:
@@ -4979,73 +4993,12 @@ class MainWindow(FluentWindow):
         # 显示重启确认对话框
         restart_dialog = MessageBox(
             lang.get("restart_required"),
-            lang.get("restart_message"),
+            lang.get("language_close_message"),
             self
         )
 
         if restart_dialog.exec():
-            # 用户选择立即重启
-            # 创建重启标记文件
-            restart_flag_file = os.path.join(os.path.expanduser("~"), ".roblox_audio_extractor", "restart_flag.txt")
-            with open(restart_flag_file, 'w', encoding='utf-8') as f:
-                f.write(f"restart_timestamp={int(time.time())}")
-                
-            # 获取应用程序路径
-            is_frozen = getattr(sys, 'frozen', False)
-            app_path = sys.executable
-            
-            if os.name == 'nt':  # Windows
-                # 使用临时目录来避免路径问题
-                import tempfile
-                temp_dir = tempfile.gettempdir()
-                
-                # 创建VBS脚本文件来隐藏CMD窗口，使用简单的文件名
-                vbs_file = os.path.join(temp_dir, "rae_restart.vbs")
-                with open(vbs_file, 'w', encoding='utf-8') as f:
-                    f.write('Set WshShell = CreateObject("WScript.Shell")\n')
-                    f.write('WScript.Sleep 2000\n')  # 等待2秒确保原程序完全退出
-                    
-                    if is_frozen:
-                        # 使用完整路径启动应用程序，使用0表示隐藏窗口
-                        app_path_escaped = app_path.replace("\\", "\\\\")
-                        f.write(f'WshShell.Run """{app_path_escaped}""", 0, False\n')
-                    else:
-                        # 如果是开发模式，使用python解释器启动
-                        script_path = os.path.abspath(sys.argv[0]).replace("\\", "\\\\")
-                        python_exe = sys.executable.replace("\\", "\\\\")
-                        f.write(f'WshShell.Run """{python_exe}"" ""{script_path}""", 0, False\n')
-                    
-                    # 等待一会儿再删除自己
-                    f.write('WScript.Sleep 3000\n')
-                    # 自删除VBS脚本
-                    f.write('Set fso = CreateObject("Scripting.FileSystemObject")\n')
-                    f.write(f'fso.DeleteFile WScript.ScriptFullName\n')
-                
-                # 使用最简单的方式启动VBS脚本
-                os.system(f'start /b "" wscript.exe "{vbs_file}"')
-            else:  # macOS/Linux
-                # 创建shell脚本
-                shell_file = os.path.join(os.path.expanduser("~"), ".roblox_audio_extractor", "restart.sh")
-                with open(shell_file, 'w') as f:
-                    f.write("#!/bin/bash\n")
-                    f.write("sleep 2\n")  # 等待2秒
-                    if is_frozen:
-                        f.write(f"open \"{app_path}\" >/dev/null 2>&1 &\n")
-                    else:
-                        f.write(f"\"{sys.executable}\" \"{os.path.abspath(sys.argv[0])}\" >/dev/null 2>&1 &\n")
-                    f.write("sleep 3\n")  # 等待3秒
-                    f.write(f"rm \"$0\"\n")  # 自删除脚本
-                
-                # 设置可执行权限
-                os.chmod(shell_file, 0o755)
-                # 启动shell脚本
-                try:
-                    subprocess.Popen(["sh", shell_file], shell=False,
-                                    start_new_session=True)
-                except Exception:
-                    os.system(f"sh '{shell_file}' &")
-            
-            # 退出应用
+            # 用户选择立即关闭程序
             QApplication.quit()
         else:
             # 用户选择稍后重启
@@ -5162,20 +5115,6 @@ class MainWindow(FluentWindow):
 def main():
     """主函数 - 程序入口点，使用 GUI 界面"""
     try:
-        # 检查并清理重启标志文件
-        restart_flag_file = os.path.join(os.path.expanduser("~"), ".roblox_audio_extractor", "restart_flag.txt")
-        is_restart = False
-        if os.path.exists(restart_flag_file):
-            is_restart = True
-            try:
-                os.remove(restart_flag_file)
-            except Exception as e:
-                print(f"无法删除重启标志文件: {e}")
-                
-        # 如果是重启，等待一会儿确保之前的进程完全退出
-        if is_restart:
-            time.sleep(0.5)  # 额外等待0.5秒
-
         # 设置高DPI缩放
         QApplication.setHighDpiScaleFactorRoundingPolicy(Qt.HighDpiScaleFactorRoundingPolicy.PassThrough)
         QApplication.setAttribute(Qt.AA_EnableHighDpiScaling)
@@ -5185,14 +5124,7 @@ def main():
         app_data_dir = os.path.join(os.path.expanduser("~"), ".roblox_audio_extractor")
         os.makedirs(app_data_dir, exist_ok=True)
         
-        # 清理可能存在的旧重启脚本
-        for old_script in ["restart.bat", "restart.vbs", "restart.sh"]:
-            old_script_path = os.path.join(app_data_dir, old_script)
-            if os.path.exists(old_script_path):
-                try:
-                    os.remove(old_script_path)
-                except Exception:
-                    pass
+
         
         icon_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "res", "icons")
         os.makedirs(icon_dir, exist_ok=True)
@@ -5243,7 +5175,7 @@ def main():
         try:
             CentralLogHandler.getInstance().save_crash_log(str(e), traceback.format_exc())
         except Exception as log_e:
-            print(f"无法保存崩溃日志: {log_e}")
+            print(f"保存崩溃日志失败: {str(log_e)}")
             
         return 1
 
