@@ -1832,7 +1832,7 @@ class ProcessingStats:
 class RobloxAudioExtractor:
     """从Roblox临时文件中提取音频的主类"""
 
-    def __init__(self, base_dir: str, num_threads: int = None, keyword: str = "oggs",
+    def __init__(self, base_dir: str, num_threads: int = None, keywords: Optional[List[str]] = None,
                  download_history: Optional['ExtractedHistory'] = None,
                  classification_method: ClassificationMethod = ClassificationMethod.DURATION,
                  custom_output_dir: Optional[str] = None):
@@ -1841,7 +1841,7 @@ class RobloxAudioExtractor:
 
         self.base_dir = os.path.abspath(base_dir)
         self.num_threads = num_threads or min(32, multiprocessing.cpu_count() * 2)
-        self.keyword = keyword
+        self.keywords = keywords or ["oggs", "ID3"]  # 默认同时搜索"oggs"和"ID3"
         self.download_history = download_history
         self.classification_method = classification_method
 
@@ -1924,7 +1924,18 @@ class RobloxAudioExtractor:
                         elif entry.is_file():
                             # 如果文件名中不包含关键字且不以.ogg结尾
                             name = entry.name
-                            if self.keyword not in name and not name.endswith('.ogg'):
+                            # 检查是否已经是.ogg文件
+                            if name.endswith('.ogg'):
+                                continue
+                                
+                            # 检查是否包含任何关键字
+                            should_skip = False
+                            for keyword in self.keywords:
+                                if keyword in name:
+                                    should_skip = True
+                                    break
+                                    
+                            if not should_skip:
                                 # 使用stat获取文件大小而不是打开文件
                                 try:
                                     stat_info = entry.stat()
@@ -2091,14 +2102,14 @@ class RobloxAudioExtractor:
         
         提取流程:
         1. 定位原始文件：从Roblox缓存目录中读取文件
-        2. 文件识别：通过读取前2048字节检查是否包含OggS头部标识
-        3. 提取音频数据：找到OggS头部在文件中的位置，从该位置开始截取剩余所有数据
+        2. 文件识别：通过读取前2048字节检查是否包含OggS或ID3头部标识
+        3. 提取音频数据：找到OggS或ID3头部在文件中的位置，从该位置开始截取剩余所有数据
         4. 保存文件：将提取的数据保存为带有.ogg扩展名的新文件
         """
         try:
             # 使用二进制模式打开文件
             with open(file_path, 'rb') as f:
-                # 读取前2048字节检查OGG头
+                # 读取前2048字节检查OGG头或ID3头
                 header_chunk = f.read(2048)
                 
                 # 查找OggS头部标识
@@ -2109,6 +2120,22 @@ class RobloxAudioExtractor:
                     f.seek(ogg_start)
                     # 从该位置开始截取剩余所有数据
                     return f.read()
+                
+                # 查找ID3头部标识
+                id3_start = header_chunk.find(b'ID3')
+                
+                if id3_start >= 0:
+                    # 在ID3后寻找OggS头部
+                    f.seek(0)
+                    content = f.read()
+                    
+                    # 在ID3标记之后查找OggS
+                    post_id3_content = content[id3_start:]
+                    ogg_in_id3 = post_id3_content.find(b'OggS')
+                    
+                    if ogg_in_id3 >= 0:
+                        # 找到了嵌入在ID3之后的OggS
+                        return post_id3_content[ogg_in_id3:]
                 
                 # 如果前2048字节中没有找到OggS头部，检查整个文件
                 f.seek(0)
@@ -2354,7 +2381,7 @@ class ExtractionWorker(QThread):
             extractor = RobloxAudioExtractor(
                 self.base_dir,
                 self.num_threads,
-                "oggs",
+                ["oggs", "ID3"],  # 同时搜索 "oggs" 和 "ID3"
                 self.download_history,
                 self.classification_method,
                 self.custom_output_dir  # 传入自定义输出路径
@@ -2521,7 +2548,7 @@ class ResponsiveFeatureItem(QWidget):
 
         # 图标
         self.icon_widget = IconWidget(self.icon)
-        self.icon_widget.setFixedSize(24, 24)
+        self.icon_widget.setFixedSize(30, 30)
 
         # 文本
         self.text_label = CaptionLabel(self.text)
