@@ -1607,6 +1607,14 @@ class LanguageManager:
                 self.ENGLISH: "Press Enter to restore default Roblox Cache path",
                 self.CHINESE: "按Enter恢复默认Roblox缓存路径"
             },
+            "copied": {
+                self.ENGLISH: "Copied",
+                self.CHINESE: "已复制"
+            },
+            "path_copied_to_clipboard": {
+                self.ENGLISH: "Path copied to clipboard: {}",
+                self.CHINESE: "路径已复制到剪贴板：{}"
+            },
         }
 
     @lru_cache(maxsize=128)
@@ -2963,11 +2971,12 @@ class MainWindow(FluentWindow):
 
         open_dir_btn = PillPushButton(FluentIcon.FOLDER, lang.get("open_directory"))
         open_dir_btn.setFixedHeight(28)
+        open_dir_btn.setCheckable(False)  # 设置为非checkable，避免点击后保持选中状态
         open_dir_btn.clicked.connect(lambda: open_directory(self.default_dir))
 
         copy_path_btn = TransparentPushButton(FluentIcon.COPY, lang.get("copy_path"))
         copy_path_btn.setFixedHeight(28)
-        copy_path_btn.clicked.connect(lambda: QApplication.clipboard().setText(self.default_dir))
+        copy_path_btn.clicked.connect(lambda: self.copyPathToClipboard(self.default_dir))
 
         dir_actions.addWidget(open_dir_btn)
         dir_actions.addWidget(copy_path_btn)
@@ -3483,7 +3492,7 @@ class MainWindow(FluentWindow):
         open_cache_btn.clicked.connect(lambda: open_directory(self.default_dir))
 
         copy_cache_btn = TransparentPushButton(FluentIcon.COPY, lang.get("copy_path"))
-        copy_cache_btn.clicked.connect(lambda: QApplication.clipboard().setText(self.default_dir))
+        copy_cache_btn.clicked.connect(lambda: self.copyPathToClipboard(self.default_dir))
 
         quick_actions.addWidget(open_cache_btn)
         quick_actions.addWidget(copy_cache_btn)
@@ -4481,7 +4490,7 @@ class MainWindow(FluentWindow):
         if directory:
             self.dirInput.setText(directory)
             self.config_manager.set("last_directory", directory)
-
+            
     def updateClassificationInfo(self):
         """更新分类信息标签"""
         if self.durationRadio.isChecked():
@@ -5256,6 +5265,21 @@ class MainWindow(FluentWindow):
                 # 恢复默认窗口设置
                 self.setWindowFlags(self.windowFlags() & ~Qt.WindowStaysOnTopHint)
                 self.show()
+
+    def copyPathToClipboard(self, path):
+        """复制路径到剪贴板并显示提示"""
+        QApplication.clipboard().setText(path)
+        
+        # 显示复制成功的通知
+        InfoBar.success(
+            title=lang.get("copied"),
+            content=lang.get("path_copied_to_clipboard", path),
+            orient=Qt.Horizontal,
+            isClosable=True,
+            position=InfoBarPosition.TOP,
+            duration=3000,
+            parent=self
+        )
 
 
 def main():
