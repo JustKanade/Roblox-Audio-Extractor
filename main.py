@@ -60,6 +60,13 @@ except ImportError:
     DebugModeCard = None
     print("无法导入DebugModeCard，将禁用Debug模式功能")
 
+# 导入总是置顶窗口设置卡片
+try:
+    from src.components.cards.Settings.always_on_top_card import AlwaysOnTopCard
+except ImportError:
+    AlwaysOnTopCard = None
+    print("无法导入AlwaysOnTopCard，将禁用总是置顶窗口设置功能")
+
 if hasattr(sys, '_MEIPASS'):
     os.environ['QT_QPA_PLATFORM_PLUGIN_PATH'] = os.path.join(sys._MEIPASS, 'PyQt5', 'Qt', 'plugins')
 import time
@@ -583,6 +590,32 @@ class LanguageManager:
             "avatar_auto_update_tip": {
                 self.CHINESE: "增快程序启动速度",
                 self.ENGLISH: "Speed up program startup time"
+            },
+            
+            # 总是置顶窗口相关
+            "always_on_top": {
+                self.CHINESE: "总是置顶程序窗口",
+                self.ENGLISH: "Always On Top"
+            },
+            "always_on_top_description": {
+                self.CHINESE: "保持程序窗口始终显示在最前面",
+                self.ENGLISH: "Keep the program window always on top of other windows"
+            },
+            "always_on_top_enabled": {
+                self.CHINESE: "窗口置顶已启用",
+                self.ENGLISH: "Window Pin Enabled"
+            },
+            "always_on_top_disabled": {
+                self.CHINESE: "窗口置顶已禁用",
+                self.ENGLISH: "Window Pin Disabled"
+            },
+            "always_on_top_enabled_tip": {
+                self.CHINESE: "程序窗口将始终显示在最前面",
+                self.ENGLISH: "The program window will always stay on top of other windows"
+            },
+            "always_on_top_disabled_tip": {
+                self.CHINESE: "程序窗口将不再置顶",
+                self.ENGLISH: "The program window will no longer stay on top"
             },
             
             "app_name": {
@@ -2548,11 +2581,7 @@ class MainWindow(FluentWindow):
         self.resize(990, 700)
 
         # 设置最小窗口大小
- 
         self.setMinimumSize(750, 570)
-
-        self.setMinimumSize(720, 570)
-   
 
         # 设置自动主题
         setTheme(Theme.AUTO)
@@ -2567,6 +2596,13 @@ class MainWindow(FluentWindow):
 
         # 设置窗口特效和背景
         self.setWindowBackground()
+        
+        # 应用窗口置顶设置
+        always_on_top = self.config_manager.get("always_on_top", False)
+        if always_on_top:
+            # 使用延迟调用来确保窗口已经显示
+            print("窗口初始化时设置置顶")
+            QTimer.singleShot(500, lambda: self.applyAlwaysOnTop(True))
 
     def setWindowBackground(self):
         """设置窗口背景，确保深色模式正确显示"""
@@ -3848,6 +3884,14 @@ class MainWindow(FluentWindow):
             if 'version_check_card' in globals() or 'version_check_card' in locals():
                 version_check_card.lang = lang
 
+        # 如果导入了AlwaysOnTopCard，设置全局lang变量
+        if AlwaysOnTopCard is not None:
+            try:
+                import src.components.cards.Settings.always_on_top_card as always_on_top_card
+                always_on_top_card.lang = lang
+            except ImportError:
+                pass
+
         # 创建滚动区域
         scroll = ScrollArea(self.settingsInterface)
         scroll.setWidgetResizable(True)
@@ -3884,6 +3928,19 @@ class MainWindow(FluentWindow):
                 print(f"添加Debug模式卡片时出错: {e}")
                 if hasattr(self, 'settingsLogHandler'):
                     self.settingsLogHandler.error(f"添加Debug模式卡片时出错: {e}")
+
+        # 添加总是置顶窗口设置卡片
+        if AlwaysOnTopCard is not None:
+            try:
+                always_on_top_card = AlwaysOnTopCard(
+                    parent=self.settingsInterface,
+                    config_manager=self.config_manager
+                )
+                app_group_layout.addWidget(always_on_top_card)
+            except Exception as e:
+                print(f"添加总是置顶窗口卡片时出错: {e}")
+                if hasattr(self, 'settingsLogHandler'):
+                    self.settingsLogHandler.error(f"添加总是置顶窗口卡片时出错: {e}")
 
         # 语言设置卡片
         language_card = CardWidget()
@@ -5132,6 +5189,74 @@ class MainWindow(FluentWindow):
             if hasattr(self, 'settingsLogHandler'):
                 self.settingsLogHandler.success(lang.get("default_path_restored") + f": {default_roblox_dir}")
 
+    def applyAlwaysOnTop(self, is_top):
+        """应用总是置顶设置"""
+        print(f"主窗口应用置顶设置: {is_top}")
+        if is_top:
+            # 使用平台特定的API设置窗口置顶
+            if sys.platform == 'win32':
+                try:
+                    import ctypes
+                    hwnd = int(self.winId())
+                    print(f"主窗口句柄: {hwnd}")
+                    HWND_TOPMOST = -1
+                    SWP_NOMOVE = 0x0002
+                    SWP_NOSIZE = 0x0001
+                    SWP_SHOWWINDOW = 0x0040
+                    
+                    flags = SWP_NOMOVE | SWP_NOSIZE | SWP_SHOWWINDOW
+                    print("尝试设置主窗口为置顶")
+                    result = ctypes.windll.user32.SetWindowPos(hwnd, HWND_TOPMOST, 0, 0, 0, 0, flags)
+                    print(f"SetWindowPos结果: {result}")
+                    if not result:
+                        error_code = ctypes.windll.kernel32.GetLastError()
+                        print(f"SetWindowPos失败，错误码: {error_code}")
+                        # 回退到Qt方法
+                        flags = self.windowFlags()
+                        self.setWindowFlags(flags | Qt.WindowStaysOnTopHint)
+                        self.show()
+                except Exception as e:
+                    print(f"设置窗口置顶时出错: {e}")
+                    # 回退到Qt方法
+                    flags = self.windowFlags()
+                    self.setWindowFlags(flags | Qt.WindowStaysOnTopHint)
+                    self.show()
+            else:
+                # 其他平台使用Qt方法
+                flags = self.windowFlags()
+                self.setWindowFlags(flags | Qt.WindowStaysOnTopHint)
+                self.show()
+        else:
+            # 恢复默认窗口设置
+            print("尝试取消主窗口置顶")
+            if sys.platform == 'win32':
+                try:
+                    import ctypes
+                    hwnd = int(self.winId())
+                    HWND_NOTOPMOST = -2
+                    SWP_NOMOVE = 0x0002
+                    SWP_NOSIZE = 0x0001
+                    SWP_SHOWWINDOW = 0x0040
+                    
+                    flags = SWP_NOMOVE | SWP_NOSIZE | SWP_SHOWWINDOW
+                    result = ctypes.windll.user32.SetWindowPos(hwnd, HWND_NOTOPMOST, 0, 0, 0, 0, flags)
+                    print(f"SetWindowPos结果: {result}")
+                    if not result:
+                        error_code = ctypes.windll.kernel32.GetLastError()
+                        print(f"SetWindowPos失败，错误码: {error_code}")
+                        # 回退到Qt方法
+                        self.setWindowFlags(self.windowFlags() & ~Qt.WindowStaysOnTopHint)
+                        self.show()
+                except Exception as e:
+                    print(f"取消窗口置顶时出错: {e}")
+                    # 回退到Qt方法
+                    self.setWindowFlags(self.windowFlags() & ~Qt.WindowStaysOnTopHint)
+                    self.show()
+            else:
+                # 恢复默认窗口设置
+                self.setWindowFlags(self.windowFlags() & ~Qt.WindowStaysOnTopHint)
+                self.show()
+
 
 def main():
     """主函数 - 程序入口点，使用 GUI 界面"""
@@ -5179,7 +5304,7 @@ def main():
                 splash.raise_()
 
                 # 显示启动画面2秒后关闭
-                QTimer.singleShot(1000, splash.finish)
+                QTimer.singleShot(2000, splash.finish)
         except Exception as e:
             print(f"无法显示启动画面: {e}")
 

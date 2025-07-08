@@ -36,6 +36,11 @@ try:
 except ImportError:
     GlobalInputPathCard = None
 
+try:
+    from .always_on_top_card import AlwaysOnTopCard
+except ImportError:
+    AlwaysOnTopCard = None
+
 __all__ = [
     'CustomThemeColorCard',
     'VersionCheckCard',
@@ -43,5 +48,6 @@ __all__ = [
     'FFmpegStatusCard',
     'AvatarSettingCard',
     'DebugModeCard',
-    'GlobalInputPathCard'
+    'GlobalInputPathCard',
+    'AlwaysOnTopCard'
 ] 
