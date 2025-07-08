@@ -425,10 +425,20 @@ class ConfigManager:
                     theme_color = f"#ff{theme_color[1:]}"
                     
                 qfluent_config["QFluentWidgets"]["ThemeColor"] = theme_color
+            else:
+                # 使用默认主题色 #ff0078d4
+                qfluent_config["QFluentWidgets"]["ThemeColor"] = "#ff0078d4"
             
             # 保存到PyQt-Fluent-Widgets配置文件
             with open(self.qfluent_config_file, 'w', encoding='utf-8') as f:
                 json.dump(qfluent_config, f, indent=4, ensure_ascii=False)
+                
+            # 确保配置文件权限正确（在非Windows系统上可能需要）
+            if os.name != 'nt':
+                try:
+                    os.chmod(self.qfluent_config_file, 0o644)
+                except Exception:
+                    pass
                 
         except Exception as e:
             logger.error(f"同步主题到PyQt-Fluent-Widgets失败: {e}")
@@ -2490,6 +2500,9 @@ class MainWindow(FluentWindow):
 
         # 初始化配置管理器
         self.config_manager = ConfigManager()
+        
+        # 确保在启动时同步配置到PyQt-Fluent-Widgets
+        self.config_manager.sync_theme_to_qfluent()
 
         # 初始化语言管理器
         global lang
@@ -2583,9 +2596,6 @@ class MainWindow(FluentWindow):
             # 更新中央日志处理器的主题设置
             CentralLogHandler.getInstance().set_theme(theme_setting)
             
-            # 确保在启动时同步配置到PyQt-Fluent-Widgets
-            self.config_manager.sync_theme_to_qfluent()
-            
             # 使用延迟调用来应用主题，避免在字典迭代过程中修改字典
             QTimer.singleShot(10, lambda: self._safelyApplyTheme(theme_setting))
         except Exception as e:
@@ -2604,18 +2614,29 @@ class MainWindow(FluentWindow):
             
             # 应用主题颜色
             try:
-                # 确保 setThemeColor 函数可用
-                if 'setThemeColor' in globals():
-                    use_custom_color = self.config_manager.get("use_custom_theme_color", False)
-                    if use_custom_color:
-                        theme_color = self.config_manager.get("theme_color", "#0078d4")
+                # 读取PyQt-Fluent-Widgets配置文件中的颜色设置
+                qfluent_config_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), "config", "config.json")
+                if os.path.exists(qfluent_config_file):
+                    with open(qfluent_config_file, 'r', encoding='utf-8') as f:
+                        qfluent_config = json.load(f)
+                    
+                    # 从QFluentWidgets配置中获取主题色
+                    if "QFluentWidgets" in qfluent_config and "ThemeColor" in qfluent_config["QFluentWidgets"]:
+                        theme_color = qfluent_config["QFluentWidgets"]["ThemeColor"]
                         setThemeColor(QColor(theme_color))
                     else:
-                        setThemeColor(QColor("#0078d4"))  # 默认蓝色
+                        # 如果配置文件中没有主题色，则应用默认颜色
+                        setThemeColor(QColor("#ff0078d4"))  # 默认蓝色
                 else:
-                    print("警告: setThemeColor 函数不可用，跳过主题颜色设置")
+                    # 配置文件不存在，应用默认颜色
+                    setThemeColor(QColor("#ff0078d4"))  # 默认蓝色
             except Exception as e:
                 print(f"应用主题颜色时出错: {e}")
+                # 回退到默认颜色
+                try:
+                    setThemeColor(QColor("#ff0078d4"))
+                except:
+                    pass
 
             # 确保UI已初始化后再更新样式
             QTimer.singleShot(100, self.updateAllStyles)

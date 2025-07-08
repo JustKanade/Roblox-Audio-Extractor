@@ -36,8 +36,8 @@ DEFAULT_TRANSLATIONS = {
     "theme_color_settings": "主题颜色设置",
     "theme_color_default": "默认颜色",
     "theme_color_custom": "自定义颜色",
-    "theme_color_choose": "选择颜色",
-    "theme_color_presets": "预设颜色"
+    "theme_color_choose": "选择颜色"
+
 }
 
 # 默认主题颜色 - 这个颜色永远不会被修改
@@ -49,73 +49,87 @@ def get_text(key):
         return lang.get(key)
     return DEFAULT_TRANSLATIONS.get(key, key)
 
-class ColorButton(QWidget):
-    """简化的颜色按钮"""
-    
-    # 定义信号
-    colorClicked = pyqtSignal(QColor)
-    
-    def __init__(self, color, size=30, parent=None):
-        super().__init__(parent)
-        self.color = color
-        self.fixed_size = size  # 避免与QWidget.size()冲突
-        self.setFixedSize(size, size)
-        self.setCursor(Qt.PointingHandCursor)
-        self.setToolTip(color.name())
-        
-    def paintEvent(self, event):
-        from PyQt5.QtGui import QPainter, QPen, QBrush
-        painter = QPainter(self)
-        painter.setRenderHint(QPainter.Antialiasing)
-        
-        # 绘制颜色方块
-        painter.setPen(QPen(Qt.gray, 1))
-        painter.setBrush(QBrush(self.color))
-        painter.drawRoundedRect(1, 1, self.width()-2, self.height()-2, 4, 4)
-        
-    def mousePressEvent(self, event):
-        if event.button() == Qt.LeftButton:
-            # 注意：pyqtSignal.emit 在静态类型检查时可能会报错，但实际运行时正常
-            self.colorClicked.emit(self.color)
-        super().mousePressEvent(event)
 
 class ColorPresetPanel(QWidget):
-    """简化的颜色预设面板"""
+    """预设颜色面板，显示常用的主题颜色选择"""
     
+    # 颜色选择信号
     colorSelected = pyqtSignal(QColor)
     
+    # 预设颜色列表
+    PRESET_COLORS = [
+        # Fluent UI 调色板
+        "#0078D4",  # 默认蓝色
+        "#107C10",  # 绿色
+        "#D83B01",  # 橙色
+        "#E81123",  # 红色
+        "#5C2D91",  # 紫色
+        "#008575",  # 青色
+        "#006973",  # 青绿色
+        "#AB0300",  # 深红色
+        "#B7472A",  # 锈红色
+        
+        # 扩展颜色
+        "#0063B1",  # 深蓝色
+        "#2D7D9A",  # 蓝绿色
+        "#4A154B",  # 深紫色（Slack风格）
+        "#744DA9",  # 薰衣草色
+        "#881798",  # 绛紫色
+        "#C239B3",  # 品红色
+        "#FF8C00",  # 深橙色
+        "#F7630C",  # 亮橙色
+        "#CA5010",  # 赭石色
+        "#10893E",  # 翠绿色
+        "#2D2AA5",  # 靛蓝色
+    ]
+    
     def __init__(self, parent=None):
+        """初始化预设颜色面板"""
         super().__init__(parent)
         self.setupUI()
         
     def setupUI(self):
-        layout = QGridLayout(self)
+        """设置用户界面"""
+        # 创建主布局
+        layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
-        layout.setSpacing(8)
+        layout.setSpacing(10)
         
-        # 精简预设颜色列表
-        presets = [
-            "#0078d4", "#2d7d9a", "#00b7c3", "#038387", "#00cc6a",
-            "#10893e", "#107c10", "#7a7574", "#5c2e91", "#8764b8",
-            "#8e562e", "#c74634", "#f7630c", "#ca5010", "#ffaa44"
-        ]
+        # 创建预设颜色标题
+        title = QLabel("预设颜色")
+        title.setStyleSheet("font-size: 13px; margin-top: 5px;")
+        layout.addWidget(title)
         
-        row, col = 0, 0
-        for color_hex in presets:
-            color = QColor(color_hex)
-            btn = ColorButton(color)
-            btn.colorClicked.connect(self.onButtonClicked)
-            layout.addWidget(btn, row, col)
+        # 创建颜色网格
+        grid_layout = QGridLayout()
+        grid_layout.setContentsMargins(0, 0, 0, 0)
+        grid_layout.setSpacing(8)
+        
+        # 每行显示的颜色数量
+        colors_per_row = 7
+        
+        # 添加颜色按钮到网格
+        for i, color_hex in enumerate(self.PRESET_COLORS):
+            row = i // colors_per_row
+            col = i % colors_per_row
             
-            col += 1
-            if col >= 5:  # 每行5个颜色
-                col = 0
-                row += 1
-    
-    def onButtonClicked(self, color):
-        """处理按钮点击事件"""
-        # 注意：pyqtSignal.emit 在静态类型检查时可能会报错，但实际运行时正常
-        self.colorSelected.emit(color)
+            color_button = QPushButton()
+            color_button.setFixedSize(24, 24)
+            color_button.setStyleSheet(
+                f"QPushButton {{ background-color: {color_hex}; border-radius: 4px; border: 1px solid rgba(0, 0, 0, 0.1); }}"
+                f"QPushButton:hover {{ border: 2px solid white; }}"
+            )
+            
+            # 关联点击事件
+            color = QColor(color_hex)
+            color_button.clicked.connect(lambda checked=False, c=color: self.colorSelected.emit(c))
+            
+            grid_layout.addWidget(color_button, row, col)
+        
+        # 将网格添加到主布局
+        layout.addLayout(grid_layout)
+        layout.addStretch(1)  # 添加弹性空间
+
 
 class CustomThemeColorCard(QWidget):
     """主题颜色设置卡片"""
@@ -250,10 +264,7 @@ class CustomThemeColorCard(QWidget):
         
         self.custom_color_layout.addLayout(current_color_layout)
         
-        # 预设颜色部分
-        preset_label = QLabel(get_text("theme_color_presets") or "预设颜色")
-        preset_label.setStyleSheet("font-weight: bold;")
-        self.custom_color_layout.addWidget(preset_label)
+
         
         self.presetPanel = ColorPresetPanel()
         self.presetPanel.colorSelected.connect(self.onColorSelected)
@@ -331,6 +342,11 @@ class CustomThemeColorCard(QWidget):
         # 保存颜色设置
         self.config_manager.set("theme_color", color.name())
         
+        # 明确设置使用自定义颜色标志为True
+        self.useCustom = True
+        self.config_manager.set("use_custom_theme_color", True)
+        print(f"已将use_custom_theme_color设置为True")
+        
         # 确保选择了自定义颜色选项
         if hasattr(self, 'custom_radio'):
             if not self.useCustom:
@@ -348,31 +364,54 @@ class CustomThemeColorCard(QWidget):
         # 应用主题颜色
         self.applyThemeColor(color)
         
-        # 手动触发配置同步，确保主题色同步到PyQt-Fluent-Widgets配置文件
-        try:
-            self.config_manager.sync_theme_to_qfluent()
-        except Exception as e:
-            print(f"同步主题色配置时出错: {e}")
+        # 确保即时同步到QFluentWidgets配置文件
+        self.config_manager.sync_theme_to_qfluent()
+        print(f"已更新并同步自定义主题色: {color.name()}, use_custom_theme_color=True")
     
     def applyThemeColor(self, color):
         """应用主题颜色"""
+        if not color.isValid():
+            print(f"无效的颜色值: {color.name()}")
+            return
+            
+        print(f"正在应用主题颜色: {color.name()}")
+            
         # 使用安全的方式应用主题颜色
         try:
             if HAS_FLUENT_WIDGETS:
                 # 直接使用 PyQt-Fluent-Widgets 的函数
                 setThemeColor(color)
+                print(f"已通过qfluentwidgets.setThemeColor成功应用主题色: {color.name()}")
                 
-                # 我们通过ConfigManager.sync_theme_to_qfluent方法来同步颜色设置
-                # 不需要直接调用qconfig API
+                # 确保同步到配置文件
+                try:
+                    self.config_manager.sync_theme_to_qfluent()
+                    print("已同步主题色到QFluentWidgets配置文件")
+                except Exception as e:
+                    print(f"同步主题色到QFluentWidgets配置文件时出错: {e}")
+                    import traceback
+                    print(traceback.format_exc())
             else:
                 # 尝试获取全局函数
                 import sys
                 module = sys.modules.get('qfluentwidgets', None)
                 if module and hasattr(module, 'setThemeColor'):
                     module.setThemeColor(color)
+                    print(f"已通过sys.modules['qfluentwidgets']应用主题色: {color.name()}")
+                else:
+                    print("警告: 无法找到setThemeColor函数，主题色可能未成功应用")
             
+            # 确保颜色也保存在本地配置中
+            self.config_manager.set("theme_color", color.name())
+            self.config_manager.save_config()
+            print(f"已将主题色 {color.name()} 保存到本地配置")
+            
+            # 发送颜色变更信号
             # 注意：pyqtSignal.emit 在静态类型检查时可能会报错，但实际运行时正常
             self.colorChanged.emit(color)
+            print(f"已发出colorChanged信号: {color.name()}")
         except Exception as e:
             print(f"应用主题颜色时出错: {e}")
+            import traceback
+            print(traceback.format_exc())
         
