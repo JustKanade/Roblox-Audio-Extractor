@@ -41,6 +41,11 @@ try:
 except ImportError:
     AlwaysOnTopCard = None
 
+try:
+    from .greeting_setting_card import GreetingSettingCard
+except ImportError:
+    GreetingSettingCard = None
+
 __all__ = [
     'CustomThemeColorCard',
     'VersionCheckCard',
@@ -49,5 +54,6 @@ __all__ = [
     'AvatarSettingCard',
     'DebugModeCard',
     'GlobalInputPathCard',
-    'AlwaysOnTopCard'
+    'AlwaysOnTopCard',
+    'GreetingSettingCard'
 ] 

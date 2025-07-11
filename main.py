@@ -67,6 +67,13 @@ except ImportError:
     AlwaysOnTopCard = None
     print("无法导入AlwaysOnTopCard，将禁用总是置顶窗口设置功能")
 
+# 导入问候语设置卡片
+try:
+    from src.components.cards.Settings.greeting_setting_card import GreetingSettingCard
+except ImportError:
+    GreetingSettingCard = None
+    print("无法导入GreetingSettingCard，将禁用问候语设置功能")
+
 if hasattr(sys, '_MEIPASS'):
     os.environ['QT_QPA_PLATFORM_PLUGIN_PATH'] = os.path.join(sys._MEIPASS, 'PyQt5', 'Qt', 'plugins')
 import time
@@ -299,14 +306,14 @@ class CentralLogHandler:
         try:
             with open(crash_log_path, 'w', encoding='utf-8') as f:
                 # 写入错误信息
-                f.write("=== Roblox Audio Extractor 崩溃报告 ===\n")
+                f.write("Roblox Audio Extractor\n")
                 f.write(f"时间: {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
                 f.write(f"错误: {error_info}\n\n")
-                f.write("=== 详细堆栈跟踪 ===\n")
+                f.write("堆栈跟踪：\n")
                 f.write(f"{traceback_info}\n\n")
                 
                 # 写入所有日志记录
-                f.write("=== 日志记录 ===\n")
+                f.write("日志记录：\n")
                 for entry in self._log_entries:
                     f.write(f"{entry}\n")
                     
@@ -590,6 +597,32 @@ class LanguageManager:
             "avatar_auto_update_tip": {
                 self.CHINESE: "增快程序启动速度",
                 self.ENGLISH: "Speed up program startup time"
+            },
+            
+            # 问候语设置相关
+            "greeting_setting": {
+                self.CHINESE: "问候语设置",
+                self.ENGLISH: "Greeting Settings"
+            },
+            "greeting_setting_description": {
+                self.CHINESE: "启用或禁用程序启动时的问候通知。",
+                self.ENGLISH: "Enable or disable greeting notifications when the program starts."
+            },
+            "greeting_enabled": {
+                self.CHINESE: "问候语已启用",
+                self.ENGLISH: "Greetings Enabled"
+            },
+            "greeting_disabled": {
+                self.CHINESE: "问候语已禁用",
+                self.ENGLISH: "Greetings Disabled"
+            },
+            "greeting_enabled_description": {
+                self.CHINESE: "程序启动时将显示问候通知",
+                self.ENGLISH: "Greeting notifications will be shown when the program starts"
+            },
+            "greeting_disabled_description": {
+                self.CHINESE: "程序启动时将不再显示问候通知",
+                self.ENGLISH: "Greeting notifications will no longer be shown when the program starts"
             },
             
             # 总是置顶窗口相关
@@ -2613,7 +2646,7 @@ class MainWindow(FluentWindow):
         """初始化窗口设置"""
         # 设置窗口标题和大小
         self.setWindowTitle(lang.get("title"))
-        self.resize(990, 700)
+        self.resize(750, 570)
 
         # 设置最小窗口大小
         self.setMinimumSize(750, 570)
@@ -2635,9 +2668,11 @@ class MainWindow(FluentWindow):
         # 应用窗口置顶设置
         always_on_top = self.config_manager.get("always_on_top", False)
         if always_on_top:
-            # 使用延迟调用来确保窗口已经显示
+            # 使用更长的延迟，确保窗口已完全初始化
             print("窗口初始化时设置置顶")
-            QTimer.singleShot(500, lambda: self.applyAlwaysOnTop(True))
+            # 使用两段式延迟，先显示窗口，再设置置顶
+            QTimer.singleShot(500, lambda: self.show())
+            QTimer.singleShot(1500, lambda: self.applyAlwaysOnTop(True))
 
     def setWindowBackground(self):
         """设置窗口背景，确保深色模式正确显示"""
@@ -3978,6 +4013,23 @@ class MainWindow(FluentWindow):
                 if hasattr(self, 'settingsLogHandler'):
                     self.settingsLogHandler.error(f"添加总是置顶窗口卡片时出错: {e}")
 
+        # 添加问候语设置卡片
+        if GreetingSettingCard is not None:
+            try:
+                # 设置全局语言变量
+                import src.components.cards.Settings.greeting_setting_card as greeting_setting_card
+                greeting_setting_card.lang = lang
+                
+                greeting_card = GreetingSettingCard(
+                    parent=self.settingsInterface,
+                    config_manager=self.config_manager
+                )
+                app_group_layout.addWidget(greeting_card)
+            except Exception as e:
+                print(f"添加问候语设置卡片时出错: {e}")
+                if hasattr(self, 'settingsLogHandler'):
+                    self.settingsLogHandler.error(f"添加问候语设置卡片时出错: {e}")
+
         # 语言设置卡片
         language_card = CardWidget()
         lang_card_widget = QWidget()
@@ -4505,6 +4557,20 @@ class MainWindow(FluentWindow):
 
     def add_welcome_message(self):
         """添加欢迎消息到主页日志"""
+        # 导入并显示时间问候
+        from src.components.Greetings import TimeGreetings
+        
+        # 获取当前语言设置
+        current_language = lang.get_language_name()
+        language_code = 'en' if current_language == 'English' else 'zh'
+        
+        # 检查问候语是否启用
+        greeting_enabled = self.config_manager.get("greeting_enabled", True)
+        if greeting_enabled:
+            # 使用固定样式和当前语言显示问候
+            TimeGreetings.show_greeting(language_code)
+        
+        # 原有的日志信息
         log = LogHandler(self.homeLogText)
         log.info(lang.get('welcome_message'))
         log.info(lang.get('about_version'))
@@ -5233,8 +5299,14 @@ class MainWindow(FluentWindow):
             if sys.platform == 'win32':
                 try:
                     import ctypes
-                    hwnd = int(self.winId())
-                    print(f"主窗口句柄: {hwnd}")
+                    # 确保窗口被显示并处理事件，使句柄有效
+                    self.show()
+                    QApplication.processEvents()
+                    
+                    # 获取窗口句柄 - 使用更可靠的方法
+                    hwnd = ctypes.c_int(self.winId().__int__())
+                    print(f"主窗口句柄: {hwnd.value}")
+                    
                     HWND_TOPMOST = -1
                     SWP_NOMOVE = 0x0002
                     SWP_NOSIZE = 0x0001
@@ -5268,7 +5340,14 @@ class MainWindow(FluentWindow):
             if sys.platform == 'win32':
                 try:
                     import ctypes
-                    hwnd = int(self.winId())
+                    # 确保窗口被显示并处理事件，使句柄有效
+                    self.show()
+                    QApplication.processEvents()
+                    
+                    # 获取窗口句柄 - 使用更可靠的方法
+                    hwnd = ctypes.c_int(self.winId().__int__())
+                    print(f"主窗口句柄: {hwnd.value}")
+                    
                     HWND_NOTOPMOST = -2
                     SWP_NOMOVE = 0x0002
                     SWP_NOSIZE = 0x0001
