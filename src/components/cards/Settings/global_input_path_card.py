@@ -13,6 +13,12 @@ try:
 except ImportError:
     lang = None  # 如果导入失败，设为None
 
+# 导入配置管理器类型提示
+try:
+    from src.config import ConfigManager
+except ImportError:
+    pass
+
 class GlobalInputPathCard(CardWidget):
     """全局输入路径设置卡片"""
     
