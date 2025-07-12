@@ -9,8 +9,11 @@ from PyQt5.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout
 
 from qfluentwidgets import CardWidget, StrongBodyLabel, BodyLabel, SwitchButton, FluentIcon, IconWidget
 
-# 全局语言管理器变量
-lang = None
+# 导入语言管理器
+try:
+    from src.locale import lang
+except ImportError:
+    lang = None  # 如果导入失败，设为None
 
 # 定义AvatarSettingChangedEvent，与avatar_widget.py中保持一致
 AVATAR_SETTING_CHANGED_EVENT_TYPE = QEvent.Type(1001)  # 使用一个固定值，避免冲突

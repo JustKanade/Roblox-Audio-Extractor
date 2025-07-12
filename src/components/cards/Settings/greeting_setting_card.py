@@ -79,8 +79,11 @@ except ImportError:
             super().__init__(parent)
             self.setFixedSize(16, 16)
 
-# 加载语言资源
-lang = None  # 将由主程序设置
+# 导入语言管理器
+try:
+    from src.locale import lang
+except ImportError:
+    lang = None  # 如果导入失败，设为None
 
 
 class GreetingSettingCard(CardWidget):

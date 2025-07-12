@@ -7,8 +7,11 @@ from qfluentwidgets import (
     StrongBodyLabel, FluentIcon, IconWidget
 )
 
-# 全局语言对象，将由外部设置
-lang = None
+# 导入语言管理器
+try:
+    from src.locale import lang
+except ImportError:
+    lang = None  # 如果导入失败，设为None
 
 class GlobalInputPathCard(CardWidget):
     """全局输入路径设置卡片"""

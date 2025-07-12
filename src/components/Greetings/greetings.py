@@ -147,15 +147,21 @@ class TimeGreetings:
         参数:
             language: 语言，'zh'为中文，'en'为英文
         """
-        title, content = TimeGreetings.get_greeting(language)
-        
-        # 使用info样式显示通知
-        InfoBar.info(
-            title=title,
-            content=content,
-            orient=Qt.Vertical,
-            isClosable=True,
-            position=InfoBarPosition.BOTTOM_RIGHT,
-            duration=5000,  # 显示5秒
-            parent=InfoBar.desktopView()
-        ) 
+        try:
+            # 获取问候语文本
+            title, content = TimeGreetings.get_greeting(language)
+            
+            # 使用InfoBar显示通知
+            # 确保使用正确的参数和设置
+            InfoBar.info(
+                title=title,
+                content=content,
+                orient=Qt.Vertical,  # 垂直布局更适合显示问候语
+                isClosable=True,     # 允许用户关闭通知
+                position=InfoBarPosition.BOTTOM_RIGHT,  # 在右下角显示，不干扰主界面
+                duration=5000,       # 显示5秒
+                parent=InfoBar.desktopView()  # 使用桌面视图作为父控件
+            )
+        except Exception as e:
+            # 捕获可能的异常，避免问候语显示失败影响主程序
+            print(f"显示问候语时出错: {str(e)}") 

@@ -11,10 +11,13 @@ from PyQt5.QtGui import QImage, QPixmap, QPainter, QBrush, QColor, QFont
 from PyQt5.QtCore import Qt, QSize, QTimer, QRect, pyqtSignal, QThread, QUrl
 from PyQt5.QtGui import QDesktopServices
 
-from qfluentwidgets import NavigationWidget, isDarkTheme, MessageBox
+from qfluentwidgets import NavigationWidget, isDarkTheme, MessageBox, FluentIcon, IconWidget
 
-# 全局语言管理器变量
-lang = None
+# 导入语言管理器
+try:
+    from src.locale import lang
+except ImportError:
+    lang = None  # 如果导入失败，设为None
 
 class AvatarDownloader(QThread):
     """头像下载线程，避免阻塞UI"""
@@ -50,6 +53,7 @@ class AvatarWidget(NavigationWidget):
         self.avatar = None
         self.setFixedHeight(36)  # 设置固定高度与其他导航按钮一致
         self.github_url = "https://github.com/JustKanade"  # GitHub主页链接
+        self.use_github_icon = False  # 标记是否使用GitHub图标替代
         
         # 定时器，用于周期性更新头像
         self.update_timer = QTimer(self)
@@ -71,15 +75,18 @@ class AvatarWidget(NavigationWidget):
         image = QImage()
         if image.loadFromData(content):
             self.avatar = image.scaled(24, 24, Qt.KeepAspectRatio, Qt.SmoothTransformation)
+            self.use_github_icon = False  # 重置图标标记
             self.update()  # 更新界面
         else:
-            # 加载失败时可以设置默认头像
-            pass
+            # 加载失败时使用GitHub图标替代
+            self.use_github_icon = True
+            self.update()
     
     def _on_download_error(self, error_msg):
         """处理下载错误"""
-        # 可以设置一个默认头像
-        pass
+        # 设置使用GitHub图标替代
+        self.use_github_icon = True
+        self.update()  # 更新界面显示
     
     def setCompacted(self, isCompacted):
         """设置是否处于紧凑模式 - 这个方法会被NavigationInterface自动调用"""
@@ -98,11 +105,11 @@ class AvatarWidget(NavigationWidget):
         main_window = self.window()
         parent = main_window if main_window else self
         
-        # 创建确认对话框标题和内容（支持多语言）
+        # 创建确认对话框标题和内容
         if lang:
-            # 使用语言管理器翻译
-            title = lang.get("visit_github")
-            content = lang.get("confirm_visit_github")
+            # 使用语言管理器获取翻译，提供默认值防止显示键名
+            title = lang.get("visit_github", "访问GitHub")
+            content = lang.get("confirm_visit_github", "是否跳转至JustKanade的GitHub主页？")
         else:
             # 默认中英文文本
             title = "访问GitHub / Visit GitHub"
@@ -133,8 +140,28 @@ class AvatarWidget(NavigationWidget):
             painter.setBrush(QColor(c, c, c, 10))
             painter.drawRoundedRect(self.rect(), 5, 5)
 
-        # 绘制头像
-        if self.avatar:
+        # 绘制头像或GitHub图标
+        if self.use_github_icon:
+            # 使用GitHub图标
+            icon_color = Qt.white if isDarkTheme() else Qt.black
+            icon = FluentIcon.GITHUB
+            
+            # 保存当前状态
+            painter.save()
+            
+            # 移动到头像位置
+            painter.translate(8, 6)
+            
+            # 设置图标颜色
+            painter.setPen(icon_color)
+            
+            # 绘制GitHub图标 - 直接使用FluentIcon绘制
+            icon.render(painter, QRect(0, 0, 24, 24))
+            
+            # 恢复状态
+            painter.restore()
+        elif self.avatar:
+            # 绘制QQ头像
             painter.translate(8, 6)
             painter.setPen(Qt.NoPen)
             painter.setBrush(QBrush(self.avatar))

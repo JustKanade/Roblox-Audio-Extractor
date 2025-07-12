@@ -10,8 +10,11 @@ import subprocess
 import sys
 import shutil
 
-# 全局语言变量
-lang = None  # 将在使用前由主窗口设置
+# 导入语言管理器
+try:
+    from src.locale import lang
+except ImportError:
+    lang = None  # 如果导入失败，设为None
 
 class FFmpegStatusCard(CardWidget):
     """FFmpeg状态检测卡片"""

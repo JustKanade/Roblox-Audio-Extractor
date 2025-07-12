@@ -9,7 +9,7 @@ import os
 import sys
 import ctypes
 from PyQt5.QtWidgets import (
-    QVBoxLayout, QHBoxLayout, QWidget
+    QVBoxLayout, QHBoxLayout, QWidget, QApplication
 )
 from PyQt5.QtCore import Qt, pyqtSignal
 
@@ -80,8 +80,11 @@ except ImportError:
             super().__init__(parent)
             self.setFixedSize(16, 16)
 
-# 加载语言资源
-lang = None  # 将由主程序设置
+# 导入语言管理器
+try:
+    from src.locale import lang
+except ImportError:
+    lang = None  # 如果导入失败，设为None
 
 
 class AlwaysOnTopCard(CardWidget):
@@ -155,9 +158,24 @@ class AlwaysOnTopCard(CardWidget):
             if sys.platform == 'win32':
                 # Windows平台使用SetWindowPos API
                 try:
-                    # 获取窗口句柄 - 使用int转换确保获取正确的句柄值
-                    hwnd = int(main_window.winId())
-                    print(f"窗口句柄: {hwnd}")
+                    # 先确保窗口显示并处理事件
+                    main_window.show()
+                    QApplication.processEvents()
+                    
+                    # 获取窗口标题
+                    window_title = main_window.windowTitle()
+                    print(f"窗口标题: {window_title}")
+                    
+                    # 使用FindWindow API获取窗口句柄
+                    # 将窗口标题转换为C类型字符串
+                    title = ctypes.c_wchar_p(window_title)
+                    hwnd = ctypes.windll.user32.FindWindowW(None, title)
+                    print(f"通过FindWindow获取的窗口句柄: {hwnd}")
+                    
+                    if hwnd == 0:
+                        # 如果FindWindow失败，尝试使用Qt的winId
+                        hwnd = ctypes.c_int(main_window.winId().__int__())
+                        print(f"回退到Qt的窗口句柄: {hwnd.value}")
                     
                     # Windows API常量
                     HWND_TOPMOST = -1  # 置于所有非顶层窗口之上

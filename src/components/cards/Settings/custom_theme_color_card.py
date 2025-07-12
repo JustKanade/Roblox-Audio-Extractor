@@ -6,6 +6,13 @@ from PyQt5.QtWidgets import (
     QPushButton
 )
 
+# 尝试导入语言管理器
+try:
+    from src.locale import lang
+except ImportError:
+    lang = None
+    print("警告：无法导入语言管理器，将使用默认翻译")
+
 # 尝试导入 PyQt-Fluent-Widgets
 try:
     from qfluentwidgets import (
@@ -28,16 +35,12 @@ except ImportError:
     HAS_FLUENT_WIDGETS = False
     print("警告：无法导入 qfluentwidgets 模块，将使用基本版本的主题颜色设置卡片")
 
-# 全局语言管理器引用，在主程序中初始化
-lang = None
-
 # 默认翻译，如果lang未初始化时使用
 DEFAULT_TRANSLATIONS = {
     "theme_color_settings": "主题颜色设置",
     "theme_color_default": "默认颜色",
     "theme_color_custom": "自定义颜色",
     "theme_color_choose": "选择颜色"
-
 }
 
 # 默认主题颜色 - 这个颜色永远不会被修改
