@@ -1,7 +1,7 @@
 from enum import Enum, auto
 
 # 统一的版本号常量
-VERSION = "0.15.1"
+VERSION = "0.16.2"
 
 class Language(Enum):
     """支持的语言枚举类"""
@@ -747,7 +747,7 @@ def get_translations():
                 CHINESE: "自定义输出目录"
             },
             "output_dir_placeholder": {
-                ENGLISH: "Default: ‘extracted folder’ under extraction directory",
+                ENGLISH: "Default: ‘extracted’ folder under extraction directory",
                 CHINESE: "默认使用提取目录下的 ‘extracted’ 文件夹"
             },
             "save_logs": {

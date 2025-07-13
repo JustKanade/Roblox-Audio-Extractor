@@ -1,8 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-
-VERSION = "0.15.1"
+VERSION = "0.16.1"
 
 import warnings
 
@@ -33,78 +32,31 @@ from src.utils.log_utils import LogHandler, setup_basic_logging, save_log_to_fil
 from src.locale import Language, initialize_lang
 from src.locale import lang
 
+
 # 导入自定义工作线程
 from src.workers.extraction_worker import ExtractionWorker
-
 # 导入自定义主题颜色卡片
-try:
-    from src.components.cards.Settings.custom_theme_color_card import CustomThemeColorCard
-except ImportError:
-    CustomThemeColorCard = None
-    print("无法导入CustomThemeColorCard，将禁用自定义主题颜色功能")
-
+from src.components.cards.Settings.custom_theme_color_card import CustomThemeColorCard
 # 导入中央日志处理系统
-try:
-    from src.logging.central_log_handler import CentralLogHandler
-except ImportError:
-    print("无法导入CentralLogHandler，将使用内置日志系统")
-    CentralLogHandler = None  # 设置为None，稍后会检查并创建临时实现
-
+from src.logging.central_log_handler import CentralLogHandler
 # 导入版本检测卡片
-try:
-    from src.components.cards.Settings.version_check_card import VersionCheckCard
-except ImportError:
-    VersionCheckCard = None
-    print("无法导入VersionCheckCard，将禁用版本检测功能")
-
+from src.components.cards.Settings.version_check_card import VersionCheckCard
 # 导入日志控制卡片
-try:
-    from src.components.cards.Settings.log_control_card import LogControlCard
-except ImportError:
-    LogControlCard = None
-    print("无法导入LogControlCard，将禁用日志管理功能")
-
+from src.components.cards.Settings.log_control_card import LogControlCard
 # 导入FFmpeg状态卡片
-try:
-    from src.components.cards.Settings.ffmpeg_status_card import FFmpegStatusCard
-except ImportError:
-    FFmpegStatusCard = None
-    print("无法导入FFmpegStatusCard，将禁用FFmpeg状态检测功能")
-
+from src.components.cards.Settings.ffmpeg_status_card import FFmpegStatusCard
 # 导入头像设置卡片
-try:
-    from src.components.cards.Settings.avatar_setting_card import AvatarSettingCard
-except ImportError:
-    AvatarSettingCard = None
-    print("无法导入AvatarSettingCard，将禁用头像设置功能")
-
+from src.components.cards.Settings.avatar_setting_card import AvatarSettingCard
 # 导入Debug模式卡片
-try:
-    from src.components.cards.Settings.debug_mode_card import DebugModeCard
-except ImportError:
-    DebugModeCard = None
-    print("无法导入DebugModeCard，将禁用Debug模式功能")
-
+from src.components.cards.Settings.debug_mode_card import DebugModeCard
 # 导入总是置顶窗口设置卡片
-try:
-    from src.components.cards.Settings.always_on_top_card import AlwaysOnTopCard
-except ImportError:
-    AlwaysOnTopCard = None
-    print("无法导入AlwaysOnTopCard，将禁用总是置顶窗口设置功能")
-
+from src.components.cards.Settings.always_on_top_card import AlwaysOnTopCard
 # 导入问候语设置卡片
-try:
-    from src.components.cards.Settings.greeting_setting_card import GreetingSettingCard
-except ImportError:
-    GreetingSettingCard = None
-    print("无法导入GreetingSettingCard，将禁用问候语设置功能")
-
+from src.components.cards.Settings.greeting_setting_card import GreetingSettingCard
 # 导入配置管理器
-try:
-    from src.config import ConfigManager
-except ImportError:
-    print("无法导入ConfigManager，将使用内置配置管理器")
-    ConfigManager = None
+from src.config import ConfigManager
+
+
 
 if hasattr(sys, '_MEIPASS'):
     os.environ['QT_QPA_PLATFORM_PLUGIN_PATH'] = os.path.join(sys._MEIPASS, 'PyQt5', 'Qt', 'plugins')
@@ -154,26 +106,7 @@ def import_libs():
     import multiprocessing
     import subprocess
 
-    # 导入第三方库
-    try:
-        from colorama import init
-        init()
-    except ImportError:
-        # 创建假的colorama对象
-        class DummyColorama:
-            def __getattr__(self, name):
-                return ""
 
-        Fore = DummyColorama()
-        Style = DummyColorama()
-
-        def dummy_init():
-            pass
-
-        init = dummy_init
-        logger.warning("未找到colorama库，将不显示彩色输出。请使用 pip install colorama 安装。")
-        logger.warning(
-            "Colorama library not found, colored output won't be displayed. Install with: pip install colorama.")
 
     _LIBS_IMPORTED = True
 
@@ -285,7 +218,7 @@ class ResponsiveFeatureItem(QWidget):
 
 
 class MainWindow(FluentWindow):
-    """主窗口 - 使用FluentWindow而不是自定义标题栏，增强响应式布局"""
+    """主窗口"""
 
     def __init__(self):
         super().__init__()
@@ -353,8 +286,6 @@ class MainWindow(FluentWindow):
         except Exception as e:
             print(f"无法设置窗口图标: {e}")
 
-        # 设置窗口特效和背景
-        self.setWindowBackground()
         
         # 应用窗口置顶设置
         always_on_top = self.config_manager.get("always_on_top", False)
@@ -365,24 +296,7 @@ class MainWindow(FluentWindow):
             QTimer.singleShot(500, lambda: self.show())
             QTimer.singleShot(1500, lambda: self.applyAlwaysOnTop(True))
 
-    def setWindowBackground(self):
-        """设置窗口背景，确保深色模式正确显示"""
-        # 为主窗口设置深色背景
-        self.setStyleSheet("""
-            FluentWindow {
-                background-color: rgb(32, 32, 32);
-            }
-            QWidget {
-                background-color: transparent;
-            }
-            QScrollArea {
-                background-color: transparent;
-                border: none;
-            }
-            QScrollArea > QWidget > QWidget {{
-                background-color: transparent;
-            }}
-        """)
+
 
     def applyThemeFromConfig(self):
         """从配置文件应用主题设置"""
@@ -468,7 +382,7 @@ class MainWindow(FluentWindow):
         self.aboutInterface = QWidget()
         self.aboutInterface.setObjectName("aboutInterface")
 
-        # 设置导航 - 使用固定的路由键，而不是翻译后的文本
+        # 设置导航 - 
         self.addSubInterface(self.homeInterface, FluentIcon.HOME, lang.get("home"))
         
         # 添加Extract树形菜单
@@ -914,6 +828,11 @@ class MainWindow(FluentWindow):
         content_layout = QVBoxLayout(content_widget)
         content_layout.setContentsMargins(30, 30, 30, 30)
         content_layout.setSpacing(20)
+        
+        # 添加页面标题
+        page_title = TitleLabel(lang.get("extract_audio"))
+        page_title.setObjectName("extractAudioTitle")
+        content_layout.addWidget(page_title)
 
         # 目录选择卡片
         dir_card = CardWidget()
@@ -2333,6 +2252,32 @@ class MainWindow(FluentWindow):
             if hasattr(self, 'settingsLogHandler'):
                 self.settingsLogHandler.error(f"应用主题变更时出错: {e}")
 
+    def setExtractStyles(self):
+        """设置提取音频界面的样式"""
+        try:
+            theme = self.config_manager.get("theme", "dark")
+            
+            # 设置标题样式
+            title_label = self.extractInterface.findChild(TitleLabel, "extractAudioTitle")
+            if title_label:
+                if theme == "light":
+                    title_label.setStyleSheet("""
+                        font-size: 28px;
+                        font-weight: bold;
+                        color: rgb(0, 0, 0);
+                        margin-bottom: 3px;
+                    """)
+                else:
+                    title_label.setStyleSheet("""
+                        font-size: 28px;
+                        font-weight: bold;
+                        color: rgb(255, 255, 255);
+                        margin-bottom: 3px;
+                    """)
+                    
+        except Exception as e:
+            print(f"设置提取音频界面样式时出错: {e}")
+
     def updateAllStyles(self):
         """更新所有界面的样式以匹配当前主题"""
         try:
@@ -2370,6 +2315,10 @@ class MainWindow(FluentWindow):
             # 更新主页样式
             if hasattr(self, 'homeInterface'):
                 self.setHomeStyles()
+
+            # 更新提取音频界面样式
+            if hasattr(self, 'extractInterface'):
+                self.setExtractStyles()
 
             # 更新清除缓存界面样式
             if hasattr(self, 'clearCacheInterface'):
