@@ -39,6 +39,9 @@ from src.workers.extraction_worker import ExtractionWorker
 from src.cache_management.cache_cleaner import CacheClearWorker
 # 导入响应式UI组件
 from src.components.ui.responsive_components import ResponsiveFeatureItem
+# 导入窗口管理功能
+from src.window_management.responsive_handler import apply_responsive_handler
+from src.window_management.window_utils import apply_always_on_top
 # 导入自定义主题颜色卡片
 from src.components.cards.Settings.custom_theme_color_card import CustomThemeColorCard
    # 导入中央日志处理系统
@@ -137,6 +140,9 @@ class MainWindow(FluentWindow):
         
         # 应用响应式布局到所有界面
         self.applyResponsiveLayoutToAllInterfaces()
+        
+        # 应用响应式窗口调整处理器
+        apply_responsive_handler(self, self._adjust_responsive_layout)
 
     def initWindow(self):
         """初始化窗口设置"""
@@ -166,7 +172,7 @@ class MainWindow(FluentWindow):
             print("窗口初始化时设置置顶")
             # 使用两段式延迟，先显示窗口，再设置置顶
             QTimer.singleShot(500, lambda: self.show())
-            QTimer.singleShot(1500, lambda: self.applyAlwaysOnTop(True))
+            QTimer.singleShot(1500, lambda: apply_always_on_top(self, True))
 
 
 
@@ -569,22 +575,7 @@ class MainWindow(FluentWindow):
         # 应用样式
         self.setHomeStyles()
 
-        # 连接窗口大小改变事件来优化布局
-        self.resizeEvent = self._create_responsive_resize_handler(self.resizeEvent)
-
-    def _create_responsive_resize_handler(self, original_resize_event):
-        """创建响应式调整大小处理程序"""
-
-        def responsive_resize_event(event):
-            # 调用原始的调整大小事件
-            if original_resize_event:
-                original_resize_event(event)
-
-            # 响应式调整
-            if hasattr(self, 'homeInterface'):
-                self._adjust_responsive_layout(event.size().width())
-
-        return responsive_resize_event
+        # 不再需要手动连接窗口大小改变事件，因为我们使用了apply_responsive_handler
 
     def _adjust_responsive_layout(self, window_width):
         """根据窗口宽度调整响应式布局"""
@@ -2805,84 +2796,7 @@ class MainWindow(FluentWindow):
 
     def applyAlwaysOnTop(self, is_top):
         """应用总是置顶设置"""
-        print(f"主窗口应用置顶设置: {is_top}")
-        if is_top:
-            # 使用平台特定的API设置窗口置顶
-            if sys.platform == 'win32':
-                try:
-                    import ctypes
-                    # 确保窗口被显示并处理事件，使句柄有效
-                    self.show()
-                    QApplication.processEvents()
-                    
-                    # 获取窗口句柄 - 使用更可靠的方法
-                    hwnd = ctypes.c_int(self.winId().__int__())
-                    print(f"主窗口句柄: {hwnd.value}")
-                    
-                    HWND_TOPMOST = -1
-                    SWP_NOMOVE = 0x0002
-                    SWP_NOSIZE = 0x0001
-                    SWP_SHOWWINDOW = 0x0040
-                    
-                    flags = SWP_NOMOVE | SWP_NOSIZE | SWP_SHOWWINDOW
-                    print("尝试设置主窗口为置顶")
-                    result = ctypes.windll.user32.SetWindowPos(hwnd, HWND_TOPMOST, 0, 0, 0, 0, flags)
-                    print(f"SetWindowPos结果: {result}")
-                    if not result:
-                        error_code = ctypes.windll.kernel32.GetLastError()
-                        print(f"SetWindowPos失败，错误码: {error_code}")
-                        # 回退到Qt方法
-                        flags = self.windowFlags()
-                        self.setWindowFlags(flags | Qt.WindowStaysOnTopHint)
-                        self.show()
-                except Exception as e:
-                    print(f"设置窗口置顶时出错: {e}")
-                    # 回退到Qt方法
-                    flags = self.windowFlags()
-                    self.setWindowFlags(flags | Qt.WindowStaysOnTopHint)
-                    self.show()
-            else:
-                # 其他平台使用Qt方法
-                flags = self.windowFlags()
-                self.setWindowFlags(flags | Qt.WindowStaysOnTopHint)
-                self.show()
-        else:
-            # 恢复默认窗口设置
-            print("尝试取消主窗口置顶")
-            if sys.platform == 'win32':
-                try:
-                    import ctypes
-                    # 确保窗口被显示并处理事件，使句柄有效
-                    self.show()
-                    QApplication.processEvents()
-                    
-                    # 获取窗口句柄 - 使用更可靠的方法
-                    hwnd = ctypes.c_int(self.winId().__int__())
-                    print(f"主窗口句柄: {hwnd.value}")
-                    
-                    HWND_NOTOPMOST = -2
-                    SWP_NOMOVE = 0x0002
-                    SWP_NOSIZE = 0x0001
-                    SWP_SHOWWINDOW = 0x0040
-                    
-                    flags = SWP_NOMOVE | SWP_NOSIZE | SWP_SHOWWINDOW
-                    result = ctypes.windll.user32.SetWindowPos(hwnd, HWND_NOTOPMOST, 0, 0, 0, 0, flags)
-                    print(f"SetWindowPos结果: {result}")
-                    if not result:
-                        error_code = ctypes.windll.kernel32.GetLastError()
-                        print(f"SetWindowPos失败，错误码: {error_code}")
-                        # 回退到Qt方法
-                        self.setWindowFlags(self.windowFlags() & ~Qt.WindowStaysOnTopHint)
-                        self.show()
-                except Exception as e:
-                    print(f"取消窗口置顶时出错: {e}")
-                    # 回退到Qt方法
-                    self.setWindowFlags(self.windowFlags() & ~Qt.WindowStaysOnTopHint)
-                    self.show()
-            else:
-                # 恢复默认窗口设置
-                self.setWindowFlags(self.windowFlags() & ~Qt.WindowStaysOnTopHint)
-                self.show()
+        apply_always_on_top(self, is_top)
 
     def copyPathToClipboard(self, path):
         """复制路径到剪贴板并显示提示"""
