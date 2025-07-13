@@ -107,6 +107,16 @@ class MainWindow(FluentWindow):
         
         # 确保在启动时同步配置到PyQt-Fluent-Widgets
         self.config_manager.sync_theme_to_qfluent()
+        
+        # 打印配置文件内容，用于调试
+        print(f"QFluentWidgets配置文件路径: {self.config_manager.qfluent_config_file}")
+        if os.path.exists(self.config_manager.qfluent_config_file):
+            try:
+                with open(self.config_manager.qfluent_config_file, 'r', encoding='utf-8') as f:
+                    qfluent_config = json.load(f)
+                    print(f"QFluentWidgets配置内容: {qfluent_config}")
+            except Exception as e:
+                print(f"读取QFluentWidgets配置失败: {e}")
 
         # 初始化语言管理器
         global lang
@@ -138,6 +148,9 @@ class MainWindow(FluentWindow):
         
         # 显示欢迎消息
         self.add_welcome_message()
+        
+        # 再次确保同步配置到PyQt-Fluent-Widgets，然后应用主题设置
+        self.config_manager.sync_theme_to_qfluent()
         
         # 应用保存的主题设置
         self.applyThemeFromConfig()

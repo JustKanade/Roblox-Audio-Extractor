@@ -381,19 +381,32 @@ class CustomThemeColorCard(QWidget):
             
         # 使用安全的方式应用主题颜色
         try:
+            # 首先确保配置文件已同步
+            try:
+                self.config_manager.sync_theme_to_qfluent()
+                print("已同步主题色到QFluentWidgets配置文件")
+            except Exception as e:
+                print(f"同步主题色到QFluentWidgets配置文件时出错: {e}")
+                import traceback
+                print(traceback.format_exc())
+                
             if HAS_FLUENT_WIDGETS:
                 # 直接使用 PyQt-Fluent-Widgets 的函数
                 setThemeColor(color)
                 print(f"已通过qfluentwidgets.setThemeColor成功应用主题色: {color.name()}")
                 
-                # 确保同步到配置文件
+                # 尝试强制QFluentWidgets重新读取配置
                 try:
-                    self.config_manager.sync_theme_to_qfluent()
-                    print("已同步主题色到QFluentWidgets配置文件")
+                    from qfluentwidgets.common.config import qconfig
+                    if hasattr(qconfig, 'load'):
+                        qconfig.load()
+                        print("已强制QFluentWidgets重新加载配置")
+                    elif hasattr(qconfig, '_ConfigValidator__loadSetting'):
+                        # 私有方法，但有时需要调用
+                        qconfig._ConfigValidator__loadSetting()
+                        print("已通过私有方法强制QFluentWidgets重新加载配置")
                 except Exception as e:
-                    print(f"同步主题色到QFluentWidgets配置文件时出错: {e}")
-                    import traceback
-                    print(traceback.format_exc())
+                    print(f"强制QFluentWidgets重新加载配置时出错: {e}")
             else:
                 # 尝试获取全局函数
                 import sys

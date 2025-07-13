@@ -84,8 +84,8 @@ class ConfigManager:
                 try:
                     with open(self.qfluent_config_file, 'r', encoding='utf-8') as f:
                         qfluent_config = json.load(f)
-                except:
-                    pass
+                except Exception as e:
+                    print(f"读取QFluentWidgets配置失败: {e}")
             
             # 确保QFluentWidgets键存在
             if "QFluentWidgets" not in qfluent_config:
@@ -102,6 +102,8 @@ class ConfigManager:
                 
             # 同步主题色
             use_custom_color = self.config.get("use_custom_theme_color", False)
+            print(f"use_custom_theme_color: {use_custom_color}")
+            
             if use_custom_color:
                 # 获取自定义主题色，确保是带#前缀的十六进制颜色格式
                 theme_color = self.config.get("theme_color", "#0078d4")
@@ -113,13 +115,17 @@ class ConfigManager:
                     theme_color = f"#ff{theme_color[1:]}"
                     
                 qfluent_config["QFluentWidgets"]["ThemeColor"] = theme_color
+                print(f"已设置自定义主题色: {theme_color}")
             else:
                 # 使用默认主题色 #ff0078d4
                 qfluent_config["QFluentWidgets"]["ThemeColor"] = "#ff0078d4"
+                print(f"已设置默认主题色: #ff0078d4")
             
             # 保存到PyQt-Fluent-Widgets配置文件
             with open(self.qfluent_config_file, 'w', encoding='utf-8') as f:
                 json.dump(qfluent_config, f, indent=4, ensure_ascii=False)
+                print(f"已保存QFluentWidgets配置到: {self.qfluent_config_file}")
+                print(f"配置内容: {qfluent_config}")
                 
             # 确保配置文件权限正确（在非Windows系统上可能需要）
             if os.name != 'nt':
@@ -128,8 +134,22 @@ class ConfigManager:
                 except Exception:
                     pass
                 
+            # 尝试强制QFluentWidgets重新加载配置
+            try:
+                # 尝试导入qconfig
+                from qfluentwidgets.common.config import qconfig
+                if hasattr(qconfig, 'load'):
+                    qconfig.load()
+                    print("已强制QFluentWidgets重新加载配置")
+            except Exception as e:
+                # 这个异常可以忽略，因为在某些环境下可能无法导入
+                pass
+                
         except Exception as e:
             logger.error(f"同步主题到PyQt-Fluent-Widgets失败: {e}")
+            print(f"同步主题到PyQt-Fluent-Widgets失败: {e}")
+            import traceback
+            print(traceback.format_exc())
 
     def get(self, key, default=None):
         """获取配置值"""

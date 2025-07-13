@@ -62,9 +62,8 @@ def _safely_apply_theme(window, theme_setting, config_manager):
         
         # 应用主题颜色
         try:
-            # 读取PyQt-Fluent-Widgets配置文件中的颜色设置
-            qfluent_config_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), 
-                                             "..", "..", "config", "config.json")
+            # 使用配置管理器中定义的QFluentWidgets配置文件路径
+            qfluent_config_file = config_manager.qfluent_config_file
             if os.path.exists(qfluent_config_file):
                 with open(qfluent_config_file, 'r', encoding='utf-8') as f:
                     qfluent_config = json.load(f)
@@ -79,6 +78,12 @@ def _safely_apply_theme(window, theme_setting, config_manager):
             else:
                 # 配置文件不存在，应用默认颜色
                 setThemeColor(QColor("#ff0078d4"))  # 默认蓝色
+                
+            # 打印调试信息
+            print(f"应用主题色，配置文件路径: {qfluent_config_file}")
+            if os.path.exists(qfluent_config_file):
+                print(f"配置文件内容: {qfluent_config}")
+            
         except Exception as e:
             logger.error(f"应用主题颜色时出错: {e}")
             # 回退到默认颜色
