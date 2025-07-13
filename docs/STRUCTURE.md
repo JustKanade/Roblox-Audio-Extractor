@@ -1,6 +1,5 @@
 # Project Structure
 
-```
 ├── [LICENSE](LICENSE)
 ├── [README.md](README.md)
 ├── [generate_structure_md.py](generate_structure_md.py)
@@ -68,4 +67,3 @@
     └── workers/
         ├── [__init__.py](src/workers/__init__.py)
         └── [extraction_worker.py](src/workers/extraction_worker.py)
-```
