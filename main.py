@@ -439,6 +439,9 @@ class MainWindow(FluentWindow):
         self.addSubInterface(self.clearCacheInterface, FluentIcon.DELETE, lang.get("clear_cache"))
         self.addSubInterface(self.historyInterface, FluentIcon.HISTORY, lang.get("view_history"))
 
+        # 在提取历史导航下方添加分隔线
+        self.navigationInterface.addSeparator()
+
         # 添加底部导航项 - 顺序很重要
         # 先添加JustKanade头像按钮，确保它在设置按钮上方
         try:

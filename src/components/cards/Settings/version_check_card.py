@@ -163,7 +163,7 @@ class UpdateDialog(MaskDialogBase):
         
         # 标题文本
         titleLabel = TitleLabel(self.title, self.widget)
-        titleLabel.setStyleSheet(f"color: {text_color}; font-weight: bold;")
+        titleLabel.setStyleSheet(f"color: {text_color}; font-weight: bold; border: none;")
         
         # 关闭按钮
         closeBtn = TransparentToolButton(FluentIcon.CLOSE, self.widget)
@@ -186,7 +186,7 @@ class UpdateDialog(MaskDialogBase):
         
         # 最新版本标签
         versionLabel = StrongBodyLabel(get_text("latest_version", self.version))
-        versionLabel.setStyleSheet(f"color: {themeColor.name()};")
+        versionLabel.setStyleSheet(f"color: {themeColor.name()}; border: none;")
         
         versionInfo.addWidget(versionLabel)
         versionInfo.addStretch()
@@ -204,7 +204,8 @@ class UpdateDialog(MaskDialogBase):
         
         # 更新内容标题
         notesTitle = SubtitleLabel(get_text("release_notes"))
-        
+        notesTitle.setStyleSheet(f"color: {text_color}; font-weight: bold; border: none;")
+
         notesHeader.addWidget(noteIcon)
         notesHeader.addWidget(notesTitle)
         notesHeader.addStretch()

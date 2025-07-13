@@ -11,7 +11,7 @@
 [![GitHub stars](https://img.shields.io/github/stars/JustKanade/Roblox-Audio-Extractor?style=social)](https://github.com/JustKanade/Roblox-Audio-Extractor/stargazers)
 [![Auto Build and Release](https://github.com/JustKanade/Roblox-Audio-Extractor/actions/workflows/build.yml/badge.svg)](https://github.com/JustKanade/Roblox-Audio-Extractor/actions/workflows/build.yml)
 
-English | [简体中文](README_ZH.md)
+English | [简体中文](.readme/README_ZH.md)
 
 </div>
 
