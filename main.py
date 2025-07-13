@@ -27,6 +27,7 @@ from src.extractors.audio_extractor import RobloxAudioExtractor, ExtractedHistor
 # 导入工具函数
 from src.utils.file_utils import resource_path, get_roblox_default_dir, open_directory
 from src.utils.log_utils import LogHandler, setup_basic_logging, save_log_to_file
+from src.utils.import_utils import import_libs
 
 # 导入语言管理
 from src.locale import Language, initialize_lang
@@ -84,31 +85,6 @@ from qfluentwidgets import (
 # 设置日志记录
 logging.basicConfig(level=logging.INFO, format='%(message)s')
 logger = logging.getLogger(__name__)
-
-# 延迟导入库列表
-_LIBS_IMPORTED = False
-gzip = shutil = random = string = subprocess = Fore = Style = init = None
-
-def import_libs():
-    """按需导入库，减少启动时间和内存占用"""
-    global gzip, shutil, random, string, hashlib, multiprocessing
-    global subprocess, ThreadPoolExecutor, Fore, Style, init, _LIBS_IMPORTED
-
-    if _LIBS_IMPORTED:
-        return
-
-    # 导入标准库
-    import gzip
-    import shutil
-    import random
-    import string
-    import hashlib
-    import multiprocessing
-    import subprocess
-
-
-
-    _LIBS_IMPORTED = True
 
 
 class CacheClearWorker(QThread):

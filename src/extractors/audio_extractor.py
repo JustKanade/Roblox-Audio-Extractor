@@ -272,19 +272,33 @@ class RobloxAudioExtractor:
         if self._libs_imported:
             return
 
-        # 导入标准库
-        import gzip
-        import shutil
-        import random
-        import string
-        import subprocess
-
+        # 使用新的import_utils模块
+        from src.utils.import_utils import import_libs
+        modules = import_libs()
+        
         # 保存引用
-        self.gzip = gzip
-        self.shutil = shutil
-        self.random = random
-        self.string = string
-        self.subprocess = subprocess
+        self.gzip = modules.get('gzip')
+        self.shutil = modules.get('shutil')
+        self.random = modules.get('random')
+        self.string = modules.get('string')
+        self.subprocess = modules.get('subprocess')
+        
+        # 如果任何必要的模块缺失，则直接导入
+        if not self.gzip:
+            import gzip
+            self.gzip = gzip
+        if not self.shutil:
+            import shutil
+            self.shutil = shutil
+        if not self.random:
+            import random
+            self.random = random
+        if not self.string:
+            import string
+            self.string = string
+        if not self.subprocess:
+            import subprocess
+            self.subprocess = subprocess
 
         self._libs_imported = True
 
