@@ -42,25 +42,27 @@ from src.components.ui.responsive_components import ResponsiveFeatureItem
 # 导入窗口管理功能
 from src.window_management.responsive_handler import apply_responsive_handler
 from src.window_management.window_utils import apply_always_on_top
+# 导入主题管理功能
+from src.theme_management.theme_manager import apply_theme_from_config, apply_theme_change
 # 导入自定义主题颜色卡片
 from src.components.cards.Settings.custom_theme_color_card import CustomThemeColorCard
-   # 导入中央日志处理系统
+# 导入中央日志处理系统
 from src.logging.central_log_handler import CentralLogHandler
-    # 导入版本检测卡片
+# 导入版本检测卡片
 from src.components.cards.Settings.version_check_card import VersionCheckCard
-     # 导入日志控制卡片
+# 导入日志控制卡片
 from src.components.cards.Settings.log_control_card import LogControlCard
-      # 导入FFmpeg状态卡片
+# 导入FFmpeg状态卡片
 from src.components.cards.Settings.ffmpeg_status_card import FFmpegStatusCard
-       # 导入头像设置卡片
+# 导入头像设置卡片
 from src.components.cards.Settings.avatar_setting_card import AvatarSettingCard
-        # 导入Debug模式卡片
+# 导入Debug模式卡片
 from src.components.cards.Settings.debug_mode_card import DebugModeCard
-         # 导入总是置顶窗口设置卡片
+# 导入总是置顶窗口设置卡片
 from src.components.cards.Settings.always_on_top_card import AlwaysOnTopCard
-          # 导入问候语设置卡片
+# 导入问候语设置卡片
 from src.components.cards.Settings.greeting_setting_card import GreetingSettingCard
-            # 导入配置管理器
+# 导入配置管理器
 from src.config import ConfigManager
 
 
@@ -178,59 +180,8 @@ class MainWindow(FluentWindow):
 
     def applyThemeFromConfig(self):
         """从配置文件应用主题设置"""
-        try:
-            # 获取主题设置
-            theme_setting = self.config_manager.get("theme", "dark")
-            
-            # 更新中央日志处理器的主题设置
-            CentralLogHandler.getInstance().set_theme(theme_setting)
-            
-            # 使用延迟调用来应用主题，避免在字典迭代过程中修改字典
-            QTimer.singleShot(10, lambda: self._safelyApplyTheme(theme_setting))
-        except Exception as e:
-            print(f"应用主题配置时出错: {e}")
-    
-    def _safelyApplyTheme(self, theme_setting):
-        """安全地应用主题设置"""
-        try:
-            # 应用主题模式
-            if theme_setting == "light":
-                setTheme(Theme.LIGHT)
-            elif theme_setting == "dark":
-                setTheme(Theme.DARK)
-            else:  # auto
-                setTheme(Theme.AUTO)
-            
-            # 应用主题颜色
-            try:
-                # 读取PyQt-Fluent-Widgets配置文件中的颜色设置
-                qfluent_config_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), "config", "config.json")
-                if os.path.exists(qfluent_config_file):
-                    with open(qfluent_config_file, 'r', encoding='utf-8') as f:
-                        qfluent_config = json.load(f)
-                    
-                    # 从QFluentWidgets配置中获取主题色
-                    if "QFluentWidgets" in qfluent_config and "ThemeColor" in qfluent_config["QFluentWidgets"]:
-                        theme_color = qfluent_config["QFluentWidgets"]["ThemeColor"]
-                        setThemeColor(QColor(theme_color))
-                    else:
-                        # 如果配置文件中没有主题色，则应用默认颜色
-                        setThemeColor(QColor("#ff0078d4"))  # 默认蓝色
-                else:
-                    # 配置文件不存在，应用默认颜色
-                    setThemeColor(QColor("#ff0078d4"))  # 默认蓝色
-            except Exception as e:
-                print(f"应用主题颜色时出错: {e}")
-                # 回退到默认颜色
-                try:
-                    setThemeColor(QColor("#ff0078d4"))
-                except:
-                    pass
-
-            # 确保UI已初始化后再更新样式
-            QTimer.singleShot(100, self.updateAllStyles)
-        except Exception as e:
-            print(f"安全应用主题时出错: {e}")
+        # 使用主题管理器应用主题
+        apply_theme_from_config(self, self.config_manager, CentralLogHandler.getInstance())
 
     def initUI(self):
         """初始化UI组件"""
@@ -2066,54 +2017,15 @@ class MainWindow(FluentWindow):
 
     def onThemeChanged(self, theme_name):
         """主题更改事件处理"""
-        try:
-            # 保存主题设置到配置文件
-            if theme_name == lang.get("theme_dark"):
-                theme_value = "dark"
-                self.config_manager.set("theme", theme_value)
-                # 更新中央日志处理器的主题设置
-                CentralLogHandler.getInstance().set_theme(theme_value)
-            elif theme_name == lang.get("theme_light"):
-                theme_value = "light"
-                self.config_manager.set("theme", theme_value)
-                # 更新中央日志处理器的主题设置
-                CentralLogHandler.getInstance().set_theme(theme_value)
-            else:
-                theme_value = "auto"
-                self.config_manager.set("theme", theme_value)
-                # 对于自动模式，设置为auto
-                CentralLogHandler.getInstance().set_theme(theme_value)
-                
-            # 使用延迟调用来应用主题，避免在字典迭代过程中修改字典
-            QTimer.singleShot(10, lambda: self._applyThemeChange(theme_value, theme_name))
-        except Exception as e:
-            print(f"主题切换错误: {e}")
-            # 记录主题更改错误
-            if hasattr(self, 'settingsLogHandler'):
-                self.settingsLogHandler.error(f"主题切换错误: {e}")
-    
-    
-    def _applyThemeChange(self, theme_value, theme_name):
-        """安全地应用主题变更"""
-        try:
-            # 应用主题
-            if theme_value == "dark":
-                setTheme(Theme.DARK)
-            elif theme_value == "light":
-                setTheme(Theme.LIGHT)
-            else:
-                setTheme(Theme.AUTO)
-                
-            # 重新应用所有界面样式
-            self.updateAllStyles()
-            
-            # 记录主题更改
-            if hasattr(self, 'settingsLogHandler'):
-                self.settingsLogHandler.success(lang.get("theme_changed", theme_name))
-        except Exception as e:
-            print(f"应用主题变更时出错: {e}")
-            if hasattr(self, 'settingsLogHandler'):
-                self.settingsLogHandler.error(f"应用主题变更时出错: {e}")
+        # 使用主题管理器应用主题变更
+        apply_theme_change(
+            self, 
+            theme_name, 
+            self.config_manager, 
+            CentralLogHandler.getInstance(), 
+            self.settingsLogHandler if hasattr(self, 'settingsLogHandler') else None,
+            lang
+        )
 
     def setExtractStyles(self):
         """设置提取音频界面的样式"""
@@ -2140,63 +2052,6 @@ class MainWindow(FluentWindow):
                     
         except Exception as e:
             print(f"设置提取音频界面样式时出错: {e}")
-
-    def updateAllStyles(self):
-        """更新所有界面的样式以匹配当前主题"""
-        try:
-            theme = self.config_manager.get("theme", "dark")
-
-            # 设置主窗口背景
-            if theme == "light":
-                main_bg = "rgb(243, 243, 243)"
-                text_color = "rgb(0, 0, 0)"
-                subtitle_color = "rgba(0, 0, 0, 0.7)"
-                accent_color = "rgb(0, 120, 215)"
-            else:
-                main_bg = "rgb(32, 32, 32)"
-                text_color = "rgb(255, 255, 255)"
-                subtitle_color = "rgba(255, 255, 255, 0.8)"
-                accent_color = "rgb(0, 212, 255)"
-
-            # 应用主窗口样式
-            self.setStyleSheet(f"""
-                FluentWindow {{
-                    background-color: {main_bg};
-                }}
-                QWidget {{
-                    background-color: transparent;
-                }}
-                QScrollArea {{
-                    background-color: transparent;
-                    border: none;
-                }}
-                QScrollArea > QWidget > QWidget {{
-                    background-color: transparent;
-                }}
-            """)
-
-            # 更新主页样式
-            if hasattr(self, 'homeInterface'):
-                self.setHomeStyles()
-
-            # 更新提取音频界面样式
-            if hasattr(self, 'extractInterface'):
-                self.setExtractStyles()
-
-            # 更新清除缓存界面样式
-            if hasattr(self, 'clearCacheInterface'):
-                self.setCacheStyles()
-
-            # 更新历史界面样式
-            if hasattr(self, 'historyInterface'):
-                self.setHistoryStyles()
-
-            # 更新关于界面样式
-            if hasattr(self, 'aboutInterface'):
-                self.setAboutStyles()
-
-        except Exception as e:
-            print(f"更新样式时出错: {e}")
 
     def saveThreadsConfig(self, value):
         """保存线程数配置"""
@@ -2550,7 +2405,6 @@ class MainWindow(FluentWindow):
                     self.cacheStateTooltip.setState(True)
                     # 2秒后关闭状态提示
                     QTimer.singleShot(2000, self.cacheStateTooltip.close)
-
                 # 显示完成消息
                 InfoBar.success(
                     title=lang.get("task_completed"),
