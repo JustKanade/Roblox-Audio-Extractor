@@ -33,32 +33,32 @@ from src.utils.import_utils import import_libs
 from src.locale import Language, initialize_lang
 from src.locale import lang
 
-
 # 导入自定义工作线程
 from src.workers.extraction_worker import ExtractionWorker
 # 导入缓存管理模块
 from src.cache_management.cache_cleaner import CacheClearWorker
+# 导入响应式UI组件
+from src.components.ui.responsive_components import ResponsiveFeatureItem
 # 导入自定义主题颜色卡片
 from src.components.cards.Settings.custom_theme_color_card import CustomThemeColorCard
-# 导入中央日志处理系统
+   # 导入中央日志处理系统
 from src.logging.central_log_handler import CentralLogHandler
-# 导入版本检测卡片
+    # 导入版本检测卡片
 from src.components.cards.Settings.version_check_card import VersionCheckCard
-# 导入日志控制卡片
+     # 导入日志控制卡片
 from src.components.cards.Settings.log_control_card import LogControlCard
-# 导入FFmpeg状态卡片
+      # 导入FFmpeg状态卡片
 from src.components.cards.Settings.ffmpeg_status_card import FFmpegStatusCard
-# 导入头像设置卡片
+       # 导入头像设置卡片
 from src.components.cards.Settings.avatar_setting_card import AvatarSettingCard
-# 导入Debug模式卡片
+        # 导入Debug模式卡片
 from src.components.cards.Settings.debug_mode_card import DebugModeCard
-# 导入总是置顶窗口设置卡片
+         # 导入总是置顶窗口设置卡片
 from src.components.cards.Settings.always_on_top_card import AlwaysOnTopCard
-# 导入问候语设置卡片
+          # 导入问候语设置卡片
 from src.components.cards.Settings.greeting_setting_card import GreetingSettingCard
-# 导入配置管理器
+            # 导入配置管理器
 from src.config import ConfigManager
-
 
 
 if hasattr(sys, '_MEIPASS'):
@@ -87,42 +87,6 @@ from qfluentwidgets import (
 # 设置日志记录
 logging.basicConfig(level=logging.INFO, format='%(message)s')
 logger = logging.getLogger(__name__)
-
-
-# 响应式功能特色组件
-class ResponsiveFeatureItem(QWidget):
-    """响应式功能特色项目组件"""
-
-    def __init__(self, icon, text, parent=None):
-        super().__init__(parent)
-        self.icon = icon
-        self.text = text
-        self.setupUI()
-
-    def setupUI(self):
-        """设置UI"""
-        # 设置大小策略
-        self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
-        self.setMinimumSize(140, 80)
-        self.setMaximumSize(220, 80)
-
-        # 创建布局
-        layout = QVBoxLayout(self)
-        layout.setContentsMargins(8, 8, 8, 8)
-        layout.setSpacing(6)
-
-        # 图标
-        self.icon_widget = IconWidget(self.icon)
-        self.icon_widget.setFixedSize(30, 30)
-
-        # 文本
-        self.text_label = CaptionLabel(self.text)
-        self.text_label.setAlignment(Qt.AlignCenter)
-        self.text_label.setWordWrap(True)
-
-        # 添加到布局
-        layout.addWidget(self.icon_widget, 0, Qt.AlignCenter)
-        layout.addWidget(self.text_label)
 
 
 class MainWindow(FluentWindow):
@@ -639,25 +603,22 @@ class MainWindow(FluentWindow):
                         if isinstance(widget, ResponsiveFeatureItem):
                             if window_width < MOBILE_BREAKPOINT:
                                 # 移动设备：更小的项目
-                                widget.setMinimumSize(120, 70)
-                                widget.setMaximumSize(180, 70)
+                                widget.updateSize(120, 70, 180, 70)
                             elif window_width < TABLET_BREAKPOINT:
                                 # 平板设备：中等大小
-                                widget.setMinimumSize(140, 75)
-                                widget.setMaximumSize(200, 75)
+                                widget.updateSize(140, 75, 200, 75)
                             else:
                                 # 桌面设备：正常大小
-                                widget.setMinimumSize(160, 80)
-                                widget.setMaximumSize(220, 80)
+                                widget.updateSize(160, 80, 220, 80)
 
             # 在小屏幕上隐藏图标
             if hasattr(self, 'home_icon_label'):
                 icon_container = self.home_icon_label.parent()
                 if icon_container:
                     if window_width < MOBILE_BREAKPOINT:
-                        icon_container.hide()
+                        icon_container.setVisible(False)
                     else:
-                        icon_container.show()
+                        icon_container.setVisible(True)
 
         except Exception as e:
             # 静默处理异常，避免影响UI正常运行
