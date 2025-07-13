@@ -32,18 +32,20 @@ from src.utils.import_utils import import_libs
 # 导入语言管理
 from src.locale import Language, initialize_lang
 from src.locale import lang
+# 导入语言管理功能
+from src.management.language_management.language_manager import apply_language, get_language_code
 
 # 导入自定义工作线程
 from src.workers.extraction_worker import ExtractionWorker
 # 导入缓存管理模块
-from src.cache_management.cache_cleaner import CacheClearWorker
+from src.management.cache_management.cache_cleaner import CacheClearWorker
 # 导入响应式UI组件
 from src.components.ui.responsive_components import ResponsiveFeatureItem
 # 导入窗口管理功能
-from src.window_management.responsive_handler import apply_responsive_handler
-from src.window_management.window_utils import apply_always_on_top
+from src.management.window_management.responsive_handler import apply_responsive_handler
+from src.management.window_management.window_utils import apply_always_on_top
 # 导入主题管理功能
-from src.theme_management.theme_manager import apply_theme_from_config, apply_theme_change
+from src.management.theme_management.theme_manager import apply_theme_from_config, apply_theme_change
 # 导入自定义主题颜色卡片
 from src.components.cards.Settings.custom_theme_color_card import CustomThemeColorCard
 # 导入中央日志处理系统
@@ -2512,42 +2514,14 @@ class MainWindow(FluentWindow):
         selected_language = self.languageCombo.currentText()
         current_language = lang.get_language_name()
         
-        # 检查语言是否真的改变了
-        if selected_language == current_language:
-            # 如果语言没有改变，只显示一个通知而不是重启确认框
-            self.settingsLogHandler.info(lang.get("language_unchanged") if lang.get("language_unchanged", None) else "语言设置未改变")
-            return
-            
-        # 语言改变了，保存语言设置到配置文件
-        if selected_language == "English":
-            lang.save_language_setting("en")
-        else:
-            lang.save_language_setting("zh")
-
-        # 记录更改
-        self.settingsLogHandler.success(lang.get("language_saved"))
-
-        # 显示重启确认对话框
-        restart_dialog = MessageBox(
-            lang.get("restart_required"),
-            lang.get("language_close_message"),
-            self
+        # 使用语言管理模块应用语言设置
+        apply_language(
+            self, 
+            selected_language, 
+            current_language, 
+            lang, 
+            self.settingsLogHandler if hasattr(self, 'settingsLogHandler') else None
         )
-
-        if restart_dialog.exec():
-            # 用户选择立即关闭程序
-            QApplication.quit()
-        else:
-            # 用户选择稍后重启
-            InfoBar.info(
-                title=lang.get("restart_required"),
-                content=lang.get("language_saved"),
-                orient=Qt.Horizontal,
-                isClosable=True,
-                position=InfoBarPosition.TOP,
-                duration=5000,
-                parent=self
-            )
 
     def setResponsiveContentWidget(self, scroll_area):
         """为滚动区域内的内容容器应用响应式布局设置，防止卡片间距异常"""

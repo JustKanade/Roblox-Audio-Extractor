@@ -6,4 +6,4 @@
 提供主题设置、应用和切换功能
 """
 
-from src.theme_management.theme_manager import apply_theme_from_config, apply_theme_change 
+from src.management.theme_management.theme_manager import apply_theme_from_config, apply_theme_change 
