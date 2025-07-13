@@ -1,14 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""
-Roblox音频提取器 - 从Roblox缓存中提取音频文件并按音频长度或大小分类
-Roblox Audio Extractor - Extract audio files from Roblox cache and classify by audio duration or size
-作者/Author: JustKanade
-版本/Version: 0.15.1
-许可/License: GNU Affero General Public License v3.0 (AGPLv3)
-"""
 
-# 统一的版本号常量
+
 VERSION = "0.15.1"
 
 import warnings
@@ -204,7 +197,7 @@ class CacheClearWorker(QThread):
             processed_files = 0
 
             # 需要排除的文件夹
-            exclude_dirs = {'extracted_oggs'}
+            exclude_dirs = {'extracted'}
             files_to_process = []
 
             # 首先扫描所有文件

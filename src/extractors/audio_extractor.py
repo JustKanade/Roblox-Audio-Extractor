@@ -215,7 +215,7 @@ class RobloxAudioExtractor:
             self.output_dir = os.path.abspath(custom_output_dir)
         else:
             # 使用默认输出路径
-            self.output_dir = os.path.join(self.base_dir, "extracted_oggs")
+            self.output_dir = os.path.join(self.base_dir, "extracted")
         
         # 创建Audio总文件夹
         self.audio_dir = os.path.join(self.output_dir, "Audio")

@@ -747,8 +747,8 @@ def get_translations():
                 CHINESE: "自定义输出目录"
             },
             "output_dir_placeholder": {
-                ENGLISH: "Default: extracted_oggs folder under extraction directory",
-                CHINESE: "默认使用提取目录下的extracted_oggs文件夹"
+                ENGLISH: "Default: ‘extracted folder’ under extraction directory",
+                CHINESE: "默认使用提取目录下的 ‘extracted’ 文件夹"
             },
             "save_logs": {
                 ENGLISH: "Save logs to file",
