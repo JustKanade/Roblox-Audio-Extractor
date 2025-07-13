@@ -1,9 +1,7 @@
 name: Update Structure Tree
 
 on:
-  push:
-    branches:
-      - main
+  workflow_dispatch:
 
 jobs:
   update-structure:
