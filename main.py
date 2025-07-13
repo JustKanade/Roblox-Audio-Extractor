@@ -30,7 +30,11 @@ from typing import Dict, List, Any, Set, Optional
 from enum import Enum, auto
 
 # 导入自定义提取器模块
-from src.extractors.audio_extractor import RobloxAudioExtractor, ExtractedHistory, ContentHashCache, ProcessingStats, ClassificationMethod, is_ffmpeg_available, open_directory
+from src.extractors.audio_extractor import RobloxAudioExtractor, ExtractedHistory, ContentHashCache, ProcessingStats, ClassificationMethod, is_ffmpeg_available
+
+# 导入工具函数
+from src.utils.file_utils import resource_path, get_roblox_default_dir, open_directory
+from src.utils.log_utils import LogHandler, setup_basic_logging, save_log_to_file
 
 # 导入语言管理
 from src.locale import Language, initialize_lang
@@ -140,52 +144,6 @@ logger = logging.getLogger(__name__)
 _LIBS_IMPORTED = False
 gzip = shutil = random = string = subprocess = Fore = Style = init = None
 
-def resource_path(relative_path):
-    """Get absolute path to resource, works for dev and for PyInstaller"""
-    try:
-        # PyInstaller creates a temp folder and stores path in _MEIPASS
-        base_path = sys._MEIPASS
-    except Exception:
-        base_path = os.path.abspath(".")
-
-    return os.path.join(base_path, relative_path)
-
-
-def get_roblox_default_dir():
-    """获取Roblox默认目录路径，根据不同操作系统返回不同的路径"""
-    try:
-        if os.name == 'nt':  # Windows
-            # 获取用户主目录
-            user_profile = os.environ.get('USERPROFILE')
-            if not user_profile:
-                # 备用方法获取用户主目录
-                import ctypes.wintypes
-                CSIDL_PROFILE = 40
-                buf = ctypes.create_unicode_buffer(ctypes.wintypes.MAX_PATH)
-                ctypes.windll.shell32.SHGetFolderPathW(0, CSIDL_PROFILE, 0, 0, buf)
-                user_profile = buf.value
-                
-            # Windows默认路径：C:\Users\用户名\AppData\Local\Roblox\rbx-storage
-            default_path = os.path.join(user_profile, "AppData", "Local", "Roblox", "rbx-storage")
-            
-        elif sys.platform == 'darwin':  # macOS
-            # macOS默认路径：~/Library/Roblox/rbx-storage
-            user_home = os.path.expanduser("~")
-            default_path = os.path.join(user_home, "Library", "Roblox", "rbx-storage")
-            
-        else:  # Linux及其他系统
-            # Linux没有官方客户端，但可以通过Wine运行Windows版本
-            # 假设Wine默认配置下的路径
-            user_home = os.path.expanduser("~")
-            default_path = os.path.join(user_home, ".wine", "drive_c", "users", os.environ.get('USER', 'user'), "AppData", "Local", "Roblox", "rbx-storage")
-            
-        return default_path
-    except Exception as e:
-        # 出错时返回空字符串
-        print(f"获取Roblox默认路径时出错: {e}")
-        return ""
-
-
 def import_libs():
     """按需导入库，减少启动时间和内存占用"""
     global gzip, shutil, random, string, hashlib, multiprocessing
@@ -225,33 +183,6 @@ def import_libs():
             "Colorama library not found, colored output won't be displayed. Install with: pip install colorama.")
 
     _LIBS_IMPORTED = True
-
-
-class LogHandler:
-    """日志处理类，用于记录消息到PyQt的TextEdit控件"""
-
-    def __init__(self, text_edit):
-        self.text_edit = text_edit
-        # 注册到中央日志系统
-        CentralLogHandler.getInstance().register_text_edit(text_edit)
-
-    def info(self, message: str):
-        """记录信息消息"""
-        CentralLogHandler.getInstance().add_log(message)
-
-    def success(self, message: str):
-        """记录成功消息"""
-        CentralLogHandler.getInstance().add_log(message, "✓ ")
-
-    def warning(self, message: str):
-        """记录警告消息"""
-        CentralLogHandler.getInstance().add_log(message, "⚠ ")
-
-    def error(self, message: str):
-        """记录错误消息"""
-        CentralLogHandler.getInstance().add_log(message, "✗ ")
-
-
 
 
 class CacheClearWorker(QThread):
