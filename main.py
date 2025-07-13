@@ -36,6 +36,8 @@ from src.locale import lang
 
 # 导入自定义工作线程
 from src.workers.extraction_worker import ExtractionWorker
+# 导入缓存管理模块
+from src.cache_management.cache_cleaner import CacheClearWorker
 # 导入自定义主题颜色卡片
 from src.components.cards.Settings.custom_theme_color_card import CustomThemeColorCard
 # 导入中央日志处理系统
@@ -85,76 +87,6 @@ from qfluentwidgets import (
 # 设置日志记录
 logging.basicConfig(level=logging.INFO, format='%(message)s')
 logger = logging.getLogger(__name__)
-
-
-class CacheClearWorker(QThread):
-    """缓存清理工作线程"""
-    finished = pyqtSignal(bool, int, int, str)  # 完成信号(成功?, 清理数量, 总数, 错误信息)
-    progressUpdated = pyqtSignal(int, int)  # 进度更新信号(当前, 总数)
-
-    def __init__(self, directory):
-        super().__init__()
-        self.directory = directory
-        self.is_cancelled = False
-
-    def run(self):
-        """运行线程：清理缓存"""
-        try:
-            # 计数器
-            total_files = 0
-            cleared_files = 0
-            processed_files = 0
-
-            # 需要排除的文件夹
-            exclude_dirs = {'extracted'}
-            files_to_process = []
-
-            # 首先扫描所有文件
-            for root, dirs, files in os.walk(self.directory):
-                # 跳过排除的目录
-                if any(excluded in root for excluded in exclude_dirs):
-                    continue
-
-                for file in files:
-                    file_path = os.path.join(root, file)
-                    total_files += 1
-                    files_to_process.append(file_path)
-
-            # 处理文件
-            for file_path in files_to_process:
-                if self.is_cancelled:
-                    break
-
-                try:
-                    # 读取文件的前8KB内容
-                    with open(file_path, 'rb') as f:
-                        content = f.read(8192)
-
-                    # 检查OGG文件头或其他标识
-                    if (b'OggS' in content or  # OGG标识
-                            b'.ogg' in content.lower() or  # .ogg扩展名
-                            b'audio' in content.lower() or  # 音频关键字
-                            b'sound' in content.lower()):  # 声音关键字
-
-                        # 删除文件
-                        os.remove(file_path)
-                        cleared_files += 1
-
-                except (IOError, OSError, PermissionError):
-                    pass
-
-                # 更新进度
-                processed_files += 1
-                self.progressUpdated.emit(processed_files, total_files)
-
-            # 返回结果
-            self.finished.emit(True, cleared_files, total_files, "")
-
-        except Exception as e:
-            self.finished.emit(False, 0, 0, str(e))
-    def cancel(self):
-        """取消操作"""
-        self.is_cancelled = True
 
 
 # 响应式功能特色组件
