@@ -185,7 +185,7 @@ class AboutInterface(QWidget):
     def loadAboutIcon(self):
         """加载关于页面图标"""
         try:
-            icon_path = resource_path(os.path.join("res", "icons", "Roblox-Audio-Extractor.png"))
+            icon_path = resource_path(os.path.join("res", "icons", "logo.png"))
             if os.path.exists(icon_path):
                 pixmap = QPixmap(icon_path)
                 scaled_pixmap = pixmap.scaled(
