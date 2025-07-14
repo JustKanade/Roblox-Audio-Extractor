@@ -25,6 +25,9 @@ from qfluentwidgets import (
     isDarkTheme, setFont
 )
 
+# 导入语言支持
+from src.locale import Language
+
 # 导入MaskDialogBase
 try:
     from qfluentwidgets.components.dialog_box.mask_dialog_base import MaskDialogBase
@@ -50,6 +53,12 @@ except ImportError:
 # 全局语言管理器引用，在主程序中初始化
 lang = None
 
+# 设置全局语言管理器的函数
+def set_language_manager(language_manager):
+    """设置全局语言管理器"""
+    global lang
+    lang = language_manager
+
 # 默认翻译，如果lang未初始化时使用
 DEFAULT_TRANSLATIONS = {
     "version_check_settings": "版本检测设置",
@@ -63,7 +72,12 @@ DEFAULT_TRANSLATIONS = {
     "check_failed": "检查更新失败: {}",
     "release_notes": "更新内容",
     "go_to_update": "前往更新",
-    "close": "关闭"
+    "close": "关闭",
+    # 添加版本检查失败相关翻译
+    "error_rate_limit": "GitHub API速率限制，请稍后再试",
+    "error_rate_limit_en": "GitHub API rate limit exceeded, please try again later",
+    "error_timeout": "连接超时，请检查您的网络连接或代理设置",
+    "error_timeout_en": "Connection timeout, please check your network connection or proxy settings"
 }
 
 logger = logging.getLogger(__name__)
@@ -77,7 +91,7 @@ def get_text(key, *args):
                 return text.format(*args)
             except:
                 return text
-        return text
+        return text if text is not None else key
     if args:
         try:
             text = DEFAULT_TRANSLATIONS.get(key, key)
@@ -85,8 +99,8 @@ def get_text(key, *args):
                 return text.format(*args)
             return key
         except Exception:
-            return DEFAULT_TRANSLATIONS.get(key, key)
-    return DEFAULT_TRANSLATIONS.get(key, key)
+            return DEFAULT_TRANSLATIONS.get(key, key) or key
+    return DEFAULT_TRANSLATIONS.get(key, key) or key
 
 class UpdateDialog(MaskDialogBase):
 
@@ -647,18 +661,17 @@ class VersionCheckCard(QWidget):
         
         # 针对不同错误类型提供更具体的解决方案
         if "速率限制" in error_msg or "API rate limit" in error_msg:
-            display_msg = (
-                f"{error_msg}\n\n"
-                f"解决方案:\n"
-                f"1. 稍后再试\n"
-                f"2. 设置环境变量 SKIP_UPDATE_CHECK=1 可跳过更新检查\n"
-                f"3. 在配置中关闭自动检查更新"
-            )
+            # 添加中英文错误提示
+            if lang and lang.current_language == lang.ENGLISH:
+                display_msg = f"{error_msg}\n\n{get_text('error_rate_limit_en')}"
+            else:
+                display_msg = f"{error_msg}\n\n{get_text('error_rate_limit')}"
         elif "timeout" in error_msg.lower():
-            display_msg = (
-                f"{error_msg}\n\n"
-                f"连接超时，请检查您的网络连接或代理设置"
-            )
+            # 添加中英文错误提示
+            if lang and lang.current_language == lang.ENGLISH:
+                display_msg = f"{error_msg}\n\n{get_text('error_timeout_en')}"
+            else:
+                display_msg = f"{error_msg}\n\n{get_text('error_timeout')}"
         
         # 使用InfoBar显示在顶部
         InfoBar.error(

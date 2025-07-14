@@ -28,9 +28,10 @@ except ImportError:
     CustomThemeColorCard = None
 
 try:
-    from src.components.cards.Settings.version_check_card import VersionCheckCard
+    from src.components.cards.Settings.version_check_card import VersionCheckCard, set_language_manager
 except ImportError:
     VersionCheckCard = None
+    set_language_manager = None
 
 try:
     from src.components.cards.Settings.debug_mode_card import DebugModeCard
@@ -172,6 +173,9 @@ class SettingsInterface(QWidget):
             import src.components.cards.Settings.version_check_card as version_check_card_module
             if self.lang:
                 version_check_card_module.lang = self.lang
+                # 使用新的set_language_manager函数设置语言
+                if hasattr(version_check_card_module, 'set_language_manager'):
+                    version_check_card_module.set_language_manager(self.lang)
         except ImportError:
             pass
             
