@@ -67,7 +67,7 @@ from src.components.cards.Settings.greeting_setting_card import GreetingSettingC
 # 导入配置管理器
 from src.config import ConfigManager
 # 导入界面模块
-from src.interfaces import HomeInterface, AboutInterface
+from src.interfaces import HomeInterface, AboutInterface, ExtractImagesInterface, ExtractTexturesInterface, ClearCacheInterface
 
 
 if hasattr(sys, '_MEIPASS'):
@@ -221,15 +221,27 @@ class MainWindow(FluentWindow):
         self.extractInterface = QWidget()
         self.extractInterface.setObjectName("extractInterface")
 
-        # 添加新的图像和纹理提取界面
-        self.extractImagesInterface = QWidget()
-        self.extractImagesInterface.setObjectName("extractImagesInterface")
+        # 添加新的图像提取界面 - 使用ExtractImagesInterface类
+        self.extractImagesInterface = ExtractImagesInterface(
+            parent=self,
+            config_manager=self.config_manager,
+            lang=lang
+        )
 
-        self.extractTexturesInterface = QWidget()
-        self.extractTexturesInterface.setObjectName("extractTexturesInterface")
+        # 添加新的纹理提取界面 - 使用ExtractTexturesInterface类
+        self.extractTexturesInterface = ExtractTexturesInterface(
+            parent=self,
+            config_manager=self.config_manager,
+            lang=lang
+        )
 
-        self.clearCacheInterface = QWidget()
-        self.clearCacheInterface.setObjectName("clearCacheInterface")
+        # 添加清除缓存界面 - 使用ClearCacheInterface类
+        self.clearCacheInterface = ClearCacheInterface(
+            parent=self,
+            config_manager=self.config_manager,
+            lang=lang,
+            default_dir=self.default_dir
+        )
 
         self.historyInterface = QWidget()
         self.historyInterface.setObjectName("historyInterface")
@@ -330,9 +342,9 @@ class MainWindow(FluentWindow):
 
         # 初始化各个界面 - 去除setupHomeInterface的调用
         self.setupExtractInterface()
-        self.setupExtractImagesInterface()
-        self.setupExtractTexturesInterface()
-        self.setupClearCacheInterface()
+        # 移除setupExtractImagesInterface调用，因为已经使用了ExtractImagesInterface类
+        # 移除setupExtractTexturesInterface调用，因为已经使用了ExtractTexturesInterface类
+        # 移除setupClearCacheInterface调用，因为已经使用了ClearCacheInterface类
         self.setupHistoryInterface()
         self.setupSettingsInterface()
         # 移除setupAboutInterface的调用，因为已经使用了AboutInterface类
@@ -593,237 +605,6 @@ class MainWindow(FluentWindow):
 
         # 创建日志处理器
         self.extractLogHandler = LogHandler(self.extractLogText)
-
-    def setupExtractImagesInterface(self):
-        """设置图像提取界面"""
-        # 创建滚动区域
-        scroll = ScrollArea(self.extractImagesInterface)
-        scroll.setWidgetResizable(True)
-        scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
-
-        # 主内容容器
-        content_widget = QWidget()
-        content_layout = QVBoxLayout(content_widget)
-        content_layout.setContentsMargins(30, 30, 30, 30)
-        content_layout.setSpacing(20)
-
-        # 添加占位内容
-        placeholder = CardWidget()
-        placeholder_layout = QVBoxLayout(placeholder)
-        placeholder_layout.setContentsMargins(20, 20, 20, 20)
-        
-        title = SubtitleLabel("提取图像")
-        title.setObjectName("extractImagesTitle")
-        placeholder_layout.addWidget(title)
-        
-        desc = BodyLabel("这是提取图像的功能界面占位符，将在后续版本中实现。")
-        desc.setWordWrap(True)
-        placeholder_layout.addWidget(desc)
-        
-        content_layout.addWidget(placeholder)
-        scroll.setWidget(content_widget)
-        
-        # 创建布局
-        layout = QVBoxLayout(self.extractImagesInterface)
-        layout.setContentsMargins(0, 0, 0, 0)
-        layout.addWidget(scroll)
-        
-        # 设置为响应式
-        self.setResponsiveContentWidget(scroll)
-
-    def setupExtractTexturesInterface(self):
-        """设置纹理提取界面"""
-        # 创建滚动区域
-        scroll = ScrollArea(self.extractTexturesInterface)
-        scroll.setWidgetResizable(True)
-        scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
-
-        # 主内容容器
-        content_widget = QWidget()
-        content_layout = QVBoxLayout(content_widget)
-        content_layout.setContentsMargins(30, 30, 30, 30)
-        content_layout.setSpacing(20)
-
-        # 添加占位内容
-        placeholder = CardWidget()
-        placeholder_layout = QVBoxLayout(placeholder)
-        placeholder_layout.setContentsMargins(20, 20, 20, 20)
-        
-        title = SubtitleLabel("提取纹理")
-        title.setObjectName("extractTexturesTitle")
-        placeholder_layout.addWidget(title)
-        
-        desc = BodyLabel("这是提取纹理的功能界面占位符，将在后续版本中实现。")
-        desc.setWordWrap(True)
-        placeholder_layout.addWidget(desc)
-        
-        content_layout.addWidget(placeholder)
-        scroll.setWidget(content_widget)
-        
-        # 创建布局
-        layout = QVBoxLayout(self.extractTexturesInterface)
-        layout.setContentsMargins(0, 0, 0, 0)
-        layout.addWidget(scroll)
-        
-        # 设置为响应式
-        self.setResponsiveContentWidget(scroll)
-
-    def setupClearCacheInterface(self):
-        scroll = ScrollArea(self.clearCacheInterface)
-        scroll.setWidgetResizable(True)
-        scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
-
-        content_widget = QWidget()
-        content_layout = QVBoxLayout(content_widget)
-        # 与Extract界面保持一致的边距和间隔
-        content_layout.setContentsMargins(30, 30, 30, 30)
-        content_layout.setSpacing(20)
-
-        # 缓存信息卡片
-        info_card = CardWidget()
-        info_card.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Maximum)
-        info_layout = QVBoxLayout(info_card)
-        info_layout.setContentsMargins(20, 15, 20, 15)
-        info_layout.setSpacing(12)
-        content_layout.addWidget(info_card)
-
-        # 标题
-        info_title = TitleLabel(lang.get("clear_cache"))
-        info_layout.addWidget(info_title)
-
-        # 描述
-        desc_label = BodyLabel(lang.get("cache_description"))
-        desc_label.setWordWrap(True)
-        info_layout.addWidget(desc_label)
-
-        # 缓存位置信息
-        location_row = QHBoxLayout()
-        location_icon = IconWidget(FluentIcon.FOLDER)
-        location_icon.setFixedSize(20, 20)
-        location_label = StrongBodyLabel(lang.get("cache_location"))
-        location_row.addWidget(location_icon)
-        location_row.addWidget(location_label)
-        location_row.addStretch()
-
-        info_layout.addLayout(location_row)
-
-        # 缓存路径
-        cache_path_label = CaptionLabel(self.default_dir)
-        cache_path_label.setWordWrap(True)
-        cache_path_label.setStyleSheet(
-            "QLabel { background-color: rgba(255, 255, 255, 0.05); padding: 8px; border-radius: 4px; }")
-        info_layout.addWidget(cache_path_label)
-
-        # 快速操作按钮
-        quick_actions = QHBoxLayout()
-        quick_actions.setSpacing(10)
-
-        open_cache_btn = PushButton(FluentIcon.FOLDER, lang.get("open_directory"))
-        open_cache_btn.clicked.connect(lambda: open_directory(self.default_dir))
-
-        copy_cache_btn = TransparentPushButton(FluentIcon.COPY, lang.get("copy_path"))
-        copy_cache_btn.clicked.connect(lambda: self.copyPathToClipboard(self.default_dir))
-
-        quick_actions.addWidget(open_cache_btn)
-        quick_actions.addWidget(copy_cache_btn)
-        quick_actions.addStretch()
-
-        info_layout.addLayout(quick_actions)
-        content_layout.addWidget(info_card)
-
-
-        # 操作控制卡片
-        control_card = CardWidget()
-        control_card.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Maximum)
-        control_layout = QVBoxLayout(control_card)
-        control_layout.setContentsMargins(25, 20, 25, 20)
-        control_layout.setSpacing(15)
-        content_layout.addWidget(control_card)
-
-        # 进度显示
-        progress_layout = QVBoxLayout()
-        self.cacheProgressBar = ProgressBar()
-        self.cacheProgressBar.setValue(0)
-        self.cacheProgressBar.setTextVisible(True)
-        self.cacheProgressLabel = CaptionLabel(lang.get("ready"))
-        self.cacheProgressLabel.setAlignment(Qt.AlignCenter)
-        progress_layout.addWidget(self.cacheProgressBar)
-        progress_layout.addWidget(self.cacheProgressLabel)
-
-        control_layout.addLayout(progress_layout)
-
-        # 操作按钮
-        button_layout = QHBoxLayout()
-        button_layout.setSpacing(15)
-
-        self.clearCacheButton = PrimaryPushButton(FluentIcon.DELETE, lang.get("clear_cache"))
-        self.clearCacheButton.setFixedHeight(40)
-        self.clearCacheButton.clicked.connect(self.clearAudioCache)
-
-        self.cancelClearButton = PushButton(FluentIcon.CLOSE, lang.get("cancel"))
-        self.cancelClearButton.setFixedHeight(40)
-        self.cancelClearButton.clicked.connect(self.cancelClearCache)
-        self.cancelClearButton.hide()
-
-        button_layout.addWidget(self.clearCacheButton)
-        button_layout.addWidget(self.cancelClearButton)
-        button_layout.addStretch()
-
-        control_layout.addLayout(progress_layout)
-        control_layout.addLayout(button_layout)
-        content_layout.addWidget(control_card)
-
-        # 日志区域
-        log_card = CardWidget()
-        log_card.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Maximum)
-        log_layout = QVBoxLayout(log_card)
-        log_layout.setContentsMargins(20, 10, 20, 15)
-        log_layout.setSpacing(10)
-
-        log_title = StrongBodyLabel(lang.get("recent_activity"))
-        log_layout.addWidget(log_title)
-
-        self.cacheLogText = TextEdit()
-        self.cacheLogText.setReadOnly(True)
-        self.cacheLogText.setFixedHeight(220)
-        log_layout.addWidget(self.cacheLogText)
-
-        content_layout.addWidget(log_card)
-
-        # 设置滚动区域
-        scroll.setWidget(content_widget)
-
-        # 主布局
-        main_layout = QVBoxLayout(self.clearCacheInterface)
-        main_layout.setContentsMargins(0, 0, 0, 0)
-        main_layout.addWidget(scroll)
-
-        # 创建日志处理器
-        self.cacheLogHandler = LogHandler(self.cacheLogText)
-
-        # 应用样式
-        self.setCacheStyles()
-
-    def setCacheStyles(self):
-        """设置缓存界面样式"""
-        theme = self.config_manager.get("theme", "dark")
-
-        if theme == "light":
-            self.clearCacheInterface.setStyleSheet("""
-                #cacheTitle {
-                    color: rgb(0, 0, 0);
-                    font-size: 24px;
-                    font-weight: bold;
-                }
-            """)
-        else:
-            self.clearCacheInterface.setStyleSheet("""
-                #cacheTitle {
-                    color: rgb(255, 255, 255);
-                    font-size: 24px;
-                    font-weight: bold;
-                }
-            """)
 
     def setupHistoryInterface(self):
         """设置历史记录界面"""
@@ -1869,7 +1650,8 @@ class MainWindow(FluentWindow):
         )
 
         if not result.exec():
-            self.cacheLogHandler.info(lang.get("operation_cancelled"))
+            # 使用新界面类的日志处理器
+            self.clearCacheInterface.logHandler.info(lang.get("operation_cancelled"))
             return
 
         # 创建并启动缓存清理线程
@@ -1880,10 +1662,11 @@ class MainWindow(FluentWindow):
         self.cache_clear_worker.finished.connect(self.cacheClearFinished)
 
         # 更新UI状态
-        self.clearCacheButton.hide()
-        self.cancelClearButton.show()
-        self.cacheProgressBar.setValue(0)
-        self.cacheProgressLabel.setText(lang.get("processing"))
+        # 使用新界面类的方法
+        self.clearCacheInterface.showClearButton(False)
+        self.clearCacheInterface.showCancelButton(True)
+        self.clearCacheInterface.updateProgressBar(0)
+        self.clearCacheInterface.updateProgressLabel(lang.get("processing"))
 
         # 创建任务状态提示
         self.cacheStateTooltip = StateToolTip(
@@ -1909,14 +1692,15 @@ class MainWindow(FluentWindow):
                 QTimer.singleShot(2000, self.cacheStateTooltip.close)
 
             # 恢复UI
-            self.cancelClearButton.hide()
-            self.clearCacheButton.show()
+            # 使用新界面类的方法
+            self.clearCacheInterface.showCancelButton(False)
+            self.clearCacheInterface.showClearButton(True)
 
             # 重置进度条
-            self.cacheProgressBar.setValue(0)
-            self.cacheProgressLabel.setText(lang.get("ready"))
+            self.clearCacheInterface.updateProgressBar(0)
+            self.clearCacheInterface.updateProgressLabel(lang.get("ready"))
 
-            self.cacheLogHandler.warning(lang.get("canceled_by_user"))
+            self.clearCacheInterface.logHandler.warning(lang.get("canceled_by_user"))
 
     def updateCacheProgress(self, current, total):
         """更新缓存清理进度"""
@@ -1927,8 +1711,9 @@ class MainWindow(FluentWindow):
         status_text = f"{progress}% - {current}/{total}"
 
         # 更新UI
-        self.cacheProgressBar.setValue(progress)
-        self.cacheProgressLabel.setText(status_text)
+        # 使用新界面类的方法
+        self.clearCacheInterface.updateProgressBar(progress)
+        self.clearCacheInterface.updateProgressLabel(status_text)
 
         # 更新状态提示
         if hasattr(self, 'cacheStateTooltip'):
@@ -1937,16 +1722,17 @@ class MainWindow(FluentWindow):
     def cacheClearFinished(self, success, cleared_files, total_files, error_msg):
         """缓存清理完成处理"""
         # 恢复UI状态
-        self.cancelClearButton.hide()
-        self.clearCacheButton.show()
+        # 使用新界面类的方法
+        self.clearCacheInterface.showCancelButton(False)
+        self.clearCacheInterface.showClearButton(True)
 
         # 重置进度条为0而不是100
-        self.cacheProgressBar.setValue(0)
-        self.cacheProgressLabel.setText(lang.get("ready"))
+        self.clearCacheInterface.updateProgressBar(0)
+        self.clearCacheInterface.updateProgressLabel(lang.get("ready"))
 
         if success:
             if cleared_files > 0:
-                self.cacheLogHandler.success(lang.get("cache_cleared", cleared_files, total_files))
+                self.clearCacheInterface.logHandler.success(lang.get("cache_cleared", cleared_files, total_files))
 
                 # 更新状态提示
                 if hasattr(self, 'cacheStateTooltip'):
@@ -1965,7 +1751,7 @@ class MainWindow(FluentWindow):
                     parent=self
                 )
             else:
-                self.cacheLogHandler.warning(lang.get("no_cache_found"))
+                self.clearCacheInterface.logHandler.warning(lang.get("no_cache_found"))
 
                 # 更新状态提示
                 if hasattr(self, 'cacheStateTooltip'):
@@ -1975,7 +1761,7 @@ class MainWindow(FluentWindow):
                     QTimer.singleShot(2000, self.cacheStateTooltip.close)
         else:
             # 显示错误
-            self.cacheLogHandler.error(lang.get("clear_cache_failed", error_msg))
+            self.clearCacheInterface.logHandler.error(lang.get("clear_cache_failed", error_msg))
 
             # 更新状态提示
             if hasattr(self, 'cacheStateTooltip'):
