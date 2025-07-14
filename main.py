@@ -67,7 +67,7 @@ from src.components.cards.Settings.greeting_setting_card import GreetingSettingC
 # 导入配置管理器
 from src.config import ConfigManager
 # 导入界面模块
-from src.interfaces import HomeInterface
+from src.interfaces import HomeInterface, AboutInterface
 
 
 if hasattr(sys, '_MEIPASS'):
@@ -237,8 +237,12 @@ class MainWindow(FluentWindow):
         self.settingsInterface = QWidget()
         self.settingsInterface.setObjectName("settingsInterface")
 
-        self.aboutInterface = QWidget()
-        self.aboutInterface.setObjectName("aboutInterface")
+        # 使用AboutInterface类代替QWidget
+        self.aboutInterface = AboutInterface(
+            parent=self,
+            config_manager=self.config_manager,
+            lang=lang
+        )
 
         # 设置导航 - 
         self.addSubInterface(self.homeInterface, FluentIcon.HOME, lang.get("home"))
@@ -331,7 +335,7 @@ class MainWindow(FluentWindow):
         self.setupClearCacheInterface()
         self.setupHistoryInterface()
         self.setupSettingsInterface()
-        self.setupAboutInterface()
+        # 移除setupAboutInterface的调用，因为已经使用了AboutInterface类
 
         # 设置默认界面 - 使用界面对象而不是文本
         self.switchTo(self.homeInterface)
@@ -1523,250 +1527,6 @@ class MainWindow(FluentWindow):
         # 创建日志处理器
         self.settingsLogHandler = LogHandler(self.settingsLogText)
 
-    def setupAboutInterface(self):
-        """设置关于界面"""
-        # 创建滚动区域
-        scroll = ScrollArea(self.aboutInterface)
-        scroll.setWidgetResizable(True)
-        scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
-
-        # 主内容容器
-        content_widget = QWidget()
-        content_layout = QVBoxLayout(content_widget)
-        content_layout.setContentsMargins(30, 30, 30, 30)
-        content_layout.setSpacing(20)
-
-        # 关于应用卡片
-        about_card = CardWidget()
-        about_card.setMaximumHeight(200)  # 添加最大高度值
-        about_layout = QVBoxLayout(about_card)
-        # 应用头部
-        header_layout = QHBoxLayout()
-
-        # 左侧：图标和基本信息
-        info_layout = QVBoxLayout()
-        info_layout.setSpacing(8)
-
-        app_title = DisplayLabel("Roblox Audio Extractor")
-        app_title.setObjectName("aboutTitle")
-
-        version_label = SubtitleLabel(lang.get("about_version"))
-        version_label.setObjectName("aboutVersion")
-
-        author_label = BodyLabel(lang.get("about_author"))
-        license_label = CaptionLabel(lang.get("about_license"))
-
-        info_layout.addWidget(app_title)
-        info_layout.addWidget(version_label)
-        info_layout.addSpacing(10)
-        info_layout.addWidget(author_label)
-        info_layout.addWidget(license_label)
-
-        # 右侧：应用图标
-        icon_widget = QWidget()
-        icon_widget.setFixedSize(120, 120)
-        icon_layout = QVBoxLayout(icon_widget)
-        icon_layout.setContentsMargins(0, 0, 0, 0)
-
-        self.about_icon_label = QLabel()
-        self.about_icon_label.setAlignment(Qt.AlignCenter)
-        self.loadAboutIcon()
-        icon_layout.addWidget(self.about_icon_label)
-
-        header_layout.addLayout(info_layout, 2)
-        header_layout.addWidget(icon_widget, 1)
-
-        about_layout.addLayout(header_layout)
-
-        # 分隔线
-        separator = QFrame()
-        separator.setFrameShape(QFrame.HLine)
-        separator.setFrameShadow(QFrame.Sunken)
-        separator.setStyleSheet("QFrame { color: rgba(255, 255, 255, 0.2); }")
-        about_layout.addWidget(separator)
-
-        # 应用描述
-        desc_label = BodyLabel(lang.get("about_description"))
-        desc_label.setWordWrap(True)
-        about_layout.addWidget(desc_label)
-
-
-
-
-
-
-        content_layout.addWidget(about_card)
-
-        # 链接和支持卡片
-        links_card = CardWidget()
-        links_card.setMaximumHeight(180)  # 限制最大高度，防止异常放大
-        links_layout = QVBoxLayout(links_card)
-        links_layout.setContentsMargins(20, 15, 20, 15)
-        links_layout.setSpacing(15)
-
-        links_title = StrongBodyLabel(lang.get("links_and_support"))
-        links_layout.addWidget(links_title)
-
-        # GitHub链接
-        github_layout = QHBoxLayout()
-        github_btn = HyperlinkButton(
-            "https://github.com/JustKanade/Roblox-Audio-Extractor",
-            lang.get("github_link")
-        )
-        github_btn.setIcon(FluentIcon.GITHUB)
-        github_layout.addWidget(github_btn)
-        github_layout.addStretch()
-
-        links_layout.addLayout(github_layout)
-
-        # 技术信息
-        tech_info = f"""
-{lang.get('tech_stack')}: Python 3.x + PyQt5 + PyQt-Fluent-Widgets
-{lang.get('purpose')}: Roblox {lang.get('extract_audio')}
-{lang.get('license')}: GNU AGPLv3
-        """.strip()
-
-        tech_label = CaptionLabel(tech_info)
-        links_layout.addWidget(tech_label)
-
-        content_layout.addWidget(links_card)
-
-        # 系统信息卡片
-        system_card = CardWidget()
-        system_card.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Maximum)  # 关键：防止高度异常拉伸
-
-        system_layout = QVBoxLayout(system_card)
-        system_layout.setContentsMargins(20, 15, 20, 15)
-        system_layout.setSpacing(10)
-
-        system_title = StrongBodyLabel(lang.get("system_info"))
-        system_layout.addWidget(system_title)
-
-        # 收集系统信息
-        system_info = f"""
-{lang.get('operating_system')}: {os.name} ({sys.platform})
-{lang.get('python_version')}: {sys.version.split()[0]}
-{lang.get('cpu_cores')}: {multiprocessing.cpu_count()}
-{lang.get('ffmpeg_status')}: {lang.get('available') if is_ffmpeg_available() else lang.get('not_available')}
-        """.strip()
-
-        system_info_label = CaptionLabel(system_info)
-        system_layout.addWidget(system_info_label)
-
-        content_layout.addWidget(system_card)
-
-        # 设置滚动区域
-        scroll.setWidget(content_widget)
-
-        # 主布局
-        main_layout = QVBoxLayout(self.aboutInterface)
-        main_layout.setContentsMargins(0, 0, 0, 0)
-        main_layout.addWidget(scroll)
-
-        # 应用样式
-        self.setAboutStyles()
-
-    def setAboutStyles(self):
-        """设置关于页面样式"""
-        theme = self.config_manager.get("theme", "dark")
-
-        if theme == "light":
-            self.aboutInterface.setStyleSheet("""
-                #aboutTitle {
-                    color: rgb(0, 0, 0);
-                    font-size: 32px;
-                    font-weight: bold;
-                }
-                #aboutVersion {
-                    color: rgb(0, 120, 215);
-                    font-size: 18px;
-                    font-weight: 600;
-                }
-            """)
-        else:
-            self.aboutInterface.setStyleSheet("""
-                #aboutTitle {
-                    color: rgb(255, 255, 255);
-                    font-size: 32px;
-                    font-weight: bold;
-                }
-                #aboutVersion {
-                    color: rgb(0, 212, 255);
-                    font-size: 18px;
-                    font-weight: 600;
-                }
-            """)
-
-    def loadAboutIcon(self):
-        """加载关于页面图标"""
-        try:
-            icon_path = resource_path(os.path.join("res", "icons", "Roblox-Audio-Extractor.png"))
-            if os.path.exists(icon_path):
-                pixmap = QPixmap(icon_path)
-                scaled_pixmap = pixmap.scaled(
-                    100, 100,
-                    Qt.KeepAspectRatio,
-                    Qt.SmoothTransformation
-                )
-                self.about_icon_label.setPixmap(scaled_pixmap)
-            else:
-                # 使用默认图标
-                self.about_icon_label.setText("♪")
-                font = QFont()
-                font.setPointSize(64)
-                self.about_icon_label.setFont(font)
-                self.about_icon_label.setAlignment(Qt.AlignCenter)
-        except Exception as e:
-            print(f"无法加载关于页面图标: {e}")
-
-    def add_welcome_message(self):
-        """添加欢迎消息到主页日志"""
-        # 导入并显示时间问候
-        from src.components.Greetings import TimeGreetings
-        
-        # 获取当前语言设置
-        current_language = lang.get_language_name()
-        language_code = 'en' if current_language == 'English' else 'zh'
-        
-        # 检查问候语是否启用
-        greeting_enabled = self.config_manager.get("greeting_enabled", True)
-        if greeting_enabled:
-            # 使用固定样式和当前语言显示问候
-            TimeGreetings.show_greeting(language_code)
-        
-        # 原有的日志信息
-        log = LogHandler(self.homeLogText)
-        log.info(lang.get('welcome_message'))
-        log.info(lang.get('about_version'))
-        log.info(f"{lang.get('default_dir')}: {self.default_dir}")
-
-        log.info(lang.get("config_file_location", self.config_manager.config_file))
-    def browseDirectory(self):
-        """浏览目录对话框"""
-        directory = QFileDialog.getExistingDirectory(self, lang.get("directory"), self.dirInput.text())
-        if directory:
-            self.dirInput.setText(directory)
-            self.config_manager.set("last_directory", directory)
-            
-    def updateClassificationInfo(self):
-        """更新分类信息标签"""
-        if self.durationRadio.isChecked():
-            self.classInfoLabel.setText(lang.get("info_duration_categories"))
-        else:
-            self.classInfoLabel.setText(lang.get("info_size_categories"))
-
-    def onThemeChanged(self, theme_name):
-        """主题更改事件处理"""
-        # 使用主题管理器应用主题变更
-        apply_theme_change(
-            self, 
-            theme_name, 
-            self.config_manager, 
-            CentralLogHandler.getInstance(), 
-            self.settingsLogHandler if hasattr(self, 'settingsLogHandler') else None,
-            lang
-        )
-
     def setExtractStyles(self):
         """设置提取音频界面的样式"""
         try:
@@ -1792,6 +1552,55 @@ class MainWindow(FluentWindow):
                     
         except Exception as e:
             print(f"设置提取音频界面样式时出错: {e}")
+            
+    def add_welcome_message(self):
+        """添加欢迎消息到主页日志"""
+        # 导入并显示时间问候
+        from src.components.Greetings import TimeGreetings
+        
+        # 获取当前语言设置
+        current_language = lang.get_language_name()
+        language_code = 'en' if current_language == 'English' else 'zh'
+        
+        # 检查问候语是否启用
+        greeting_enabled = self.config_manager.get("greeting_enabled", True)
+        if greeting_enabled:
+            # 使用固定样式和当前语言显示问候
+            TimeGreetings.show_greeting(language_code)
+        
+        # 添加日志信息
+        if hasattr(self, 'homeInterface') and hasattr(self.homeInterface, 'logText'):
+            log = LogHandler(self.homeInterface.logText)
+            log.info(lang.get('welcome_message'))
+            log.info(lang.get('about_version'))
+            log.info(f"{lang.get('default_dir')}: {self.default_dir}")
+            log.info(lang.get("config_file_location", self.config_manager.config_file))
+            
+    def browseDirectory(self):
+        """浏览目录对话框"""
+        directory = QFileDialog.getExistingDirectory(self, lang.get("directory"), self.dirInput.text())
+        if directory:
+            self.dirInput.setText(directory)
+            self.config_manager.set("last_directory", directory)
+            
+    def updateClassificationInfo(self):
+        """更新分类信息标签"""
+        if self.durationRadio.isChecked():
+            self.classInfoLabel.setText(lang.get("info_duration_categories"))
+        else:
+            self.classInfoLabel.setText(lang.get("info_size_categories"))
+
+    def onThemeChanged(self, theme_name):
+        """主题更改事件处理"""
+        # 使用主题管理器应用主题变更
+        apply_theme_change(
+            self, 
+            theme_name, 
+            self.config_manager, 
+            CentralLogHandler.getInstance(), 
+            self.settingsLogHandler if hasattr(self, 'settingsLogHandler') else None,
+            lang
+        )
 
     def saveThreadsConfig(self, value):
         """保存线程数配置"""

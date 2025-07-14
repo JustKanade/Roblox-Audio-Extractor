@@ -6,5 +6,6 @@
 """
 
 from src.interfaces.home_interface import HomeInterface
+from src.interfaces.about_interface import AboutInterface
 
-__all__ = ['HomeInterface'] 
+__all__ = ['HomeInterface', 'AboutInterface'] 
