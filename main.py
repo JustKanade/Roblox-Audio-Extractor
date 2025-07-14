@@ -45,7 +45,7 @@ from src.components.ui.responsive_components import ResponsiveFeatureItem
 from src.management.window_management.responsive_handler import apply_responsive_handler
 from src.management.window_management.window_utils import apply_always_on_top
 # 导入主题管理功能
-from src.management.theme_management.theme_manager import apply_theme_from_config, apply_theme_change
+from src.management.theme_management.theme_manager import apply_theme_from_config, apply_theme_change, _pre_cache_theme_styles
 # 导入自定义主题颜色卡片
 from src.components.cards.Settings.custom_theme_color_card import CustomThemeColorCard
 # 导入中央日志处理系统
@@ -189,6 +189,11 @@ class MainWindow(FluentWindow):
             # 使用两段式延迟，先显示窗口，再设置置顶
             QTimer.singleShot(500, lambda: self.show())
             QTimer.singleShot(1500, lambda: apply_always_on_top(self, True))
+            
+        # 预加载其他主题样式，确保首次切换主题时流畅
+        current_theme = self.config_manager.get("theme", "dark")
+        other_theme = "light" if current_theme == "dark" else "dark"
+        QTimer.singleShot(200, lambda: _pre_cache_theme_styles(self, other_theme))
 
 
 

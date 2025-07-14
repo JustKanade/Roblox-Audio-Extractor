@@ -1,4 +1,4 @@
-from PyQt5.QtCore import pyqtSignal, Qt
+from PyQt5.QtCore import pyqtSignal, Qt, QPropertyAnimation, QEasingCurve
 from PyQt5.QtGui import QColor
 from PyQt5.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QColorDialog,
@@ -58,84 +58,51 @@ def get_text(key):
 
 
 class ColorPresetPanel(QWidget):
-    """预设颜色面板，显示常用的主题颜色选择"""
+    """颜色预设面板"""
     
-    # 颜色选择信号
     colorSelected = pyqtSignal(QColor)
     
-    # 预设颜色列表
-    PRESET_COLORS = [
-        # Fluent UI 调色板
-        "#0078D4",  # 默认蓝色
-        "#107C10",  # 绿色
-        "#D83B01",  # 橙色
-        "#E81123",  # 红色
-        "#5C2D91",  # 紫色
-        "#008575",  # 青色
-        "#006973",  # 青绿色
-        "#AB0300",  # 深红色
-        "#B7472A",  # 锈红色
-        
-        # 扩展颜色
-        "#0063B1",  # 深蓝色
-        "#2D7D9A",  # 蓝绿色
-        "#4A154B",  # 深紫色（Slack风格）
-        "#744DA9",  # 薰衣草色
-        "#881798",  # 绛紫色
-        "#C239B3",  # 品红色
-        "#FF8C00",  # 深橙色
-        "#F7630C",  # 亮橙色
-        "#CA5010",  # 赭石色
-        "#10893E",  # 翠绿色
-        "#2D2AA5",  # 靛蓝色
-    ]
-    
     def __init__(self, parent=None):
-        """初始化预设颜色面板"""
         super().__init__(parent)
-        self.setupUI()
+        self._initUI()
         
-    def setupUI(self):
-        """设置用户界面"""
-        # 创建主布局
-        layout = QVBoxLayout(self)
+    def _initUI(self):
+        layout = QGridLayout(self)
+        layout.setSpacing(6)
         layout.setContentsMargins(0, 0, 0, 0)
-        layout.setSpacing(10)
         
-        # 创建预设颜色标题
-        title = QLabel("预设颜色")
-        title.setStyleSheet("font-size: 13px; margin-top: 5px;")
-        layout.addWidget(title)
+        # 预设颜色列表
+        colors = [
+            "#2196F3", "#03A9F4", "#00BCD4", "#009688", "#4CAF50",
+            "#8BC34A", "#CDDC39", "#FFEB3B", "#FFC107", "#FF9800",
+            "#FF5722", "#F44336", "#E91E63", "#9C27B0", "#673AB7"
+        ]
         
-        # 创建颜色网格
-        grid_layout = QGridLayout()
-        grid_layout.setContentsMargins(0, 0, 0, 0)
-        grid_layout.setSpacing(8)
-        
-        # 每行显示的颜色数量
-        colors_per_row = 7
-        
-        # 添加颜色按钮到网格
-        for i, color_hex in enumerate(self.PRESET_COLORS):
-            row = i // colors_per_row
-            col = i % colors_per_row
-            
-            color_button = QPushButton()
-            color_button.setFixedSize(24, 24)
-            color_button.setStyleSheet(
-                f"QPushButton {{ background-color: {color_hex}; border-radius: 4px; border: 1px solid rgba(0, 0, 0, 0.1); }}"
-                f"QPushButton:hover {{ border: 2px solid white; }}"
-            )
-            
-            # 关联点击事件
+        # 创建颜色按钮
+        row, col = 0, 0
+        for color_hex in colors:
             color = QColor(color_hex)
-            color_button.clicked.connect(lambda checked=False, c=color: self.colorSelected.emit(c))
+            btn = self._createColorButton(color)
+            layout.addWidget(btn, row, col)
             
-            grid_layout.addWidget(color_button, row, col)
+            col += 1
+            if col > 4:  # 每行5个颜色
+                col = 0
+                row += 1
+    
+    def _createColorButton(self, color):
+        """创建颜色按钮"""
+        btn = QPushButton()
+        btn.setFixedSize(24, 24)
+        btn.setCursor(Qt.PointingHandCursor)
+        btn.setStyleSheet(
+            f"QPushButton {{background-color: {color.name()}; border-radius: 12px; border: none;}}"
+            f"QPushButton:hover {{border: 2px solid white; background-color: {color.name()}}}"
+        )
         
-        # 将网格添加到主布局
-        layout.addLayout(grid_layout)
-        layout.addStretch(1)  # 添加弹性空间
+        # 点击事件
+        btn.clicked.connect(lambda: self.colorSelected.emit(color))
+        return btn
 
 
 class CustomThemeColorCard(QWidget):
@@ -240,8 +207,9 @@ class CustomThemeColorCard(QWidget):
         
         layout.addWidget(self.radio_widget)
         
-        # 自定义颜色部分
+        # 自定义颜色部分 - 使用QWidget容器
         self.custom_color_container = QWidget()
+        self.custom_color_container.setMaximumHeight(0)  # 初始高度为0
         self.custom_color_layout = QVBoxLayout(self.custom_color_container)
         self.custom_color_layout.setContentsMargins(20, 0, 0, 0)
         self.custom_color_layout.setSpacing(16)
@@ -271,21 +239,29 @@ class CustomThemeColorCard(QWidget):
         
         self.custom_color_layout.addLayout(current_color_layout)
         
-
-        
+        # 添加颜色预设面板
         self.presetPanel = ColorPresetPanel()
         self.presetPanel.colorSelected.connect(self.onColorSelected)
         self.custom_color_layout.addWidget(self.presetPanel)
+        
+        # 确保容器正确计算高度
+        self.custom_color_container.adjustSize()
+        self.preferredHeight = self.custom_color_container.sizeHint().height()
+        
+        # 创建动画
+        self.animation = QPropertyAnimation(self.custom_color_container, b"maximumHeight")
+        self.animation.setDuration(250)  # 250毫秒
+        self.animation.setEasingCurve(QEasingCurve.OutQuad)  # 使用平滑的缓动曲线
         
         layout.addWidget(self.custom_color_container)
         
         # 设置初始状态
         if self.useCustom:
             self.custom_radio.setChecked(True)
-            self.custom_color_container.setEnabled(True)
+            self.custom_color_container.setMaximumHeight(self.preferredHeight)
         else:
             self.default_radio.setChecked(True)
-            self.custom_color_container.setEnabled(False)
+            self.custom_color_container.setMaximumHeight(0)
         
         # 连接信号
         self.button_group.buttonClicked.connect(self.onRadioButtonClicked)
@@ -298,8 +274,22 @@ class CustomThemeColorCard(QWidget):
         # 确定是否选择了自定义颜色
         use_custom = button == self.custom_radio
         
-        # 更新UI状态
-        self.custom_color_container.setEnabled(use_custom)
+        # 使用动画平滑过渡
+        if self.animation.state() == QPropertyAnimation.Running:
+            self.animation.stop()
+            
+        self.animation.setStartValue(self.custom_color_container.maximumHeight())
+        
+        if use_custom:
+            self.animation.setEndValue(self.preferredHeight)
+            # 在动画开始前设置为可用状态，确保内容正常显示
+            self.custom_color_container.setEnabled(True)
+        else:
+            self.animation.setEndValue(0)
+            # 在动画完成后再禁用，避免内容提前消失
+            self.animation.finished.connect(lambda: self.custom_color_container.setEnabled(False))
+            
+        self.animation.start()
         
         # 更新内部状态
         self.useCustom = use_custom
@@ -357,7 +347,13 @@ class CustomThemeColorCard(QWidget):
         # 确保选择了自定义颜色选项
         if hasattr(self, 'custom_radio'):
             self.custom_radio.setChecked(True)
-            self.custom_color_container.setEnabled(True)
+            
+            # 如果容器已隐藏，平滑展开它
+            if self.custom_color_container.maximumHeight() == 0:
+                self.animation.setStartValue(0)
+                self.animation.setEndValue(self.preferredHeight)
+                self.custom_color_container.setEnabled(True)
+                self.animation.start()
         
         # 更新颜色指示器（如果存在）
         if hasattr(self, 'color_indicator'):

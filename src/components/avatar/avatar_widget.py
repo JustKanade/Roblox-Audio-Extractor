@@ -149,14 +149,14 @@ class AvatarWidget(NavigationWidget):
             # 保存当前状态
             painter.save()
             
-            # 移动到头像位置
-            painter.translate(8, 6)
+            # 移动到头像位置 - 调整位置使小图标居中
+            painter.translate(10.5, 9)
             
             # 设置图标颜色
             painter.setPen(icon_color)
             
             # 绘制GitHub图标 - 直接使用FluentIcon绘制
-            icon.render(painter, QRect(0, 0, 24, 24))
+            icon.render(painter, QRect(0, 0, 20, 20))
             
             # 恢复状态
             painter.restore()
