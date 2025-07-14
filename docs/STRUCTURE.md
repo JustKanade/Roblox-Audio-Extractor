@@ -3,13 +3,16 @@
 ```
 ├── LICENSE
 ├── README.md
+├── commit_message.txt
+├── config/
+│   └── config.json
 ├── generate_structure_md.py
 ├── main.py
 ├── requirements.txt
 ├── res/
 │   └── icons/
-│       ├── Roblox-Audio-Extractor.ico
-│       └── Roblox-Audio-Extractor.png
+│       ├── logo.ico
+│       └── logo.png
 └── src/
     ├── components/
     │   ├── Greetings/
@@ -25,6 +28,7 @@
     │   │       ├── avatar_setting_card.py
     │   │       ├── custom_theme_color_card.py
     │   │       ├── debug_mode_card.py
+    │   │       ├── demo.py
     │   │       ├── ffmpeg_status_card.py
     │   │       ├── global_input_path_card.py
     │   │       ├── greeting_setting_card.py
@@ -39,6 +43,16 @@
     ├── extractors/
     │   ├── __init__.py
     │   └── audio_extractor.py
+    ├── interfaces/
+    │   ├── __init__.py
+    │   ├── about_interface.py
+    │   ├── clear_cache_interface.py
+    │   ├── extract_audio_interface.py
+    │   ├── extract_images_interface.py
+    │   ├── extract_textures_interface.py
+    │   ├── history_interface.py
+    │   ├── home_interface.py
+    │   └── settings_interface.py
     ├── locale/
     │   ├── __init__.py
     │   ├── language_manager.py
