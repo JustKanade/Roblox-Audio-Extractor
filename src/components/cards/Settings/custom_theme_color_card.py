@@ -352,11 +352,8 @@ class CustomThemeColorCard(QWidget):
         
         # 确保选择了自定义颜色选项
         if hasattr(self, 'custom_radio'):
-            if not self.useCustom:
-                self.useCustom = True
-                self.custom_radio.setChecked(True)
-                self.custom_color_container.setEnabled(True)
-                self.config_manager.set("use_custom_theme_color", True)
+            self.custom_radio.setChecked(True)
+            self.custom_color_container.setEnabled(True)
         
         # 更新颜色指示器（如果存在）
         if hasattr(self, 'color_indicator'):
@@ -383,6 +380,12 @@ class CustomThemeColorCard(QWidget):
         try:
             # 首先确保配置文件已同步
             try:
+                # 更新内部状态
+                self.useCustom = True
+                self.config_manager.set("use_custom_theme_color", True)
+                self.config_manager.set("theme_color", color.name())
+                
+                # 同步到QFluentWidgets配置
                 self.config_manager.sync_theme_to_qfluent()
                 print("已同步主题色到QFluentWidgets配置文件")
             except Exception as e:
@@ -392,8 +395,15 @@ class CustomThemeColorCard(QWidget):
                 
             if HAS_FLUENT_WIDGETS:
                 # 直接使用 PyQt-Fluent-Widgets 的函数
-                setThemeColor(color)
-                print(f"已通过qfluentwidgets.setThemeColor成功应用主题色: {color.name()}")
+                # 确保颜色格式正确
+                color_str = color.name()
+                if len(color_str) == 7:  # #RRGGBB 格式
+                    color_with_alpha = QColor(f"#ff{color_str[1:]}")
+                    setThemeColor(color_with_alpha)
+                    print(f"已通过qfluentwidgets.setThemeColor成功应用主题色: {color_with_alpha.name()}")
+                else:
+                    setThemeColor(color)
+                    print(f"已通过qfluentwidgets.setThemeColor成功应用主题色: {color.name()}")
                 
                 # 尝试强制QFluentWidgets重新读取配置
                 try:
@@ -401,10 +411,6 @@ class CustomThemeColorCard(QWidget):
                     if hasattr(qconfig, 'load'):
                         qconfig.load()
                         print("已强制QFluentWidgets重新加载配置")
-                    elif hasattr(qconfig, '_ConfigValidator__loadSetting'):
-                        # 私有方法，但有时需要调用
-                        qconfig._ConfigValidator__loadSetting()
-                        print("已通过私有方法强制QFluentWidgets重新加载配置")
                 except Exception as e:
                     print(f"强制QFluentWidgets重新加载配置时出错: {e}")
             else:
@@ -419,6 +425,7 @@ class CustomThemeColorCard(QWidget):
             
             # 确保颜色也保存在本地配置中
             self.config_manager.set("theme_color", color.name())
+            self.config_manager.set("use_custom_theme_color", True)
             self.config_manager.save_config()
             print(f"已将主题色 {color.name()} 保存到本地配置")
             

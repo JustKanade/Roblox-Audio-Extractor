@@ -122,6 +122,7 @@ class ConfigManager:
                 print(f"已设置默认主题色: #ff0078d4")
             
             # 保存到PyQt-Fluent-Widgets配置文件
+            os.makedirs(os.path.dirname(self.qfluent_config_file), exist_ok=True)
             with open(self.qfluent_config_file, 'w', encoding='utf-8') as f:
                 json.dump(qfluent_config, f, indent=4, ensure_ascii=False)
                 print(f"已保存QFluentWidgets配置到: {self.qfluent_config_file}")

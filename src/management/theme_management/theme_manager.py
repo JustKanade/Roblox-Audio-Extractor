@@ -72,17 +72,38 @@ def _safely_apply_theme(window, theme_setting, config_manager):
                 if "QFluentWidgets" in qfluent_config and "ThemeColor" in qfluent_config["QFluentWidgets"]:
                     theme_color = qfluent_config["QFluentWidgets"]["ThemeColor"]
                     setThemeColor(QColor(theme_color))
+                    print(f"应用主题色: {theme_color}")
                 else:
                     # 如果配置文件中没有主题色，则应用默认颜色
                     setThemeColor(QColor("#ff0078d4"))  # 默认蓝色
+                    print("配置文件中没有主题色，应用默认颜色: #ff0078d4")
             else:
                 # 配置文件不存在，应用默认颜色
                 setThemeColor(QColor("#ff0078d4"))  # 默认蓝色
+                print(f"配置文件不存在: {qfluent_config_file}，应用默认颜色: #ff0078d4")
                 
             # 打印调试信息
             print(f"应用主题色，配置文件路径: {qfluent_config_file}")
             if os.path.exists(qfluent_config_file):
                 print(f"配置文件内容: {qfluent_config}")
+            
+            # 检查是否使用自定义主题色
+            use_custom_theme_color = config_manager.get("use_custom_theme_color", False)
+            theme_color_value = config_manager.get("theme_color", "#0078d4")
+            print(f"use_custom_theme_color: {use_custom_theme_color}, theme_color: {theme_color_value}")
+            
+            # 如果使用自定义主题色，确保它被正确应用
+            if use_custom_theme_color:
+                # 确保颜色格式正确
+                if not theme_color_value.startswith('#'):
+                    theme_color_value = f"#{theme_color_value}"
+                
+                # 添加透明度前缀
+                if len(theme_color_value) == 7:  # #RRGGBB 格式
+                    theme_color_value = f"#ff{theme_color_value[1:]}"
+                    
+                setThemeColor(QColor(theme_color_value))
+                print(f"重新应用自定义主题色: {theme_color_value}")
             
         except Exception as e:
             logger.error(f"应用主题颜色时出错: {e}")

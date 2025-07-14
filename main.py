@@ -195,6 +195,12 @@ class MainWindow(FluentWindow):
 
     def applyThemeFromConfig(self):
         """从配置文件应用主题设置"""
+        # 打印当前配置状态
+        use_custom_theme_color = self.config_manager.get("use_custom_theme_color", False)
+        theme_color = self.config_manager.get("theme_color", "#0078d4")
+        theme_mode = self.config_manager.get("theme", "dark")
+        print(f"应用主题前配置状态: theme={theme_mode}, use_custom_theme_color={use_custom_theme_color}, theme_color={theme_color}")
+        
         # 使用主题管理器应用主题
         apply_theme_from_config(self, self.config_manager, CentralLogHandler.getInstance())
 
