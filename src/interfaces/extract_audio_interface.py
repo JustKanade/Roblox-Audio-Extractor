@@ -141,15 +141,15 @@ class ExtractAudioInterface(QWidget):
 
         # FFmpeg警告
         if not is_ffmpeg_available():
-            ffmpeg_warning = InfoBar.warning(
+            InfoBar.warning(
                 title="FFmpeg",
                 content=self.get_text("ffmpeg_not_found_warning"),
                 orient=Qt.Horizontal,
-                isClosable=False,
-                duration=-1,
-                parent=None
+                isClosable=True,
+                position=InfoBarPosition.BOTTOM_RIGHT,
+                duration=-1,    # 不会自动消失
+                parent=self
             )
-            class_card_layout.addWidget(ffmpeg_warning)
 
         # 分类信息标签
         self.classInfoLabel = CaptionLabel(self.get_text("info_duration_categories"))
