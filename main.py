@@ -174,7 +174,7 @@ class MainWindow(FluentWindow):
 
         # 设置窗口图标
         try:
-            icon_path = resource_path(os.path.join("res", "icons", "Roblox-Audio-Extractor.png"))
+            icon_path = resource_path(os.path.join("res", "icons", "logo.png"))
             if os.path.exists(icon_path):
                 self.setWindowIcon(QIcon(icon_path))
         except Exception as e:
@@ -1093,7 +1093,7 @@ def main():
 
         # 设置应用图标
         try:
-            icon_path = resource_path(os.path.join("res", "icons", "Roblox-Audio-Extractor.png"))
+            icon_path = resource_path(os.path.join("res", "icons", "logo.png"))
             if os.path.exists(icon_path):
                 app.setWindowIcon(QIcon(icon_path))
         except Exception as e:
@@ -1104,7 +1104,7 @@ def main():
 
         # 显示启动画面（可选）
         try:
-            splash_icon = resource_path(os.path.join("res", "icons", "Roblox-Audio-Extractor.png"))
+            splash_icon = resource_path(os.path.join("res", "icons", "logo.png"))
             if os.path.exists(splash_icon):
                 splash = SplashScreen(QIcon(splash_icon), main_window)
                 splash.setIconSize(QSize(150, 150))

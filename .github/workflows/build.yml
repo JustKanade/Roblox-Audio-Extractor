@@ -146,7 +146,7 @@ jobs:
           }
           
           pyinstaller --onefile --windowed `
-            --icon=res/icons/Roblox-Audio-Extractor.ico `
+            --icon=res/icons/logo.ico `
             --add-data="res/*;res/" `
             --add-data="src/*;src/" `
             --name $name `
