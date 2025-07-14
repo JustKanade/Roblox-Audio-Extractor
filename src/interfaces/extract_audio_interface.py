@@ -404,6 +404,11 @@ class ExtractAudioInterface(QWidget):
         self.extraction_worker.progressUpdated.connect(self.updateExtractionProgress)
         self.extraction_worker.finished.connect(self.extractionFinished)
         self.extraction_worker.logMessage.connect(self.handleExtractionLog)
+        
+        # 创建定时器以定期更新UI
+        self.update_timer = QTimer(self)
+        self.update_timer.timeout.connect(lambda: None)  # 仅触发Qt事件循环
+        self.update_timer.start(100)  # 每100毫秒更新一次
 
         # 更新UI状态
         self.extractButton.hide()
@@ -426,6 +431,10 @@ class ExtractAudioInterface(QWidget):
         """取消提取操作"""
         if self.extraction_worker and self.extraction_worker.isRunning():
             self.extraction_worker.cancel()
+
+            # 停止UI更新定时器
+            if hasattr(self, 'update_timer') and self.update_timer.isActive():
+                self.update_timer.stop()
 
             # 更新状态
             if hasattr(self, 'extractionStateTooltip'):
@@ -462,9 +471,13 @@ class ExtractAudioInterface(QWidget):
         # 更新状态提示
         if hasattr(self, 'extractionStateTooltip'):
             self.extractionStateTooltip.setContent(status_text)
-
+            
     def extractionFinished(self, result):
         """提取完成处理"""
+        # 停止UI更新定时器
+        if hasattr(self, 'update_timer') and self.update_timer.isActive():
+            self.update_timer.stop()
+            
         # 恢复UI状态
         self.cancelButton.hide()
         self.extractButton.show()

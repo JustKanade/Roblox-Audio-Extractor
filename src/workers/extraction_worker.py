@@ -87,7 +87,8 @@ class ExtractionWorker(QThread):
                 self.processed_count += 1
                 elapsed = time.time() - start_time
                 speed = self.processed_count / elapsed if elapsed > 0 else 0
-                progress = min(100, int((self.processed_count / self.total_files) * 100))
+                
+                # 发送进度信号，不限制进度百分比为整数，让UI层处理
                 self.progressUpdated.emit(self.processed_count, self.total_files, elapsed, speed)
                 return result
 
