@@ -67,7 +67,7 @@ from src.components.cards.Settings.greeting_setting_card import GreetingSettingC
 # 导入配置管理器
 from src.config import ConfigManager
 # 导入界面模块
-from src.interfaces import HomeInterface, AboutInterface, ExtractImagesInterface, ExtractTexturesInterface, ClearCacheInterface, HistoryInterface, ExtractAudioInterface
+from src.interfaces import HomeInterface, AboutInterface, ExtractImagesInterface, ExtractTexturesInterface, ClearCacheInterface, HistoryInterface, ExtractAudioInterface, SettingsInterface
 
 
 if hasattr(sys, '_MEIPASS'):
@@ -257,8 +257,13 @@ class MainWindow(FluentWindow):
             download_history=self.download_history
         )
 
-        self.settingsInterface = QWidget()
-        self.settingsInterface.setObjectName("settingsInterface")
+        # 添加设置界面 - 使用SettingsInterface类
+        self.settingsInterface = SettingsInterface(
+            parent=self,
+            config_manager=self.config_manager,
+            lang=lang,
+            version=VERSION
+        )
 
         # 使用AboutInterface类代替QWidget
         self.aboutInterface = AboutInterface(
@@ -345,7 +350,7 @@ class MainWindow(FluentWindow):
         except Exception as e:
             print(f"添加头像组件时出错: {e}")
 
-        # 然后添加设置和关于按钮
+     
         self.addSubInterface(self.settingsInterface, FluentIcon.SETTING, lang.get("settings"),
                              position=NavigationItemPosition.BOTTOM)
         self.addSubInterface(self.aboutInterface, FluentIcon.INFO, lang.get("about"),
@@ -357,7 +362,7 @@ class MainWindow(FluentWindow):
         # 移除setupExtractTexturesInterface调用，因为已经使用了ExtractTexturesInterface类
         # 移除setupClearCacheInterface调用，因为已经使用了ClearCacheInterface类
         # 移除setupHistoryInterface调用，因为已经使用了HistoryInterface类
-        self.setupSettingsInterface()
+        # 移除setupSettingsInterface的调用，因为已经使用了SettingsInterface类
         # 移除setupAboutInterface的调用，因为已经使用了AboutInterface类
 
         # 设置默认界面 - 使用界面对象而不是文本
@@ -412,442 +417,6 @@ class MainWindow(FluentWindow):
         except Exception as e:
             pass
           
-    def setupSettingsInterface(self):
-        """设置设置界面"""
-        # 如果导入了CustomThemeColorCard，设置全局lang变量
-        if CustomThemeColorCard is not None:
-            try:
-                import src.components.cards.Settings.custom_theme_color_card as custom_theme_color_card
-            except ImportError:
-                try:
-                    import src.components.cards.custom_theme_color_card as custom_theme_color_card
-                except ImportError:
-                    try:
-                        import custom_theme_color_card
-                    except ImportError:
-                        pass
-            if 'custom_theme_color_card' in globals() or 'custom_theme_color_card' in locals():
-                custom_theme_color_card.lang = lang
-            
-        # 如果导入了VersionCheckCard，设置全局lang变量
-        if VersionCheckCard is not None:
-            try:
-                import src.components.cards.Settings.version_check_card as version_check_card
-            except ImportError:
-                try:
-                    import src.components.cards.version_check_card as version_check_card
-                except ImportError:
-                    try:
-                        import version_check_card
-                    except ImportError:
-                        pass
-            if 'version_check_card' in globals() or 'version_check_card' in locals():
-                version_check_card.lang = lang
-
-        # 如果导入了AlwaysOnTopCard，设置全局lang变量
-        if AlwaysOnTopCard is not None:
-            try:
-                import src.components.cards.Settings.always_on_top_card as always_on_top_card
-                always_on_top_card.lang = lang
-            except ImportError:
-                pass
-
-        # 创建滚动区域
-        scroll = ScrollArea(self.settingsInterface)
-        scroll.setWidgetResizable(True)
-        scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
-
-        # 主内容容器
-        content_widget = QWidget()
-        content_layout = QVBoxLayout(content_widget)
-        content_layout.setContentsMargins(30, 30, 30, 30)
-        content_layout.setSpacing(20)
-
-        # 应用设置组
-        app_group = QWidget()
-        app_group_layout = QVBoxLayout(app_group)
-        
-        # 将标题移动到这里，在Debug模式卡片之前
-        group_title = TitleLabel(lang.get("app_settings"))
-        app_group_layout.addWidget(group_title)
-        
-        # Debug模式卡片
-        if DebugModeCard is not None:
-            try:
-                # 设置全局语言变量
-                import src.components.cards.Settings.debug_mode_card as debug_mode_card
-                debug_mode_card.lang = lang
-                
-                debug_mode_card = DebugModeCard(
-                    parent=self.settingsInterface,
-                    lang=lang,
-                    config_manager=self.config_manager
-                )
-                app_group_layout.addWidget(debug_mode_card)
-            except Exception as e:
-                print(f"添加Debug模式卡片时出错: {e}")
-                if hasattr(self, 'settingsLogHandler'):
-                    self.settingsLogHandler.error(f"添加Debug模式卡片时出错: {e}")
-
-        # 添加总是置顶窗口设置卡片
-        if AlwaysOnTopCard is not None:
-            try:
-                always_on_top_card = AlwaysOnTopCard(
-                    parent=self.settingsInterface,
-                    config_manager=self.config_manager
-                )
-                app_group_layout.addWidget(always_on_top_card)
-            except Exception as e:
-                print(f"添加总是置顶窗口卡片时出错: {e}")
-                if hasattr(self, 'settingsLogHandler'):
-                    self.settingsLogHandler.error(f"添加总是置顶窗口卡片时出错: {e}")
-
-        # 添加问候语设置卡片
-        if GreetingSettingCard is not None:
-            try:
-                # 设置全局语言变量
-                import src.components.cards.Settings.greeting_setting_card as greeting_setting_card
-                greeting_setting_card.lang = lang
-                
-                greeting_card = GreetingSettingCard(
-                    parent=self.settingsInterface,
-                    config_manager=self.config_manager
-                )
-                app_group_layout.addWidget(greeting_card)
-            except Exception as e:
-                print(f"添加问候语设置卡片时出错: {e}")
-                if hasattr(self, 'settingsLogHandler'):
-                    self.settingsLogHandler.error(f"添加问候语设置卡片时出错: {e}")
-
-        # 语言设置卡片
-        language_card = CardWidget()
-        lang_card_widget = QWidget()
-        lang_card_layout = QVBoxLayout(lang_card_widget)
-        lang_card_widget.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Maximum)
-        lang_card_layout.setContentsMargins(20, 15, 20, 15)
-        lang_card_layout.setSpacing(15)
-
-        # 然后将 lang_card_widget 添加到 language_card
-        language_card_layout = QVBoxLayout(language_card)
-        language_card_layout.addWidget(lang_card_widget)
-
-        # 当前语言显示
-        current_lang_row = QHBoxLayout()
- 
-        # 添加语言图标
-        current_lang_icon = IconWidget(FluentIcon.LANGUAGE)
-        current_lang_icon.setFixedSize(16, 16)
-        current_lang_label = BodyLabel(lang.get("current_language"))
-        current_lang_value = StrongBodyLabel(lang.get_language_name())
-        current_lang_row.addWidget(current_lang_icon)
-
-        current_lang_label = BodyLabel(lang.get("current_language"))
-        current_lang_value = StrongBodyLabel(lang.get_language_name())
-   
-        current_lang_row.addWidget(current_lang_label)
-        current_lang_row.addStretch()
-        current_lang_row.addWidget(current_lang_value)
-
-        lang_card_layout.addLayout(current_lang_row)
-
-        # 语言选择
-        lang_select_row = QHBoxLayout()
-        lang_select_label = BodyLabel(lang.get("select_language"))
-        self.languageCombo = ComboBox()
-        self.languageCombo.addItems(["中文", "English"])
-        self.languageCombo.setCurrentText(lang.get_language_name())
-        self.languageCombo.setFixedWidth(150)
-
-        lang_select_row.addWidget(lang_select_label)
-        lang_select_row.addStretch()
-        lang_select_row.addWidget(self.languageCombo)
-
-        lang_card_layout.addLayout(lang_select_row)
-
-        # 应用语言按钮
-        apply_lang_layout = QHBoxLayout()
-        self.applyLangButton = PrimaryPushButton(FluentIcon.SAVE, lang.get("save"))
-        self.applyLangButton.clicked.connect(self.applyLanguage)
-        apply_lang_layout.addStretch()
-        apply_lang_layout.addWidget(self.applyLangButton)
-
-        lang_card_layout.addLayout(apply_lang_layout)
-        app_group_layout.addWidget(language_card)
-
-        # 外观设置卡片
-        appearance_card = CardWidget()
-        appearance_card.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Maximum)  # 正确
-        appearance_card_layout = QVBoxLayout(appearance_card)
-        appearance_card_layout.setContentsMargins(20, 15, 20, 15)
-        appearance_card_layout.setSpacing(15)
-
-        # 主题选择
-        theme_row = QHBoxLayout()
-        theme_label = BodyLabel(lang.get("theme_settings"))
-        self.themeCombo = ComboBox()
-        self.themeCombo.addItems([
-            lang.get("theme_dark"),
-            lang.get("theme_light"),
-            lang.get("theme_system")
-        ])
-
-        # 设置当前主题
-        current_theme = self.config_manager.get("theme", "dark")
-        if current_theme == "dark":
-            self.themeCombo.setCurrentIndex(0)
-        elif current_theme == "light":
-            self.themeCombo.setCurrentIndex(1)
-        else:
-            self.themeCombo.setCurrentIndex(2)
-
-        self.themeCombo.currentTextChanged.connect(self.onThemeChanged)
-        self.themeCombo.setFixedWidth(150)
-
-        theme_row.addWidget(theme_label)
-        theme_row.addStretch()
-        theme_row.addWidget(self.themeCombo)
-
-        appearance_card_layout.addLayout(theme_row)
-        
-        # 添加自定义主题颜色卡片
-        if CustomThemeColorCard is not None:
-            self.themeColorCard = CustomThemeColorCard(self.config_manager)
-            appearance_card_layout.addWidget(self.themeColorCard)
-        
-        app_group_layout.addWidget(appearance_card)
-
-        # 性能设置卡片
-        performance_card = CardWidget()
-        performance_card.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Maximum)
-        perf_card_layout = QVBoxLayout(performance_card)  # 正确：定义 perf_card_layout
-        perf_card_layout.setContentsMargins(20, 15, 20, 15)
-        perf_card_layout.setSpacing(15)
-
-        # 默认线程数设置
-        threads_row = QHBoxLayout()
- 
-        # 添加线程图标
-        threads_icon = IconWidget(FluentIcon.SPEED_OFF)
-        threads_icon.setFixedSize(16, 16)
-
-   
-        threads_label = BodyLabel(lang.get("default_threads"))
-        self.defaultThreadsSpinBox = SpinBox()
-        self.defaultThreadsSpinBox.setRange(1, 128)
-        self.defaultThreadsSpinBox.setValue(
-            self.config_manager.get("threads", min(32, multiprocessing.cpu_count() * 2)))
-        self.defaultThreadsSpinBox.setFixedWidth(120)
-        self.defaultThreadsSpinBox.valueChanged.connect(self.saveThreadsConfig)
-
- 
-        threads_row.addWidget(threads_icon)
-
-   
-        threads_row.addWidget(threads_label)
-        threads_row.addStretch()
-        threads_row.addWidget(self.defaultThreadsSpinBox)
-
-        perf_card_layout.addLayout(threads_row)
-        app_group_layout.addWidget(performance_card)
-        
-        # 输出目录设置卡片
-        output_card = CardWidget()
-        output_card.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Maximum)
-        output_layout = QVBoxLayout(output_card)
-        output_layout.setContentsMargins(20, 15, 20, 15)
-        output_layout.setSpacing(15)
-        
-        output_title = StrongBodyLabel(lang.get("output_settings"))
-        output_layout.addWidget(output_title)
-        
-        # 全局输入路径设置
-        try:
-            # 设置全局语言变量
-            import src.components.cards.Settings.global_input_path_card as global_input_path_card
-            global_input_path_card.lang = lang
-            
-            # 直接导入GlobalInputPathCard类
-            from src.components.cards.Settings.global_input_path_card import GlobalInputPathCard
-            
-            # 如果没有设置全局输入路径，则使用默认的Roblox路径
-            if not self.config_manager.get("global_input_path", ""):
-                default_roblox_dir = get_roblox_default_dir()
-                if default_roblox_dir:
-                    self.config_manager.set("global_input_path", default_roblox_dir)
-                    self.config_manager.save_config()
-                    if hasattr(self, 'settingsLogHandler'):
-                        self.settingsLogHandler.info(lang.get("default_roblox_path_set", "已设置默认Roblox路径") + f": {default_roblox_dir}")
-            
-            self.globalInputPathCard = GlobalInputPathCard(self.config_manager)
-            # 连接输入路径改变信号到更新路径函数
-            self.globalInputPathCard.inputPathChanged.connect(self.updateGlobalInputPath)
-            # 连接恢复默认路径信号
-            self.globalInputPathCard.restoreDefaultPath.connect(self.restoreDefaultInputPath)
-            output_layout.addWidget(self.globalInputPathCard)
-        except Exception as e:
-            print(f"添加全局输入路径卡片时出错: {e}")
-            if hasattr(self, 'settingsLogHandler'):
-                self.settingsLogHandler.error(f"添加全局输入路径卡片时出错: {e}")
-        
-        # 自定义输出路径设置
-        custom_output_row = QHBoxLayout()
-        custom_output_label = BodyLabel(lang.get("custom_output_dir"))
-        custom_output_row.addWidget(custom_output_label)
-        custom_output_row.addStretch()
-        
-        output_layout.addLayout(custom_output_row)
-        
-        # 输出路径输入框和浏览按钮
-        output_path_layout = QHBoxLayout()
-        self.customOutputPath = LineEdit()
-        self.customOutputPath.setText(self.config_manager.get("custom_output_dir", ""))
-        self.customOutputPath.setPlaceholderText(lang.get("output_dir_placeholder"))
-        
-        browse_output_btn = PushButton(FluentIcon.FOLDER_ADD, lang.get("browse"))
-        browse_output_btn.setFixedSize(80, 33)
-        browse_output_btn.clicked.connect(self.browseOutputDirectory)
-        
-        output_path_layout.addWidget(self.customOutputPath)
-        output_path_layout.addWidget(browse_output_btn)
-        
-        output_layout.addLayout(output_path_layout)
-        
-        # 保存日志选项
-        save_logs_row = QHBoxLayout()
-        save_logs_label = BodyLabel(lang.get("save_logs"))
-        self.saveLogsSwitch = SwitchButton()
-        self.saveLogsSwitch.setChecked(self.config_manager.get("save_logs", False))
-        self.saveLogsSwitch.checkedChanged.connect(self.toggleSaveLogs)
-        
-        save_logs_row.addWidget(save_logs_label)
-        save_logs_row.addStretch()
-        save_logs_row.addWidget(self.saveLogsSwitch)
-        
-        output_layout.addLayout(save_logs_row)
-        
-        # 自动打开输出目录选项
-        auto_open_row = QHBoxLayout()
-        auto_open_label = BodyLabel(lang.get("auto_open_output_dir"))
-        self.autoOpenSwitch = SwitchButton()
-        self.autoOpenSwitch.setChecked(self.config_manager.get("auto_open_output_dir", True))
-        self.autoOpenSwitch.checkedChanged.connect(self.toggleAutoOpenOutputDir)
-        
-        auto_open_row.addWidget(auto_open_label)
-        auto_open_row.addStretch()
-        auto_open_row.addWidget(self.autoOpenSwitch)
-        
-        output_layout.addLayout(auto_open_row)
-        
-        # 添加输出设置卡片
-        app_group_layout.addWidget(output_card)
-        
-        # 添加版本检测卡片
-        if VersionCheckCard is not None:
-            version_card = CardWidget()
-            version_card.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Maximum)
-            version_card_layout = QVBoxLayout(version_card)
-            version_card_layout.setContentsMargins(0, 0, 0, 0)  # 让VersionCheckCard处理内边距
-            
-            # 获取当前版本号（从注释中提取）
-            current_version = VERSION  # 使用统一的版本常量
-            
-            # 创建版本检测卡片
-            self.versionCheckCard = VersionCheckCard(self.config_manager, current_version)
-            version_card_layout.addWidget(self.versionCheckCard)
-            
-            # 添加版本检测卡片
-            app_group_layout.addWidget(version_card)
-
-        # 添加FFmpeg状态检测卡片
-        if FFmpegStatusCard is not None:
-            # 设置全局语言变量
-            try:
-                import src.components.cards.Settings.ffmpeg_status_card as ffmpeg_status_card
-                ffmpeg_status_card.lang = lang
-            except ImportError:
-                try:
-                    import src.components.cards.ffmpeg_status_card as ffmpeg_status_card
-                    ffmpeg_status_card.lang = lang
-                except ImportError:
-                    try:
-                        import ffmpeg_status_card
-                        ffmpeg_status_card.lang = lang
-                    except ImportError:
-                        pass
-            
-            ffmpeg_card = CardWidget()
-            ffmpeg_card.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Maximum)
-            ffmpeg_card_layout = QVBoxLayout(ffmpeg_card)
-            ffmpeg_card_layout.setContentsMargins(0, 0, 0, 0)  # 让FFmpegStatusCard处理内边距
-            
-            # 创建FFmpeg状态卡片
-            self.ffmpegStatusCard = FFmpegStatusCard()
-            ffmpeg_card_layout.addWidget(self.ffmpegStatusCard)
-            
-            # 添加FFmpeg状态卡片
-            app_group_layout.addWidget(ffmpeg_card)
-            
-        # 添加头像设置卡片
-        try:
-            from src.components.cards.Settings.avatar_setting_card import AvatarSettingCard
-            # 设置全局语言变量
-            import src.components.cards.Settings.avatar_setting_card as avatar_setting_card
-            avatar_setting_card.lang = lang
-            
-            avatar_card = CardWidget()
-            avatar_card.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Maximum)
-            avatar_card_layout = QVBoxLayout(avatar_card)
-            avatar_card_layout.setContentsMargins(0, 0, 0, 0)  # 让AvatarSettingCard处理内边距
-            
-            # 创建头像设置卡片
-            self.avatarSettingCard = AvatarSettingCard(self.config_manager)
-            avatar_card_layout.addWidget(self.avatarSettingCard)
-            
-            # 添加头像设置卡片
-            app_group_layout.addWidget(avatar_card)
-        except Exception as e:
-            print(f"添加头像设置卡片时出错: {e}")
-
-        # 日志管理卡片
-        if LogControlCard is not None:
-            log_control_card = LogControlCard(
-                parent=self.settingsInterface,
-                lang=lang,
-                central_log_handler=CentralLogHandler.getInstance()
-            )
-            app_group_layout.addWidget(log_control_card)
-
-        content_layout.addWidget(app_group)
-
-        # 日志区域
-        log_card = CardWidget()
-        log_card.setFixedHeight(250)
-
-        log_layout = QVBoxLayout(log_card)
-        log_layout.setContentsMargins(20, 10, 20, 15)
-        log_layout.setSpacing(10)
-
-        log_title = StrongBodyLabel(lang.get("recent_activity"))
-        log_layout.addWidget(log_title)
-
-        self.settingsLogText = TextEdit()
-        self.settingsLogText.setReadOnly(True)
-        self.settingsLogText.setFixedHeight(170)
-        log_layout.addWidget(self.settingsLogText)
-
-        content_layout.addWidget(log_card)
-
-        # 设置滚动区域
-        scroll.setWidget(content_widget)
-
-        # 主布局
-        main_layout = QVBoxLayout(self.settingsInterface)
-        main_layout.setContentsMargins(0, 0, 0, 0)
-        main_layout.addWidget(scroll)
-
-        # 创建日志处理器
-        self.settingsLogHandler = LogHandler(self.settingsLogText)
-
     def setExtractStyles(self):
         """设置提取音频界面的样式"""
         try:
@@ -912,8 +481,8 @@ class MainWindow(FluentWindow):
     def saveThreadsConfig(self, value):
         """保存线程数配置"""
         self.config_manager.set("threads", value)
-        if hasattr(self, 'settingsLogHandler'):
-            self.settingsLogHandler.info(lang.get("saved", f"{lang.get('default_threads')}: {value}"))
+        if hasattr(self, 'settingsInterface') and hasattr(self.settingsInterface, 'settingsLogHandler'):
+            self.settingsInterface.settingsLogHandler.info(lang.get("saved", f"{lang.get('default_threads')}: {value}"))
 
     def startExtraction(self):
         """开始提取音频"""
@@ -1360,17 +929,19 @@ class MainWindow(FluentWindow):
 
     def applyLanguage(self):
         """应用语言设置"""
-        selected_language = self.languageCombo.currentText()
-        current_language = lang.get_language_name()
-        
-        # 使用语言管理模块应用语言设置
-        apply_language(
-            self, 
-            selected_language, 
-            current_language, 
-            lang, 
-            self.settingsLogHandler if hasattr(self, 'settingsLogHandler') else None
-        )
+        # 从设置界面获取选择的语言
+        if hasattr(self, 'settingsInterface') and hasattr(self.settingsInterface, 'languageCombo'):
+            selected_language = self.settingsInterface.languageCombo.currentText()
+            current_language = lang.get_language_name()
+            
+            # 使用语言管理模块应用语言设置
+            apply_language(
+                self, 
+                selected_language, 
+                current_language, 
+                lang, 
+                self.settingsInterface.settingsLogHandler if hasattr(self.settingsInterface, 'settingsLogHandler') else None
+            )
 
     def setResponsiveContentWidget(self, scroll_area):
         """为滚动区域内的内容容器应用响应式布局设置，防止卡片间距异常"""
@@ -1417,22 +988,25 @@ class MainWindow(FluentWindow):
 
     def browseOutputDirectory(self):
         """浏览输出目录对话框"""
-        directory = QFileDialog.getExistingDirectory(self, lang.get("directory"), self.customOutputPath.text())
-        if directory:
-            self.customOutputPath.setText(directory)
-            self.config_manager.set("custom_output_dir", directory)
+        if hasattr(self, 'settingsInterface') and hasattr(self.settingsInterface, 'customOutputPath'):
+            directory = QFileDialog.getExistingDirectory(self, lang.get("directory"), self.settingsInterface.customOutputPath.text())
+            if directory:
+                self.settingsInterface.customOutputPath.setText(directory)
+                self.config_manager.set("custom_output_dir", directory)
 
     def toggleSaveLogs(self):
         """切换保存日志选项"""
-        self.config_manager.set("save_logs", self.saveLogsSwitch.isChecked())
-        if hasattr(self, 'settingsLogHandler'):
-            self.settingsLogHandler.info(lang.get("log_save_option_toggled"))
+        if hasattr(self, 'settingsInterface') and hasattr(self.settingsInterface, 'saveLogsSwitch'):
+            self.config_manager.set("save_logs", self.settingsInterface.saveLogsSwitch.isChecked())
+            if hasattr(self.settingsInterface, 'settingsLogHandler'):
+                self.settingsInterface.settingsLogHandler.info(lang.get("log_save_option_toggled"))
 
     def toggleAutoOpenOutputDir(self):
         """切换自动打开输出目录选项"""
-        self.config_manager.set("auto_open_output_dir", self.autoOpenSwitch.isChecked())
-        if hasattr(self, 'settingsLogHandler'):
-            self.settingsLogHandler.info(lang.get("auto_open_toggled"))
+        if hasattr(self, 'settingsInterface') and hasattr(self.settingsInterface, 'autoOpenSwitch'):
+            self.config_manager.set("auto_open_output_dir", self.settingsInterface.autoOpenSwitch.isChecked())
+            if hasattr(self.settingsInterface, 'settingsLogHandler'):
+                self.settingsInterface.settingsLogHandler.info(lang.get("auto_open_toggled"))
 
     def updateGlobalInputPath(self, path):
         """更新全局输入路径"""
@@ -1441,12 +1015,12 @@ class MainWindow(FluentWindow):
         # 更新所有需要使用这个路径的地方
         
         # 更新提取界面的输入路径框
-        if hasattr(self, 'dirInput') and self.dirInput:
-            self.dirInput.setText(path)
+        if hasattr(self, 'extractInterface') and hasattr(self.extractInterface, 'dirInput'):
+            self.extractInterface.dirInput.setText(path)
             
         # 显示成功消息
-        if hasattr(self, 'settingsLogHandler') and self.settingsLogHandler:
-            self.settingsLogHandler.success(f"全局输入路径已更新: {path}")
+        if hasattr(self, 'settingsInterface') and hasattr(self.settingsInterface, 'settingsLogHandler'):
+            self.settingsInterface.settingsLogHandler.success(f"全局输入路径已更新: {path}")
             
         # 保存配置
         self.config_manager.save_config()
@@ -1461,15 +1035,15 @@ class MainWindow(FluentWindow):
             self.config_manager.save_config()
             
             # 更新输入框显示
-            if hasattr(self, 'globalInputPathCard') and hasattr(self.globalInputPathCard, 'inputPathEdit'):
-                self.globalInputPathCard.inputPathEdit.setText(default_roblox_dir)
+            if hasattr(self, 'settingsInterface') and hasattr(self.settingsInterface, 'globalInputPathCard') and hasattr(self.settingsInterface.globalInputPathCard, 'inputPathEdit'):
+                self.settingsInterface.globalInputPathCard.inputPathEdit.setText(default_roblox_dir)
             
             # 调用更新路径函数
             self.updateGlobalInputPath(default_roblox_dir)
             
             # 显示成功消息
-            if hasattr(self, 'settingsLogHandler'):
-                self.settingsLogHandler.success(lang.get("default_path_restored") + f": {default_roblox_dir}")
+            if hasattr(self, 'settingsInterface') and hasattr(self.settingsInterface, 'settingsLogHandler'):
+                self.settingsInterface.settingsLogHandler.success(lang.get("default_path_restored") + f": {default_roblox_dir}")
 
     def applyAlwaysOnTop(self, is_top):
         """应用总是置顶设置"""
