@@ -47,62 +47,25 @@ DEFAULT_TRANSLATIONS = {
     "theme_color_choose": "选择颜色"
 }
 
+# 添加 PyQt-Fluent-Widgets 组件内部使用的文本翻译
+FLUENT_TRANSLATIONS = {
+    'Custom color': '自定义颜色',
+    'Default color': '默认颜色',
+    'Custom': '自定义',
+    'Default': '默认',
+    'Choose color': '选择颜色',
+    'Pick Color': '选择颜色'
+}
+
 # 默认主题颜色 - 这个颜色永远不会被修改
-DEFAULT_THEME_COLOR = "#29F1FF"
+DEFAULT_THEME_COLOR = "#ff893f"
 
 def get_text(key):
     """获取翻译文本，如果lang未初始化则使用默认值"""
     if lang and hasattr(lang, 'get'):
         return lang.get(key)
     return DEFAULT_TRANSLATIONS.get(key, key)
-
-
-class ColorPresetPanel(QWidget):
-    """颜色预设面板"""
     
-    colorSelected = pyqtSignal(QColor)
-    
-    def __init__(self, parent=None):
-        super().__init__(parent)
-        self._initUI()
-        
-    def _initUI(self):
-        layout = QGridLayout(self)
-        layout.setSpacing(6)
-        layout.setContentsMargins(0, 0, 0, 0)
-        
-        # 预设颜色列表
-        colors = [
-            "#2196F3", "#03A9F4", "#00BCD4", "#009688", "#4CAF50",
-            "#8BC34A", "#CDDC39", "#FFEB3B", "#FFC107", "#FF9800",
-            "#FF5722", "#F44336", "#E91E63", "#9C27B0", "#673AB7"
-        ]
-        
-        # 创建颜色按钮
-        row, col = 0, 0
-        for color_hex in colors:
-            color = QColor(color_hex)
-            btn = self._createColorButton(color)
-            layout.addWidget(btn, row, col)
-            
-            col += 1
-            if col > 4:  # 每行5个颜色
-                col = 0
-                row += 1
-    
-    def _createColorButton(self, color):
-        """创建颜色按钮"""
-        btn = QPushButton()
-        btn.setFixedSize(24, 24)
-        btn.setCursor(Qt.PointingHandCursor)
-        btn.setStyleSheet(
-            f"QPushButton {{background-color: {color.name()}; border-radius: 12px; border: none;}}"
-            f"QPushButton:hover {{border: 2px solid white; background-color: {color.name()}}}"
-        )
-        
-        # 点击事件
-        btn.clicked.connect(lambda: self.colorSelected.emit(color))
-        return btn
 
 
 class CustomThemeColorCard(QWidget):
@@ -173,11 +136,61 @@ class CustomThemeColorCard(QWidget):
             
             # 添加到布局
             layout.addWidget(self.colorCard)
+            
+            # 延迟翻译组件内部文本
+            from PyQt5.QtCore import QTimer
+            QTimer.singleShot(100, lambda: self._translateFluentWidgetsTexts())
+            
         except Exception as e:
             print(f"创建 Fluent 界面时出错: {e}")
             # 如果出错，回退到基本界面
             self.setupBasicUI()
-        
+            
+    def _translateFluentWidgetsTexts(self):
+        """翻译 PyQt-Fluent-Widgets 组件内部文本"""
+        try:
+            # 检查当前语言设置
+            is_chinese = False
+            
+            # 尝试从lang模块获取当前语言
+            if lang:
+                # 检查是否为中文界面
+                if hasattr(lang, 'current_language') and hasattr(lang, 'CHINESE'):
+                    is_chinese = lang.current_language == lang.CHINESE
+                
+            logger.debug(f"当前是否为中文界面: {is_chinese}")
+            
+            if not is_chinese:
+                logger.debug("当前不是中文界面，不应用中文翻译")
+                return
+                
+            logger.debug("当前是中文界面，开始应用中文翻译")
+            
+            # 翻译标签文本
+            for label in self.colorCard.findChildren(QLabel):
+                text = label.text()
+                if text in FLUENT_TRANSLATIONS:
+                    logger.debug(f"翻译标签: '{text}' -> '{FLUENT_TRANSLATIONS[text]}'")
+                    label.setText(FLUENT_TRANSLATIONS[text])
+            
+            # 翻译按钮文本
+            for button in self.colorCard.findChildren(QPushButton):
+                text = button.text()
+                if text in FLUENT_TRANSLATIONS:
+                    logger.debug(f"翻译按钮: '{text}' -> '{FLUENT_TRANSLATIONS[text]}'")
+                    button.setText(FLUENT_TRANSLATIONS[text])
+            
+            # 翻译单选按钮文本
+            for radio in self.colorCard.findChildren(QRadioButton):
+                text = radio.text()
+                if text in FLUENT_TRANSLATIONS:
+                    logger.debug(f"翻译单选按钮: '{text}' -> '{FLUENT_TRANSLATIONS[text]}'")
+                    radio.setText(FLUENT_TRANSLATIONS[text])
+                    
+            logger.debug("已完成 PyQt-Fluent-Widgets 组件内部文本翻译")
+        except Exception as e:
+            logger.error(f"翻译 PyQt-Fluent-Widgets 组件内部文本时出错: {e}")
+    
     def setupBasicUI(self):
         """设置基本界面"""
         layout = QVBoxLayout(self)
@@ -214,6 +227,12 @@ class CustomThemeColorCard(QWidget):
         self.custom_color_layout.setContentsMargins(20, 0, 0, 0)
         self.custom_color_layout.setSpacing(16)
         
+        # 设置初始透明度
+        if self.useCustom:
+            self.custom_color_container.setWindowOpacity(1.0)
+        else:
+            self.custom_color_container.setWindowOpacity(0.0)
+        
         # 当前颜色选择区域
         current_color_layout = QHBoxLayout()
         current_color_layout.setContentsMargins(0, 0, 0, 0)
@@ -239,19 +258,12 @@ class CustomThemeColorCard(QWidget):
         
         self.custom_color_layout.addLayout(current_color_layout)
         
-        # 添加颜色预设面板
-        self.presetPanel = ColorPresetPanel()
-        self.presetPanel.colorSelected.connect(self.onColorSelected)
-        self.custom_color_layout.addWidget(self.presetPanel)
-        
         # 确保容器正确计算高度
         self.custom_color_container.adjustSize()
         self.preferredHeight = self.custom_color_container.sizeHint().height()
         
-        # 创建动画
-        self.animation = QPropertyAnimation(self.custom_color_container, b"maximumHeight")
-        self.animation.setDuration(250)  # 250毫秒
-        self.animation.setEasingCurve(QEasingCurve.OutQuad)  # 使用平滑的缓动曲线
+        # 初始化动画
+        self._setupAnimations()
         
         layout.addWidget(self.custom_color_container)
         
@@ -259,12 +271,22 @@ class CustomThemeColorCard(QWidget):
         if self.useCustom:
             self.custom_radio.setChecked(True)
             self.custom_color_container.setMaximumHeight(self.preferredHeight)
+            self.custom_color_container.setEnabled(True)
         else:
             self.default_radio.setChecked(True)
             self.custom_color_container.setMaximumHeight(0)
+            self.custom_color_container.setEnabled(False)
         
         # 连接信号
         self.button_group.buttonClicked.connect(self.onRadioButtonClicked)
+        
+    def _setupAnimations(self):
+        """初始化动画对象"""
+        # 高度动画
+        self.animation = QPropertyAnimation(self.custom_color_container, b"maximumHeight")
+        
+        # 透明度动画
+        self.opacityAnimation = QPropertyAnimation(self.custom_color_container, b"windowOpacity")
     
     def onRadioButtonClicked(self, button):
         """处理单选按钮点击事件"""
@@ -274,22 +296,52 @@ class CustomThemeColorCard(QWidget):
         # 确定是否选择了自定义颜色
         use_custom = button == self.custom_radio
         
-        # 使用动画平滑过渡
+        # 停止正在运行的动画
         if self.animation.state() == QPropertyAnimation.Running:
             self.animation.stop()
+        if self.opacityAnimation.state() == QPropertyAnimation.Running:
+            self.opacityAnimation.stop()
             
+        # 设置动画起始值
         self.animation.setStartValue(self.custom_color_container.maximumHeight())
         
         if use_custom:
+            # 展开容器
+            self.animation.setDuration(200)  # 展开时使用较快的动画
+            self.animation.setEasingCurve(QEasingCurve.OutCubic)
             self.animation.setEndValue(self.preferredHeight)
+            
+            self.opacityAnimation.setDuration(220)
+            self.opacityAnimation.setEasingCurve(QEasingCurve.OutCubic)
+            self.opacityAnimation.setStartValue(0.0 if self.custom_color_container.maximumHeight() == 0 else self.custom_color_container.windowOpacity())
+            self.opacityAnimation.setEndValue(1.0)
+            
             # 在动画开始前设置为可用状态，确保内容正常显示
             self.custom_color_container.setEnabled(True)
+            self.custom_color_container.show()
         else:
+            # 收起容器 - 使用更长的动画时间和不同的缓动曲线
+            self.animation.setDuration(180)  # 收起时稍快一些
+            self.animation.setEasingCurve(QEasingCurve.InCubic)  # 使用InCubic，开始快结束慢
             self.animation.setEndValue(0)
+            
+            self.opacityAnimation.setDuration(160)  # 透明度变化更快，先于高度完成
+            self.opacityAnimation.setEasingCurve(QEasingCurve.InQuad)
+            self.opacityAnimation.setStartValue(self.custom_color_container.windowOpacity())
+            self.opacityAnimation.setEndValue(0.0)
+            
+            # 断开之前可能连接的信号
+            try:
+                self.animation.finished.disconnect()
+            except TypeError:
+                pass  # 如果没有连接的信号，会抛出TypeError
+                
             # 在动画完成后再禁用，避免内容提前消失
             self.animation.finished.connect(lambda: self.custom_color_container.setEnabled(False))
-            
+        
+        # 启动动画
         self.animation.start()
+        self.opacityAnimation.start()
         
         # 更新内部状态
         self.useCustom = use_custom
@@ -350,10 +402,30 @@ class CustomThemeColorCard(QWidget):
             
             # 如果容器已隐藏，平滑展开它
             if self.custom_color_container.maximumHeight() == 0:
+                # 停止正在运行的动画
+                if self.animation.state() == QPropertyAnimation.Running:
+                    self.animation.stop()
+                if self.opacityAnimation.state() == QPropertyAnimation.Running:
+                    self.opacityAnimation.stop()
+                
+                # 设置动画
+                self.animation.setDuration(200)  # 展开时使用较快的动画
+                self.animation.setEasingCurve(QEasingCurve.OutCubic)
                 self.animation.setStartValue(0)
                 self.animation.setEndValue(self.preferredHeight)
+                
+                self.opacityAnimation.setDuration(220)
+                self.opacityAnimation.setEasingCurve(QEasingCurve.OutCubic)
+                self.opacityAnimation.setStartValue(0.0)
+                self.opacityAnimation.setEndValue(1.0)
+                
+                # 确保容器可见
                 self.custom_color_container.setEnabled(True)
+                self.custom_color_container.show()
+                
+                # 启动动画
                 self.animation.start()
+                self.opacityAnimation.start()
         
         # 更新颜色指示器（如果存在）
         if hasattr(self, 'color_indicator'):
