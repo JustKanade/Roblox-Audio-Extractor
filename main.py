@@ -67,7 +67,7 @@ from src.components.cards.Settings.greeting_setting_card import GreetingSettingC
 # 导入配置管理器
 from src.config import ConfigManager
 # 导入界面模块
-from src.interfaces import HomeInterface, AboutInterface, ExtractImagesInterface, ExtractTexturesInterface, ClearCacheInterface, HistoryInterface
+from src.interfaces import HomeInterface, AboutInterface, ExtractImagesInterface, ExtractTexturesInterface, ClearCacheInterface, HistoryInterface, ExtractAudioInterface
 
 
 if hasattr(sys, '_MEIPASS'):
@@ -218,8 +218,14 @@ class MainWindow(FluentWindow):
             lang=lang
         )
 
-        self.extractInterface = QWidget()
-        self.extractInterface.setObjectName("extractInterface")
+        # 添加提取音频界面 - 使用ExtractAudioInterface类
+        self.extractInterface = ExtractAudioInterface(
+            parent=self,
+            config_manager=self.config_manager,
+            lang=lang,
+            default_dir=self.default_dir,
+            download_history=self.download_history
+        )
 
         # 添加新的图像提取界面 - 使用ExtractImagesInterface类
         self.extractImagesInterface = ExtractImagesInterface(
@@ -346,7 +352,7 @@ class MainWindow(FluentWindow):
                              position=NavigationItemPosition.BOTTOM)
 
         # 初始化各个界面 - 去除setupHomeInterface的调用
-        self.setupExtractInterface()
+        # 移除setupExtractInterface调用，因为已经使用了ExtractAudioInterface类
         # 移除setupExtractImagesInterface调用，因为已经使用了ExtractImagesInterface类
         # 移除setupExtractTexturesInterface调用，因为已经使用了ExtractTexturesInterface类
         # 移除setupClearCacheInterface调用，因为已经使用了ClearCacheInterface类
@@ -390,227 +396,7 @@ class MainWindow(FluentWindow):
                     return
         except Exception as e:
             print(f"切换界面时出错: {e}")
-        
-    def setupExtractInterface(self):
-        """设置提取音频界面"""
-        # 创建滚动区域
-        scroll = ScrollArea(self.extractInterface)
-        scroll.setWidgetResizable(True)
-        scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
-
-        # 主内容容器
-        content_widget = QWidget()
-        content_layout = QVBoxLayout(content_widget)
-        content_layout.setContentsMargins(30, 30, 30, 30)
-        content_layout.setSpacing(20)
-        
-        # 添加页面标题
-        page_title = TitleLabel(lang.get("extract_audio"))
-        page_title.setObjectName("extractAudioTitle")
-        content_layout.addWidget(page_title)
-
-        # 目录选择卡片
-        dir_card = CardWidget()
-        dir_card_layout = QVBoxLayout(dir_card)
-        dir_card_layout.setContentsMargins(20, 15, 20, 15)
-        dir_card_layout.setSpacing(15)
-
-        dir_title = StrongBodyLabel(lang.get("directory"))
-        dir_card_layout.addWidget(dir_title)
-
-        # 目录输入行
-        dir_input_layout = QHBoxLayout()
-        dir_input_layout.setSpacing(10)
-
-        self.dirInput = LineEdit()
-        self.dirInput.setText(self.default_dir)
-        self.dirInput.setPlaceholderText(lang.get("input_dir"))
-        self.dirInput.setClearButtonEnabled(True)
-
-        browse_btn = PushButton(FluentIcon.FOLDER_ADD, lang.get("browse"))
-        browse_btn.setFixedSize(100, 33)
-        browse_btn.clicked.connect(self.browseDirectory)
-
-        dir_input_layout.addWidget(self.dirInput, 1)
-        dir_input_layout.addWidget(browse_btn)
-
-        dir_card_layout.addLayout(dir_input_layout)
-
-        # 添加目录提示
-        dir_hint = CaptionLabel(f"{lang.get('default_dir')}: {self.default_dir}")
-        dir_hint.setWordWrap(True)
-        dir_card_layout.addWidget(dir_hint)
-
-        content_layout.addWidget(dir_card)
-
-        # 分类方法卡片
-        classification_card = CardWidget()
-        class_card_layout = QVBoxLayout(classification_card)
-        class_card_layout.setContentsMargins(20, 15, 20, 15)
-        class_card_layout.setSpacing(15)
-
-        class_title = StrongBodyLabel(lang.get("classification_method"))
-        class_card_layout.addWidget(class_title)
-
-        # 分类方法选择
-        self.classification_group = QButtonGroup()
-
-        duration_row = QHBoxLayout()
-        self.durationRadio = RadioButton(lang.get("classify_by_duration"))
-        self.durationRadio.setChecked(True)
-        duration_icon = IconWidget(FluentIcon.CALENDAR)
-        duration_icon.setFixedSize(16, 16)
-        duration_row.addWidget(duration_icon)
-        duration_row.addWidget(self.durationRadio)
-        duration_row.addStretch()
-
-        size_row = QHBoxLayout()
-        self.sizeRadio = RadioButton(lang.get("classify_by_size"))
-        size_icon = IconWidget(FluentIcon.DOCUMENT)
-        size_icon.setFixedSize(16, 16)
-        size_row.addWidget(size_icon)
-        size_row.addWidget(self.sizeRadio)
-        size_row.addStretch()
-
-        self.classification_group.addButton(self.durationRadio)
-        self.classification_group.addButton(self.sizeRadio)
-
-        class_card_layout.addLayout(duration_row)
-        class_card_layout.addLayout(size_row)
-
-        # FFmpeg警告
-        if not is_ffmpeg_available():
-            ffmpeg_warning = InfoBar.warning(
-                title="FFmpeg",
-                content=lang.get("ffmpeg_not_found_warning"),
-                orient=Qt.Horizontal,
-                isClosable=False,
-                duration=-1,
-                parent=None
-            )
-            class_card_layout.addWidget(ffmpeg_warning)
-
-        # 分类信息标签
-        self.classInfoLabel = CaptionLabel(lang.get("info_duration_categories"))
-        self.classInfoLabel.setWordWrap(True)
-        class_card_layout.addWidget(self.classInfoLabel)
-
-        # 连接分类方法选择事件
-        self.durationRadio.toggled.connect(self.updateClassificationInfo)
-
-        content_layout.addWidget(classification_card)
-
-        # 处理选项卡片
-        options_card = CardWidget()
-        options_card_layout = QVBoxLayout(options_card)
-        options_card_layout.setContentsMargins(20, 15, 20, 15)
-        options_card_layout.setSpacing(15)
-
-        options_title = StrongBodyLabel(lang.get("processing_info"))
-        options_card_layout.addWidget(options_title)
-
-        # 线程数设置
-        threads_row = QHBoxLayout()
-        threads_icon = IconWidget(FluentIcon.SPEED_HIGH)
-        threads_icon.setFixedSize(16, 16)
-        threads_label = BodyLabel(lang.get("threads_prompt"))
-
-        self.threadsSpinBox = SpinBox()
-        self.threadsSpinBox.setRange(1, 128)
-        self.threadsSpinBox.setValue(min(32, multiprocessing.cpu_count() * 2))
-        self.threadsSpinBox.setFixedWidth(120)
-        self.threadsSpinBox.setFixedHeight(32)
-
-        threads_row.addWidget(threads_icon)
-        threads_row.addWidget(threads_label)
-        threads_row.addStretch()
-        threads_row.addWidget(self.threadsSpinBox)
-
-        options_card_layout.addLayout(threads_row)
-
-        # 添加处理提示
-        info_list = [
-            lang.get("info_skip_downloaded")
-        ]
-
-        for info in info_list:
-            info_label = CaptionLabel(f"• {info}")
-            info_label.setWordWrap(True)
-            options_card_layout.addWidget(info_label)
-
-        content_layout.addWidget(options_card)
-
-        # 操作控制卡片
-        control_card = CardWidget()
-        control_layout = QVBoxLayout(control_card)
-        control_layout.setContentsMargins(25, 20, 25, 20)
-        control_layout.setSpacing(15)
-
-        # 进度显示
-        progress_layout = QVBoxLayout()
-
-        # 进度条
-        self.progressBar = ProgressBar()
-        self.progressBar.setValue(0)
-        self.progressBar.setTextVisible(True)
-
-        # 进度信息
-        self.progressLabel = CaptionLabel(lang.get("ready"))
-        self.progressLabel.setAlignment(Qt.AlignCenter)
-
-        progress_layout.addWidget(self.progressBar)
-        progress_layout.addWidget(self.progressLabel)
-
-        # 操作按钮
-        button_layout = QHBoxLayout()
-        button_layout.setSpacing(15)
-
-        self.extractButton = PrimaryPushButton(FluentIcon.DOWNLOAD, lang.get("start_extraction"))
-        self.extractButton.setFixedHeight(40)
-        self.extractButton.clicked.connect(self.startExtraction)
-
-        self.cancelButton = PushButton(FluentIcon.CLOSE, lang.get("cancel"))
-        self.cancelButton.setFixedHeight(40)
-        self.cancelButton.clicked.connect(self.cancelExtraction)
-        self.cancelButton.hide()  # 初始隐藏
-
-        button_layout.addWidget(self.extractButton)
-        button_layout.addWidget(self.cancelButton)
-        button_layout.addStretch()
-
-        control_layout.addLayout(progress_layout)
-        control_layout.addLayout(button_layout)
-        content_layout.addWidget(control_card)
-
-        # 日志区域
-        log_card = CardWidget()
-        log_card.setFixedHeight(300)
-
-        log_layout = QVBoxLayout(log_card)
-        log_layout.setContentsMargins(20, 10, 20, 15)
-        log_layout.setSpacing(10)
-
-        log_title = StrongBodyLabel(lang.get("recent_activity"))
-        log_layout.addWidget(log_title)
-
-        self.extractLogText = TextEdit()
-        self.extractLogText.setReadOnly(True)
-        self.extractLogText.setFixedHeight(220)
-        log_layout.addWidget(self.extractLogText)
-
-        content_layout.addWidget(log_card)
-
-        # 设置滚动区域
-        scroll.setWidget(content_widget)
-
-        # 主布局
-        main_layout = QVBoxLayout(self.extractInterface)
-        main_layout.setContentsMargins(0, 0, 0, 0)
-        main_layout.addWidget(scroll)
-
-        # 创建日志处理器
-        self.extractLogHandler = LogHandler(self.extractLogText)
-
+            
     def onInterfaceChanged(self, index):
         """界面切换事件处理"""
         try:
@@ -619,14 +405,13 @@ class MainWindow(FluentWindow):
             if current_widget == self.historyInterface:
                 self.historyInterface.refreshHistoryInterface()
             # 如果切换到提取界面，更新线程数设置
-            elif current_widget == self.extractInterface:
+            elif current_widget == self.extractInterface and hasattr(current_widget, 'threadsSpinBox'):
                 # 从配置中读取默认线程数并更新界面
                 default_threads = self.config_manager.get("threads", min(32, multiprocessing.cpu_count() * 2))
-                if hasattr(self, 'threadsSpinBox'):
-                    self.threadsSpinBox.setValue(default_threads)
+                current_widget.threadsSpinBox.setValue(default_threads)
         except Exception as e:
             pass
-
+          
     def setupSettingsInterface(self):
         """设置设置界面"""
         # 如果导入了CustomThemeColorCard，设置全局lang变量
@@ -1112,20 +897,6 @@ class MainWindow(FluentWindow):
             log.info(f"{lang.get('default_dir')}: {self.default_dir}")
             log.info(lang.get("config_file_location", self.config_manager.config_file))
             
-    def browseDirectory(self):
-        """浏览目录对话框"""
-        directory = QFileDialog.getExistingDirectory(self, lang.get("directory"), self.dirInput.text())
-        if directory:
-            self.dirInput.setText(directory)
-            self.config_manager.set("last_directory", directory)
-            
-    def updateClassificationInfo(self):
-        """更新分类信息标签"""
-        if self.durationRadio.isChecked():
-            self.classInfoLabel.setText(lang.get("info_duration_categories"))
-        else:
-            self.classInfoLabel.setText(lang.get("info_size_categories"))
-
     def onThemeChanged(self, theme_name):
         """主题更改事件处理"""
         # 使用主题管理器应用主题变更

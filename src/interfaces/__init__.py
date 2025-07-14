@@ -11,6 +11,7 @@ from src.interfaces.extract_images_interface import ExtractImagesInterface
 from src.interfaces.extract_textures_interface import ExtractTexturesInterface
 from src.interfaces.clear_cache_interface import ClearCacheInterface
 from src.interfaces.history_interface import HistoryInterface
+from src.interfaces.extract_audio_interface import ExtractAudioInterface
 
 __all__ = [
     'HomeInterface', 
@@ -18,5 +19,6 @@ __all__ = [
     'ExtractImagesInterface', 
     'ExtractTexturesInterface', 
     'ClearCacheInterface',
-    'HistoryInterface'
+    'HistoryInterface',
+    'ExtractAudioInterface'
 ] 
