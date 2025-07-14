@@ -67,7 +67,7 @@ from src.components.cards.Settings.greeting_setting_card import GreetingSettingC
 # 导入配置管理器
 from src.config import ConfigManager
 # 导入界面模块
-from src.interfaces import HomeInterface, AboutInterface, ExtractImagesInterface, ExtractTexturesInterface, ClearCacheInterface
+from src.interfaces import HomeInterface, AboutInterface, ExtractImagesInterface, ExtractTexturesInterface, ClearCacheInterface, HistoryInterface
 
 
 if hasattr(sys, '_MEIPASS'):
@@ -243,8 +243,13 @@ class MainWindow(FluentWindow):
             default_dir=self.default_dir
         )
 
-        self.historyInterface = QWidget()
-        self.historyInterface.setObjectName("historyInterface")
+        # 添加历史记录界面 - 使用HistoryInterface类
+        self.historyInterface = HistoryInterface(
+            parent=self,
+            config_manager=self.config_manager,
+            lang=lang,
+            download_history=self.download_history
+        )
 
         self.settingsInterface = QWidget()
         self.settingsInterface.setObjectName("settingsInterface")
@@ -345,7 +350,7 @@ class MainWindow(FluentWindow):
         # 移除setupExtractImagesInterface调用，因为已经使用了ExtractImagesInterface类
         # 移除setupExtractTexturesInterface调用，因为已经使用了ExtractTexturesInterface类
         # 移除setupClearCacheInterface调用，因为已经使用了ClearCacheInterface类
-        self.setupHistoryInterface()
+        # 移除setupHistoryInterface调用，因为已经使用了HistoryInterface类
         self.setupSettingsInterface()
         # 移除setupAboutInterface的调用，因为已经使用了AboutInterface类
 
@@ -606,168 +611,13 @@ class MainWindow(FluentWindow):
         # 创建日志处理器
         self.extractLogHandler = LogHandler(self.extractLogText)
 
-    def setupHistoryInterface(self):
-        """设置历史记录界面"""
-        # 创建滚动区域
-        scroll = ScrollArea(self.historyInterface)
-        scroll.setWidgetResizable(True)
-        scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
-
-        # 主内容容器
-        content_widget = QWidget()
-        content_layout = QVBoxLayout(content_widget)
-        content_layout.setContentsMargins(30, 30, 30, 30)
-        content_layout.setSpacing(20)
-
-        # 历史统计卡片
-        stats_card = CardWidget()
-        stats_card.setMaximumHeight(220)  # 限制最大高度，防止异常放大
-        stats_layout = QVBoxLayout(stats_card)
-        stats_layout.setContentsMargins(25, 20, 25, 20)
-        stats_layout.setSpacing(15)
-
-        # 标题
-        stats_title = TitleLabel(lang.get("history_stats"))
-        stats_title.setObjectName("historyTitle")
-        stats_layout.addWidget(stats_title)
-
-        # 统计信息
-        history_size = self.download_history.get_history_size()
-
-        # 文件数量显示
-        count_row = QHBoxLayout()
-        count_icon = IconWidget(FluentIcon.DOCUMENT)
-        count_icon.setFixedSize(24, 24)
-        self.historyCountLabel = SubtitleLabel(lang.get("files_recorded", history_size))
-        self.historyCountLabel.setObjectName("historyCount")
-
-        count_row.addWidget(count_icon)
-        count_row.addWidget(self.historyCountLabel)
-        count_row.addStretch()
-
-        stats_layout.addLayout(count_row)
-
-        # 历史文件位置标签（固定显示）
-        self.historyLocationLabel = CaptionLabel("")
-        self.historyLocationLabel.setWordWrap(True)
-        self.historyLocationLabel.setStyleSheet(
-            "QLabel { background-color: rgba(255, 255, 255, 0.05); padding: 8px; border-radius: 4px; }")
-        stats_layout.addWidget(self.historyLocationLabel)
-
-        # 根据是否有历史记录来更新位置标签
-        if history_size > 0:
-            history_file = os.path.join(os.path.expanduser("~"), ".roblox_audio_extractor", "extracted_history.json")
-            self.historyLocationLabel.setText(lang.get("history_file_location", history_file))
-            self.historyLocationLabel.show()
-        else:
-            self.historyLocationLabel.hide()
-
-        # 操作按钮行
-        button_layout = QHBoxLayout()
-        button_layout.setSpacing(15)
-        button_layout.setContentsMargins(0, 10, 0, 0)
-
-        # 清除历史按钮（始终显示）
-        self.clearHistoryButton = PrimaryPushButton(FluentIcon.DELETE, lang.get("clear_history"))
-        self.clearHistoryButton.setFixedHeight(40)
-        self.clearHistoryButton.clicked.connect(self.clearHistory)
-        button_layout.addWidget(self.clearHistoryButton)
-
-        # 查看历史文件按钮（根据条件显示）
-        self.viewHistoryButton = PushButton(FluentIcon.VIEW, lang.get("view_history_file"))
-        self.viewHistoryButton.setFixedHeight(40)
-        self.viewHistoryButton.clicked.connect(
-            lambda: open_directory(os.path.dirname(self.download_history.history_file)))
-        button_layout.addWidget(self.viewHistoryButton)
-
-        # 根据是否有历史记录来显示/隐藏查看按钮
-        if history_size > 0:
-            self.viewHistoryButton.show()
-        else:
-            self.viewHistoryButton.hide()
-
-        button_layout.addStretch()
-        stats_layout.addLayout(button_layout)
-
-        content_layout.addWidget(stats_card)
-
-        # 历史记录概览卡片（固定结构）
-        self.historyOverviewCard = CardWidget()
-        self.historyOverviewCard.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)  # 关键：自适应宽度
-        self.historyOverviewCard.setMaximumHeight(120)
-        overview_layout = QVBoxLayout(self.historyOverviewCard)
-        overview_layout.setContentsMargins(20, 15, 20, 15)
-
-        overview_title = StrongBodyLabel(lang.get("history_overview"))
-        overview_layout.addWidget(overview_title)
-
-        self.historyStatsLabel = CaptionLabel("")
-        overview_layout.addWidget(self.historyStatsLabel)
-
-        # 添加弹性空间
-        overview_layout.addStretch()
-
-        content_layout.addWidget(self.historyOverviewCard)
-
-        # 日志区域
-        log_card = CardWidget()
-        log_card.setFixedHeight(300)
-
-        log_layout = QVBoxLayout(log_card)
-        log_layout.setContentsMargins(20, 10, 20, 15)
-        log_layout.setSpacing(10)
-
-        log_title = StrongBodyLabel(lang.get("recent_activity"))
-        log_layout.addWidget(log_title)
-
-        self.historyLogText = TextEdit()
-        self.historyLogText.setReadOnly(True)
-        self.historyLogText.setFixedHeight(220)
-        log_layout.addWidget(self.historyLogText)
-
-        content_layout.addWidget(log_card)
-
-        # 设置滚动区域
-        scroll.setWidget(content_widget)
-
-        # 主布局
-        main_layout = QVBoxLayout(self.historyInterface)
-        main_layout.setContentsMargins(0, 0, 0, 0)
-        main_layout.addWidget(scroll)
-
-        # 创建日志处理器
-        self.historyLogHandler = LogHandler(self.historyLogText)
-
-        # 应用样式
-        self.setHistoryStyles()
-
-    def updateHistoryOverview(self, history_size):
-        """更新历史概览信息"""
-        if history_size > 0:
-            avg_files = history_size // max(1, history_size // 50)
-            try:
-                file_size = os.path.getsize(self.download_history.history_file) / 1024
-            except:
-                file_size = 0
-
-            stats_info = f"""
-• {lang.get('total_files', history_size)}
-• {lang.get('avg_files_per_extraction', avg_files)}
-• {lang.get('history_file_size', f"{file_size:.1f}")}
-            """.strip()
-
-            self.historyStatsLabel.setText(stats_info)
-            self.historyOverviewCard.show()
-        else:
-            self.historyOverviewCard.hide()
-
     def onInterfaceChanged(self, index):
         """界面切换事件处理"""
         try:
             current_widget = self.stackedWidget.widget(index)
             # 如果切换到历史界面，刷新数据
             if current_widget == self.historyInterface:
-                self.refreshHistoryInterface()
+                self.historyInterface.refreshHistoryInterface()
             # 如果切换到提取界面，更新线程数设置
             elif current_widget == self.extractInterface:
                 # 从配置中读取默认线程数并更新界面
@@ -776,101 +626,6 @@ class MainWindow(FluentWindow):
                     self.threadsSpinBox.setValue(default_threads)
         except Exception as e:
             pass
-
-    def setupHistoryButtons(self, history_size):
-        """设置历史界面的按钮"""
-        # 清除旧布局
-        if self.historyButtonContainer.layout():
-            while self.historyButtonContainer.layout().count():
-                child = self.historyButtonContainer.layout().takeAt(0)
-                if child.widget():
-                    child.widget().deleteLater()
-
-        # 创建新布局
-        button_layout = QHBoxLayout(self.historyButtonContainer)
-        button_layout.setSpacing(15)
-        button_layout.setContentsMargins(0, 0, 0, 0)
-
-        # 清除历史按钮（始终显示）
-        self.clearHistoryButton = PrimaryPushButton(FluentIcon.DELETE, lang.get("clear_history"))
-        self.clearHistoryButton.setFixedHeight(40)
-        self.clearHistoryButton.clicked.connect(self.clearHistory)
-        button_layout.addWidget(self.clearHistoryButton)
-
-        # 查看历史文件按钮（仅当有文件时显示）
-        if history_size > 0:
-            view_history_btn = PushButton(FluentIcon.VIEW, lang.get("view_history_file"))
-            view_history_btn.setFixedHeight(40)
-            view_history_btn.clicked.connect(
-                lambda: open_directory(os.path.dirname(self.download_history.history_file)))
-            button_layout.addWidget(view_history_btn)
-
-        button_layout.addStretch()
-
-    def refreshHistoryInterface(self):
-        """刷新历史界面显示"""
-        try:
-            # 获取最新的历史记录数量
-            history_size = self.download_history.get_history_size()
-
-            # 更新计数显示
-            if hasattr(self, 'historyCountLabel'):
-                self.historyCountLabel.setText(lang.get("files_recorded", history_size))
-
-            # 更新位置标签
-            if hasattr(self, 'historyLocationLabel'):
-                if history_size > 0:
-                    history_file = os.path.join(os.path.expanduser("~"), ".roblox_audio_extractor",
-                                                "extracted_history.json")
-                    self.historyLocationLabel.setText(lang.get("history_file_location", history_file))
-                    self.historyLocationLabel.show()
-                else:
-                    self.historyLocationLabel.hide()
-
-            # 更新查看按钮的显示/隐藏
-            if hasattr(self, 'viewHistoryButton'):
-                if history_size > 0:
-                    self.viewHistoryButton.show()
-                else:
-                    self.viewHistoryButton.hide()
-
-            # 更新概览信息
-            if hasattr(self, 'updateHistoryOverview'):
-                self.updateHistoryOverview(history_size)
-
-        except Exception as e:
-            print(f"Error refreshing history interface: {e}")
-
-    def setHistoryStyles(self):
-        """设置历史界面样式"""
-        theme = self.config_manager.get("theme", "dark")
-
-        if theme == "light":
-            self.historyInterface.setStyleSheet("""
-                #historyTitle {
-                    color: rgb(0, 0, 0);
-                    font-size: 24px;
-                    font-weight: bold;
-                }
-                #historyCount {
-                    color: rgb(0, 120, 215);
-                    font-size: 20px;
-                    font-weight: 600;
-                }
-            """)
-        else:
-            self.historyInterface.setStyleSheet("""
-                #historyTitle {
-                    color: rgb(255, 255, 255);
-                    font-size: 24px;
-                    font-weight: bold;
-                }
-                #historyCount {
-                    color: rgb(0, 212, 255);
-                    font-size: 20px;
-                    font-weight: 600;
-                }
-            """)
 
     def setupSettingsInterface(self):
         """设置设置界面"""
@@ -1597,7 +1352,7 @@ class MainWindow(FluentWindow):
                 )
 
                 # 刷新历史界面以显示最新的文件数量
-                self.refreshHistoryInterface()
+                self.historyInterface.refreshHistoryInterface()
             else:
                 self.extractLogHandler.warning(lang.get("no_files_processed"))
 
@@ -1791,7 +1546,7 @@ class MainWindow(FluentWindow):
         )
 
         if not result.exec():
-            self.historyLogHandler.info(lang.get("operation_cancelled"))
+            self.historyInterface.logHandler.info(lang.get("operation_cancelled"))
             return
             
         try:
@@ -1799,11 +1554,11 @@ class MainWindow(FluentWindow):
             self.download_history.clear_history()
 
             # 延迟刷新界面，避免立即更新UI导致的问题
-            QTimer.singleShot(100, self.refreshHistoryInterfaceAfterClear)
+            QTimer.singleShot(100, self.historyInterface.refreshHistoryInterfaceAfterClear)
 
             # 显示成功消息
-            if hasattr(self, 'historyLogHandler'):
-                self.historyLogHandler.success(lang.get("history_cleared"))
+            if hasattr(self.historyInterface, 'logHandler'):
+                self.historyInterface.logHandler.success(lang.get("history_cleared"))
 
             # 延迟显示通知，避免阻塞
             QTimer.singleShot(200, lambda: InfoBar.success(
@@ -1817,8 +1572,8 @@ class MainWindow(FluentWindow):
             ))
         except Exception as e:
             # 显示错误消息
-            if hasattr(self, 'historyLogHandler'):
-                self.historyLogHandler.error(lang.get("error_occurred", str(e)))
+            if hasattr(self.historyInterface, 'logHandler'):
+                self.historyInterface.logHandler.error(lang.get("error_occurred", str(e)))
             traceback.print_exc()
 
             # 延迟显示错误通知
@@ -1831,16 +1586,6 @@ class MainWindow(FluentWindow):
                 duration=5000,
                 parent=self
             ))
-
-    def refreshHistoryInterfaceAfterClear(self):
-        """清除历史后刷新界面"""
-        try:
-            # 重新加载历史数据
-            self.download_history.load_history()
-            # 刷新界面
-            self.refreshHistoryInterface()
-        except Exception as e:
-            print(f"Error refreshing after clear: {e}")
 
     def applyLanguage(self):
         """应用语言设置"""
