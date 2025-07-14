@@ -35,8 +35,9 @@ def apply_theme_from_config(window, config_manager, central_log_handler=None):
         if central_log_handler:
             central_log_handler.set_theme(theme_setting)
         
-        # 使用延迟调用来应用主题，避免在字典迭代过程中修改字典
-        QTimer.singleShot(10, lambda: _safely_apply_theme(window, theme_setting, config_manager))
+        # 使用延迟调用来应用主题，避免在应用初始化过程中干扰UI流程
+        # 延迟时间设置为50ms，确保应用完全加载
+        QTimer.singleShot(50, lambda: _safely_apply_theme(window, theme_setting, config_manager))
     except Exception as e:
         logger.error(f"应用主题配置时出错: {e}")
 
@@ -52,7 +53,7 @@ def _safely_apply_theme(window, theme_setting, config_manager):
         config_manager: 配置管理器实例
     """
     try:
-        # 应用主题模式
+        # 应用主题模式，直接使用QFluentWidgets的setTheme函数
         if theme_setting == "light":
             setTheme(Theme.LIGHT)
         elif theme_setting == "dark":
@@ -62,37 +63,10 @@ def _safely_apply_theme(window, theme_setting, config_manager):
         
         # 应用主题颜色
         try:
-            # 使用配置管理器中定义的QFluentWidgets配置文件路径
-            qfluent_config_file = config_manager.qfluent_config_file
-            if os.path.exists(qfluent_config_file):
-                with open(qfluent_config_file, 'r', encoding='utf-8') as f:
-                    qfluent_config = json.load(f)
-                
-                # 从QFluentWidgets配置中获取主题色
-                if "QFluentWidgets" in qfluent_config and "ThemeColor" in qfluent_config["QFluentWidgets"]:
-                    theme_color = qfluent_config["QFluentWidgets"]["ThemeColor"]
-                    setThemeColor(QColor(theme_color))
-                    print(f"应用主题色: {theme_color}")
-                else:
-                    # 如果配置文件中没有主题色，则应用默认颜色
-                    setThemeColor(QColor("#ff0078d4"))  # 默认蓝色
-                    print("配置文件中没有主题色，应用默认颜色: #ff0078d4")
-            else:
-                # 配置文件不存在，应用默认颜色
-                setThemeColor(QColor("#ff0078d4"))  # 默认蓝色
-                print(f"配置文件不存在: {qfluent_config_file}，应用默认颜色: #ff0078d4")
-                
-            # 打印调试信息
-            print(f"应用主题色，配置文件路径: {qfluent_config_file}")
-            if os.path.exists(qfluent_config_file):
-                print(f"配置文件内容: {qfluent_config}")
-            
             # 检查是否使用自定义主题色
             use_custom_theme_color = config_manager.get("use_custom_theme_color", False)
             theme_color_value = config_manager.get("theme_color", "#0078d4")
-            print(f"use_custom_theme_color: {use_custom_theme_color}, theme_color: {theme_color_value}")
             
-            # 如果使用自定义主题色，确保它被正确应用
             if use_custom_theme_color:
                 # 确保颜色格式正确
                 if not theme_color_value.startswith('#'):
@@ -102,19 +76,25 @@ def _safely_apply_theme(window, theme_setting, config_manager):
                 if len(theme_color_value) == 7:  # #RRGGBB 格式
                     theme_color_value = f"#ff{theme_color_value[1:]}"
                     
+                # 直接应用主题色，不需要重新加载配置
                 setThemeColor(QColor(theme_color_value))
-                print(f"重新应用自定义主题色: {theme_color_value}")
+                logger.debug(f"应用自定义主题色: {theme_color_value}")
+            else:
+                # 应用默认主题色
+                setThemeColor(QColor("#ff0078d4"))
+                logger.debug("应用默认主题色: #ff0078d4")
             
         except Exception as e:
             logger.error(f"应用主题颜色时出错: {e}")
             # 回退到默认颜色
             try:
                 setThemeColor(QColor("#ff0078d4"))
-            except:
+            except Exception:
                 pass
 
-        # 确保UI已初始化后再更新样式
-        QTimer.singleShot(100, lambda: update_all_styles(window))
+        # 延迟更新界面样式，确保主题切换动画完成
+        # 延迟时间设置为200ms，足够让主题切换动画流畅完成
+        QTimer.singleShot(200, lambda: update_all_styles(window))
     except Exception as e:
         logger.error(f"安全应用主题时出错: {e}")
 
@@ -136,7 +116,12 @@ def apply_theme_change(window, theme_name, config_manager, central_log_handler=N
         str: 应用的主题值（"dark"、"light"或"auto"）
     """
     try:
-        # 保存主题设置到配置文件
+        # 记录应用主题前的配置状态
+        logger.debug(f"应用主题前配置状态: theme={config_manager.get('theme')}, "
+                     f"use_custom_theme_color={config_manager.get('use_custom_theme_color')}, "
+                     f"theme_color={config_manager.get('theme_color')}")
+        
+        # 确定要应用的主题值
         theme_value = None
         
         # 根据语言管理器获取主题名称对应的值
@@ -163,7 +148,8 @@ def apply_theme_change(window, theme_name, config_manager, central_log_handler=N
         if central_log_handler:
             central_log_handler.set_theme(theme_value)
                 
-        # 使用延迟调用来应用主题，避免在字典迭代过程中修改字典
+        # 使用延迟调用来应用主题，避免在界面更新过程中干扰动画流程
+        # 延迟时间设置为10ms，足够让界面准备好接收主题变更
         QTimer.singleShot(10, lambda: _apply_theme_change(window, theme_value, theme_name, settings_log_handler, lang))
         
         return theme_value
@@ -188,7 +174,8 @@ def _apply_theme_change(window, theme_value, theme_name, settings_log_handler=No
         lang: 语言管理器实例（可选）
     """
     try:
-        # 应用主题
+        # 直接使用QFluentWidgets的setTheme函数应用主题
+        # 这将触发主题变化，但不会强制重新加载配置
         if theme_value == "dark":
             setTheme(Theme.DARK)
         elif theme_value == "light":
@@ -196,8 +183,9 @@ def _apply_theme_change(window, theme_value, theme_name, settings_log_handler=No
         else:
             setTheme(Theme.AUTO)
             
-        # 重新应用所有界面样式
-        update_all_styles(window)
+        # 延迟更新界面样式，确保主题切换动画完成
+        # 延迟时间设置为200ms，足够让主题切换动画流畅完成
+        QTimer.singleShot(200, lambda: update_all_styles(window))
         
         # 记录主题更改
         if settings_log_handler:

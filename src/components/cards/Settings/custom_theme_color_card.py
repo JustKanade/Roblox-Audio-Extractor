@@ -5,6 +5,10 @@ from PyQt5.QtWidgets import (
     QRadioButton, QButtonGroup, QLabel, QGridLayout,
     QPushButton
 )
+import logging
+
+# 设置日志记录
+logger = logging.getLogger(__name__)
 
 # 尝试导入语言管理器
 try:
@@ -371,10 +375,10 @@ class CustomThemeColorCard(QWidget):
     def applyThemeColor(self, color):
         """应用主题颜色"""
         if not color.isValid():
-            print(f"无效的颜色值: {color.name()}")
+            logger.warning(f"无效的颜色值: {color.name()}")
             return
             
-        print(f"正在应用主题颜色: {color.name()}")
+        logger.debug(f"正在应用主题颜色: {color.name()}")
             
         # 使用安全的方式应用主题颜色
         try:
@@ -387,11 +391,9 @@ class CustomThemeColorCard(QWidget):
                 
                 # 同步到QFluentWidgets配置
                 self.config_manager.sync_theme_to_qfluent()
-                print("已同步主题色到QFluentWidgets配置文件")
+                logger.debug("已同步主题色到QFluentWidgets配置文件")
             except Exception as e:
-                print(f"同步主题色到QFluentWidgets配置文件时出错: {e}")
-                import traceback
-                print(traceback.format_exc())
+                logger.error(f"同步主题色到QFluentWidgets配置文件时出错: {e}")
                 
             if HAS_FLUENT_WIDGETS:
                 # 直接使用 PyQt-Fluent-Widgets 的函数
@@ -400,41 +402,33 @@ class CustomThemeColorCard(QWidget):
                 if len(color_str) == 7:  # #RRGGBB 格式
                     color_with_alpha = QColor(f"#ff{color_str[1:]}")
                     setThemeColor(color_with_alpha)
-                    print(f"已通过qfluentwidgets.setThemeColor成功应用主题色: {color_with_alpha.name()}")
+                    logger.debug(f"已通过qfluentwidgets.setThemeColor成功应用主题色: {color_with_alpha.name()}")
                 else:
                     setThemeColor(color)
-                    print(f"已通过qfluentwidgets.setThemeColor成功应用主题色: {color.name()}")
+                    logger.debug(f"已通过qfluentwidgets.setThemeColor成功应用主题色: {color.name()}")
                 
-                # 尝试强制QFluentWidgets重新读取配置
-                try:
-                    from qfluentwidgets.common.config import qconfig
-                    if hasattr(qconfig, 'load'):
-                        qconfig.load()
-                        print("已强制QFluentWidgets重新加载配置")
-                except Exception as e:
-                    print(f"强制QFluentWidgets重新加载配置时出错: {e}")
+                # 不再强制重新加载配置，直接使用setThemeColor已经足够
+                # 这样可以确保动画流程不被中断
+                
             else:
                 # 尝试获取全局函数
                 import sys
                 module = sys.modules.get('qfluentwidgets', None)
                 if module and hasattr(module, 'setThemeColor'):
                     module.setThemeColor(color)
-                    print(f"已通过sys.modules['qfluentwidgets']应用主题色: {color.name()}")
+                    logger.debug(f"已通过sys.modules['qfluentwidgets']应用主题色: {color.name()}")
                 else:
-                    print("警告: 无法找到setThemeColor函数，主题色可能未成功应用")
+                    logger.warning("无法找到setThemeColor函数，主题色可能未成功应用")
             
             # 确保颜色也保存在本地配置中
             self.config_manager.set("theme_color", color.name())
             self.config_manager.set("use_custom_theme_color", True)
             self.config_manager.save_config()
-            print(f"已将主题色 {color.name()} 保存到本地配置")
+            logger.debug(f"已将主题色 {color.name()} 保存到本地配置")
             
             # 发送颜色变更信号
-            # 注意：pyqtSignal.emit 在静态类型检查时可能会报错，但实际运行时正常
             self.colorChanged.emit(color)
-            print(f"已发出colorChanged信号: {color.name()}")
+            logger.debug(f"已发出colorChanged信号: {color.name()}")
         except Exception as e:
-            print(f"应用主题颜色时出错: {e}")
-            import traceback
-            print(traceback.format_exc())
+            logger.error(f"应用主题颜色时出错: {e}")
         

@@ -189,10 +189,10 @@ class CentralLogHandler:
         custom_output_dir = self._config_manager.get("custom_output_dir", "")
         if custom_output_dir and os.path.isdir(custom_output_dir):
             # 使用自定义路径
-            crash_log_dir = os.path.join(custom_output_dir, "crash_logs")
+            crash_log_dir = os.path.join(custom_output_dir, "logs", "crash_logs")
         else:
             # 使用默认路径
-            crash_log_dir = os.path.join(os.path.expanduser("~"), ".roblox_audio_extractor", "crash_logs")
+            crash_log_dir = os.path.join(os.path.expanduser("~"), ".roblox_audio_extractor", "logs", "crash_logs")
             
         # 确保目录存在
         os.makedirs(crash_log_dir, exist_ok=True)
