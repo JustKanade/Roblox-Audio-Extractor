@@ -149,7 +149,7 @@ class BannerWidget(QWidget):
         theme_color = None
         if self.config_manager:
             if self.config_manager.get("use_custom_theme_color", False):
-                theme_color_str = self.config_manager.get("theme_color", "#0078d4")
+                theme_color_str = self.config_manager.get("theme_color", "#e8b3ff")
                 theme_color = QColor(theme_color_str)
             else:
                 # 如果没有启用自定义主题色，从QFluentWidgets获取当前主题色
@@ -160,7 +160,7 @@ class BannerWidget(QWidget):
             
         # 如果没有自定义主题色或无效，使用默认主题色
         if not theme_color or not theme_color.isValid():
-            theme_color = QColor("#0078d4")  # 默认蓝色
+            theme_color = QColor("#e8b3ff")  
 
         # 初始化线性渐变
         gradient = QLinearGradient(0, 0, w, h)
