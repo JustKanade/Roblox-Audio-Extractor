@@ -12,7 +12,7 @@ from qfluentwidgets import (
     ScrollArea, PushButton, TransparentPushButton, 
     FluentIcon, CaptionLabel, ProgressBar, PrimaryPushButton,
     TextEdit, IconWidget, SubtitleLabel, RoundMenu, Action,
-    DropDownPushButton, PrimaryDropDownPushButton
+    DropDownPushButton, PrimaryDropDownPushButton, ComboBox
 )
 
 import os
@@ -65,10 +65,21 @@ class HistoryInterface(QWidget):
         stats_layout.setContentsMargins(25, 20, 25, 20)
         stats_layout.setSpacing(15)
 
+        # 标题和筛选器行
+        title_filter_layout = QHBoxLayout()
+        title_filter_layout.setSpacing(10)
+        
         # 标题
         stats_title = TitleLabel(self.get_text("history_stats") or "历史统计")
         stats_title.setObjectName("historyTitle")
-        stats_layout.addWidget(stats_title)
+        title_filter_layout.addWidget(stats_title)
+        
+        title_filter_layout.addStretch(1)
+        
+
+
+        
+        stats_layout.addLayout(title_filter_layout)
 
         # 统计信息
         history_size = self.download_history.get_history_size() if self.download_history else 0
@@ -202,6 +213,20 @@ class HistoryInterface(QWidget):
 
         # 创建日志处理器
         self.logHandler = LogHandler(self.logText)
+
+    # 添加筛选类型变更事件处理
+    def _onFilterTypeChanged(self, index):
+        """处理筛选类型变更事件"""
+        selected_type = self.recordTypeComboBox.currentData()
+        if selected_type and hasattr(self, 'logHandler'):
+            # 根据选择类型进行筛选显示
+            if selected_type == "all":
+                self.logHandler.info(self.get_text("showing_all_history_records") or "显示所有历史记录")
+            else:
+                self.logHandler.info(self.get_text("showing_filtered_records", selected_type.capitalize()) or f"显示 {selected_type.capitalize()} 历史记录")
+                
+            # 这里可以添加根据类型筛选显示记录的代码
+            # 例如: self._updateRecordsDisplay(selected_type)
         
     def _clearHistory(self):
         """清除历史记录"""
@@ -460,6 +485,32 @@ class HistoryInterface(QWidget):
             # 更新概览信息
             if hasattr(self, 'updateHistoryOverview'):
                 self.updateHistoryOverview(history_size, record_counts)
+                
+            # 更新筛选下拉菜单
+            if hasattr(self, 'recordTypeComboBox'):
+                # 保存当前选择
+                current_data = self.recordTypeComboBox.currentData()
+                
+                # 清空下拉菜单（除了"全部"选项）
+                while self.recordTypeComboBox.count() > 1:
+                    self.recordTypeComboBox.removeItem(1)
+                
+                # 重新添加可用的记录类型
+                if self.download_history and hasattr(self.download_history, "get_record_types"):
+                    record_types = self.download_history.get_record_types()
+                    for record_type in record_types:
+                        count = self.download_history.get_history_size(record_type)
+                        if count > 0:
+                            display_name = f"{record_type.capitalize()} ({count})"
+                            self.recordTypeComboBox.addItem(display_name, record_type)
+                
+                # 尝试恢复先前的选择
+                if current_data != "all":
+                    # 寻找先前选择的索引
+                    for i in range(self.recordTypeComboBox.count()):
+                        if self.recordTypeComboBox.itemData(i) == current_data:
+                            self.recordTypeComboBox.setCurrentIndex(i)
+                            break
 
         except Exception as e:
             print(f"刷新历史界面时出错: {e}")
