@@ -138,7 +138,7 @@ jobs:
           pip install nuitka
           pip install ordered-set  # Nuitka依赖
           pip install zstandard    # 优化压缩
-          pip install PySide6      # 显式安装PySide6
+          pip install PyQt5        # 显式安装PyQt5
       - name: Build application
         run: |
           # 如果是稳定版本，使用简单的命名
@@ -155,7 +155,7 @@ jobs:
             --include-data-dir=src=src/ `
             --output-dir=dist `
             --assume-yes-for-downloads `
-            --enable-plugin=pyside6 `
+            --enable-plugin=pyqt5 `
             --follow-imports `
             main.py
           
@@ -199,7 +199,7 @@ jobs:
           pip install nuitka
           pip install ordered-set  # Nuitka依赖
           pip install zstandard    # 优化压缩
-          pip install PySide6      # 显式安装PySide6
+          pip install PyQt5        # 显式安装PyQt5
       - name: Build application
         run: |
           # 如果是稳定版本，使用简单的命名
@@ -214,7 +214,7 @@ jobs:
             --include-data-dir=src=src/ \
             --output-dir=dist \
             --assume-yes-for-downloads \
-            --enable-plugin=pyside6 \
+            --enable-plugin=pyqt5 \
             --follow-imports \
             main.py
           
@@ -253,7 +253,7 @@ jobs:
           pip install nuitka
           pip install ordered-set  # Nuitka依赖
           pip install zstandard    # 优化压缩
-          pip install PySide6      # 显式安装PySide6
+          pip install PyQt5        # 显式安装PyQt5
       - name: Build application
         run: |
           # 如果是稳定版本，使用简单的命名
@@ -267,7 +267,7 @@ jobs:
             --include-data-dir=res=res/ \
             --include-data-dir=src=src/ \
             --assume-yes-for-downloads \
-            --enable-plugin=pyside6 \
+            --enable-plugin=pyqt5 \
             --follow-imports \
             --macos-create-app-bundle \
             main.py
