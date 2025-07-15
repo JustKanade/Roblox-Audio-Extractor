@@ -22,7 +22,7 @@ def apply_language(window, selected_language, current_language, lang, settings_l
     
     Args:
         window: 主窗口对象
-        selected_language: 用户选择的语言名称（如"中文"或"English"）
+        selected_language: 用户选择的语言名称（如"简体中文"、"English"、"跟随系统设置"或"Follow System Settings"）
         current_language: 当前语言名称
         lang: 语言管理器实例
         settings_log_handler: 设置界面日志处理器（可选）
@@ -41,8 +41,16 @@ def apply_language(window, selected_language, current_language, lang, settings_l
         # 语言改变了，保存语言设置到配置文件
         if selected_language == "English":
             lang.save_language_setting("en")
-        else:
+        elif selected_language == "简体中文":
             lang.save_language_setting("zh")
+        elif selected_language == "跟随系统设置" or selected_language == "System Settings":
+            lang.save_language_setting("auto")
+        else:
+            # 如果是旧版本的"中文"选项，也保存为"zh"
+            if selected_language == "中文":
+                lang.save_language_setting("zh")
+            else:
+                lang.save_language_setting("auto")
 
         # 记录更改
         if settings_log_handler:
@@ -98,14 +106,16 @@ def get_language_code(language_name):
     """根据语言名称获取语言代码
     
     Args:
-        language_name: 语言名称（如"中文"或"English"）
+        language_name: 语言名称（如"简体中文"、"English"、"跟随系统设置"或"Follow System Settings"）
     
     Returns:
-        str: 语言代码（如"zh"或"en"）
+        str: 语言代码（如"zh"、"en"或"auto"）
     """
     if language_name == "English":
         return "en"
-    elif language_name == "中文":
+    elif language_name == "简体中文" or language_name == "中文":
         return "zh"
+    elif language_name == "跟随系统设置" or language_name == "Follow System Settings":
+        return "auto"
     else:
         return "en"  # 默认返回英语 

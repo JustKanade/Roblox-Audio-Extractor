@@ -302,7 +302,13 @@ class SettingsInterface(QWidget):
         lang_select_row = QHBoxLayout()
         lang_select_label = BodyLabel(self.get_text("select_language"))
         self.languageCombo = ComboBox()
-        self.languageCombo.addItems(["中文", "English"])
+        
+        # 使用翻译键获取语言名称
+        system_setting_text = self.get_text("follow_system_language") if self.lang else "System Settings"
+        simplified_chinese_text = self.get_text("simplified_chinese") if self.lang else "简体中文"
+        
+        self.languageCombo.addItems([system_setting_text, simplified_chinese_text, "English"])
+        
         # 安全设置当前语言
         if self.lang and hasattr(self.lang, 'get_language_name'):
             self.languageCombo.setCurrentText(self.lang.get_language_name())

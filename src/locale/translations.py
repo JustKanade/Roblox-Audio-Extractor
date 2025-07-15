@@ -14,6 +14,16 @@ def get_translations():
     CHINESE = Language.CHINESE
     
     return {
+            # 语言设置相关
+            "follow_system_language": {
+                ENGLISH: "System Settings",
+                CHINESE: "跟随系统设置"
+            },
+            "simplified_chinese": {
+                ENGLISH: "zn-cn",
+                CHINESE: "简体中文"
+            },
+            
             # 头像设置相关
             "avatar_settings": {
                 CHINESE: "头像设置", 

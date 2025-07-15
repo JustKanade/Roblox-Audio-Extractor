@@ -22,13 +22,18 @@ class LanguageManager:
 
         # 设置当前语言
         if config_manager:
+            # 默认使用"auto"（跟随系统设置）
             lang_setting = config_manager.get("language", "auto")
             if lang_setting == "en":
                 self.current_language = self.ENGLISH
             elif lang_setting == "zh":
                 self.current_language = self.CHINESE
-            else:
+            else:  # 对于"auto"或任何其他值，使用系统语言
                 self.current_language = self._detect_system_language()
+                # 如果配置中不是"auto"，将其更新为"auto"
+                if lang_setting != "auto":
+                    config_manager.set("language", "auto")
+                    config_manager.save_config()
         else:
             self.current_language = self._detect_system_language()
 
@@ -38,12 +43,23 @@ class LanguageManager:
     def _detect_system_language(self) -> Language:
         """检测系统语言并返回相应的语言枚举"""
         try:
-            import locale
+            # 尝试获取系统语言设置
             system_lang = locale.getdefaultlocale()[0]
-            if system_lang and ('zh_' in system_lang.lower() or 'cn' in system_lang.lower()):
+            if system_lang:
+                system_lang = system_lang.lower()
+                # 检查是否为中文语言区域
+                if any(lang_code in system_lang for lang_code in ['zh_', 'cn', 'tw', 'hk']):
+                    return self.CHINESE
+            
+            # 尝试使用环境变量
+            env_lang = os.environ.get('LANG', '').lower()
+            if any(lang_code in env_lang for lang_code in ['zh_', 'cn', 'tw', 'hk']):
                 return self.CHINESE
+                
             return self.ENGLISH
-        except:
+        except Exception as e:
+            # 出现异常时默认返回英语
+            print(f"语言检测出错：{e}")
             return self.ENGLISH
 
     def get(self, key: str, *args) -> str:
@@ -83,7 +99,16 @@ class LanguageManager:
 
     def get_language_name(self) -> str:
         """获取当前语言的名称"""
-        return "中文" if self.current_language == self.CHINESE else "English"
+        if self.config_manager:
+            lang_setting = self.config_manager.get("language", "auto")
+            if lang_setting == "auto":
+                # 根据当前语言环境返回对应的翻译
+                if self.current_language == self.CHINESE:
+                    return "跟随系统设置"
+                else:
+                    return "Follow System Settings"
+        
+        return "简体中文" if self.current_language == self.CHINESE else "English"
 
     def save_language_setting(self, language_code: str):
         """保存语言设置到配置文件"""
