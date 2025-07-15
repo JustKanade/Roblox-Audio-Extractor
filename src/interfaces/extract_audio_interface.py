@@ -5,14 +5,15 @@ from PyQt5.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QButtonGroup,
     QSizePolicy
 )
-from PyQt5.QtCore import Qt, QTimer
+from PyQt5.QtCore import Qt, QTimer, QPoint
 
 from qfluentwidgets import (
     CardWidget, BodyLabel, TitleLabel, StrongBodyLabel,
     ScrollArea, PushButton, PrimaryPushButton, 
     FluentIcon, CaptionLabel, ProgressBar, RadioButton,
     TextEdit, IconWidget, SpinBox, LineEdit, InfoBar,
-    MessageBox, StateToolTip, InfoBarPosition, ComboBox, CheckBox
+    MessageBox, StateToolTip, InfoBarPosition, ComboBox, CheckBox,
+    RoundMenu, Action, DropDownPushButton, TransparentPushButton
 )
 
 import os
@@ -115,8 +116,8 @@ class ExtractAudioInterface(QWidget):
         content_size = 0
         if self.download_history:
             history_size = self.download_history.get_history_size()
-            if hasattr(self.download_history, 'content_hashes'):
-                content_size = len(self.download_history.content_hashes)
+            if hasattr(self.download_history, 'get_content_hash_count'):
+                content_size = self.download_history.get_content_hash_count()
                 
         self.historyCountLabel = CaptionLabel(
             f"{self.get_text('history_size')}: {history_size} {self.get_text('files')}, "
@@ -124,10 +125,21 @@ class ExtractAudioInterface(QWidget):
         )
         history_layout.addWidget(self.historyCountLabel)
         
-        # 添加清除历史按钮
-        self.clearHistoryBtn = PushButton(self.get_text("clear_history"))
-        self.clearHistoryBtn.setIcon(FluentIcon.DELETE)
+        # 添加弹性空间，使按钮靠右对齐
+        history_layout.addStretch(1)
+        
+        # 添加查看历史按钮
+        self.viewHistoryBtn = TransparentPushButton(FluentIcon.HISTORY, "", self)
+        self.viewHistoryBtn.setToolTip(self.get_text("view_history"))
+        self.viewHistoryBtn.clicked.connect(self.switchToHistoryInterface)
+        self.viewHistoryBtn.setFixedSize(24, 24)
+        history_layout.addWidget(self.viewHistoryBtn)
+        
+        # 添加清除历史按钮 - 直接使用透明按钮而不是下拉菜单
+        self.clearHistoryBtn = TransparentPushButton(FluentIcon.DELETE, "", self)
+        self.clearHistoryBtn.setToolTip(self.get_text("clear_history"))
         self.clearHistoryBtn.clicked.connect(self.clearHistory)
+        self.clearHistoryBtn.setFixedSize(24, 24)
         history_layout.addWidget(self.clearHistoryBtn)
         
         settings_layout.addLayout(history_layout)
@@ -628,54 +640,122 @@ class ExtractAudioInterface(QWidget):
             self.handleExtractionLog(self.get_text("history_not_available"), "error")
             return
             
-        # 确认对话框
-        result = MessageBox(
-            self.get_text("confirm"),
-            self.get_text("clear_history_confirm"),
-            self._parent_window or self
-        )
-
-        if result.exec():
-            try:
-                # 清除历史记录
-                self.download_history.clear_history()
-                
-                # 更新历史记录大小显示
-                self.updateHistorySize()
-                
-                # 显示成功消息
-                self.handleExtractionLog(self.get_text("history_cleared"), "success")
-                
-                InfoBar.success(
-                    self.get_text("success"),
-                    self.get_text("history_cleared"),
-                    duration=3000,
-                    position=InfoBarPosition.TOP,
-                    parent=self._parent_window or self
-                )
-            except Exception as e:
-                # 显示错误消息
-                self.handleExtractionLog(f"{self.get_text('clear_history_failed')}: {str(e)}", "error")
-                
-                InfoBar.error(
-                    self.get_text("error"),
-                    f"{self.get_text('clear_history_failed')}: {str(e)}",
-                    duration=3000,
-                    position=InfoBarPosition.TOP,
-                    parent=self._parent_window or self
-                )
-    
+        # 创建下拉菜单
+        menu = RoundMenu(parent=self)
+        
+        # 添加"清除所有历史"选项
+        menu.addAction(Action(FluentIcon.DELETE, self.get_text("all_history"), 
+                              triggered=lambda: self.clearHistoryByType("all")))
+        
+        # 添加分隔线
+        menu.addSeparator()
+        
+        # 获取所有可用的记录类型
+        if hasattr(self.download_history, "get_record_types"):
+            record_types = self.download_history.get_record_types()
+            for record_type in record_types:
+                # 获取每种类型的记录数量
+                records_count = self.download_history.get_history_size(record_type)
+                if records_count > 0:
+                    # 首字母大写，并添加记录数
+                    display_name = f"{record_type.capitalize()} ({records_count})"
+                    
+                    # 使用闭包参数来避免闭包问题
+                    def create_callback(rt):
+                        return lambda: self.clearHistoryByType(rt)
+                    
+                    menu.addAction(Action(FluentIcon.DELETE, display_name, 
+                                         triggered=create_callback(record_type)))
+        
+        # 显示菜单在清除历史按钮下方
+        menu.exec_(self.clearHistoryBtn.mapToGlobal(
+            QPoint(0, self.clearHistoryBtn.height())))
+            
     def updateHistorySize(self):
         """更新历史记录大小显示"""
         if not self.download_history:
             return
             
+        # 获取总历史记录数量
         history_size = self.download_history.get_history_size()
         content_size = 0
-        if hasattr(self.download_history, 'content_hashes'):
-            content_size = len(self.download_history.content_hashes)
+        if hasattr(self.download_history, 'get_content_hash_count'):
+            content_size = self.download_history.get_content_hash_count()
+        
+        # 获取音频历史记录数量
+        audio_history_size = self.download_history.get_history_size('audio')
+        
+        # 显示格式：总记录数 (音频记录数), 内容哈希数量
+        history_text = f"{self.get_text('history_size')}: {history_size} {self.get_text('files')}"
+        
+        # 如果音频记录数与总记录数不同，添加音频记录数
+        if audio_history_size != history_size:
+            history_text += f" ({self.get_text('audio')}: {audio_history_size})"
             
-        self.historyCountLabel.setText(
-            f"{self.get_text('history_size')}: {history_size} {self.get_text('files')}, "
-            f"{content_size} {self.get_text('unique_contents')}"
-        ) 
+        # 添加内容哈希数量
+        history_text += f", {content_size} {self.get_text('unique_contents')}"
+            
+        self.historyCountLabel.setText(history_text) 
+
+    def clearHistoryByType(self, record_type: str):
+        """根据类型清除提取历史记录
+        
+        Args:
+            record_type: 要清除的记录类型，'all'表示清除所有记录
+        """
+        if not self.download_history:
+            self.handleExtractionLog(self.get_text("history_not_available"), "error")
+            return
+            
+        try:
+            # 清除历史记录
+            if record_type == "all":
+                self.download_history.clear_history()
+                message = self.get_text("all_history_cleared")
+            else:
+                # 确保record_type是字符串类型，特别处理布尔值False的情况
+                if record_type is False:
+                    record_type_str = "false"
+                else:
+                    record_type_str = str(record_type)
+                    
+                self.download_history.clear_history(record_type_str)
+                message = self.get_text("history_type_cleared").format(record_type_str.capitalize())
+            
+            # 更新历史记录大小显示
+            self.updateHistorySize()
+            
+            # 显示成功消息
+            self.handleExtractionLog(message, "success")
+            
+            InfoBar.success(
+                self.get_text("success"),
+                message,
+                duration=3000,
+                position=InfoBarPosition.TOP,
+                parent=self._parent_window or self
+            )
+            
+            # 刷新历史界面
+            if self._parent_window and hasattr(self._parent_window, 'historyInterface') and \
+               hasattr(self._parent_window.historyInterface, 'refreshHistoryInterface'):
+                self._parent_window.historyInterface.refreshHistoryInterface()
+                
+        except Exception as e:
+            # 显示错误消息
+            error_message = f"{self.get_text('clear_history_failed')}: {str(e)}"
+            self.handleExtractionLog(error_message, "error")
+            
+            InfoBar.error(
+                self.get_text("error"),
+                error_message,
+                duration=3000,
+                position=InfoBarPosition.TOP,
+                parent=self._parent_window or self
+            ) 
+
+    def switchToHistoryInterface(self):
+        """切换到历史界面"""
+        if self._parent_window and hasattr(self._parent_window, 'historyInterface') and \
+           hasattr(self._parent_window, 'switchTo'):
+            self._parent_window.switchTo(self._parent_window.historyInterface) 

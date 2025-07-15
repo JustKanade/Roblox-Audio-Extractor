@@ -111,7 +111,7 @@ class AboutInterface(QWidget):
 
         # 链接和支持卡片
         links_card = CardWidget()
-        links_card.setMaximumHeight(180)  # 限制最大高度，防止异常放大
+        links_card.setMaximumHeight(180)  
         links_layout = QVBoxLayout(links_card)
         links_layout.setContentsMargins(20, 15, 20, 15)
         links_layout.setSpacing(15)

@@ -14,6 +14,9 @@ from qfluentwidgets import (
     TextEdit, IconWidget
 )
 
+import os
+import sys
+
 from src.utils.file_utils import open_directory
 from src.utils.log_utils import LogHandler
 
@@ -68,9 +71,14 @@ class ClearCacheInterface(QWidget):
         info_layout.addWidget(info_title)
 
         # 描述
-        desc_label = BodyLabel(self.get_text("cache_description", "清除Roblox音频缓存文件，释放磁盘空间。"))
+        desc_label = BodyLabel(self.get_text("cache_description", "清除Roblox数据库和存储缓存，释放磁盘空间。提取的文件将被保留。"))
         desc_label.setWordWrap(True)
         info_layout.addWidget(desc_label)
+        
+        # 详细说明
+        details_label = BodyLabel(self.get_text("cache_details", "此操作将清除以下内容：\n1. rbx-storage.db 数据库文件\n2. rbx-storage 文件夹中的内容（除了extracted文件夹）"))
+        details_label.setWordWrap(True)
+        info_layout.addWidget(details_label)
 
         # 缓存位置信息
         location_row = QHBoxLayout()
@@ -84,12 +92,23 @@ class ClearCacheInterface(QWidget):
 
         info_layout.addLayout(location_row)
 
+        # 获取Roblox本地数据目录
+        if sys.platform == 'win32':  # Windows
+            roblox_local_dir = os.path.join(os.environ.get('LOCALAPPDATA', ''), 'Roblox')
+        elif sys.platform == 'darwin':  # macOS
+            roblox_local_dir = os.path.expanduser('~/Library/Application Support/Roblox')
+        else:  # Linux或其他系统
+            roblox_local_dir = os.path.expanduser('~/.local/share/Roblox')
+        
         # 缓存路径
-        cache_path_label = CaptionLabel(self.default_dir if self.default_dir else "")
+        cache_path_label = CaptionLabel(roblox_local_dir if os.path.exists(roblox_local_dir) else self.get_text("path_not_found", "未找到Roblox目录"))
         cache_path_label.setWordWrap(True)
         cache_path_label.setStyleSheet(
             "QLabel { background-color: rgba(255, 255, 255, 0.05); padding: 8px; border-radius: 4px; }")
         info_layout.addWidget(cache_path_label)
+        
+        # 保存Roblox本地目录以供后续使用
+        self.roblox_local_dir = roblox_local_dir
 
         # 快速操作按钮
         quick_actions = QHBoxLayout()
@@ -182,13 +201,13 @@ class ClearCacheInterface(QWidget):
     
     def _openDirectory(self):
         """安全地打开缓存目录"""
-        if self.default_dir:
-            open_directory(self.default_dir)
+        if hasattr(self, 'roblox_local_dir') and os.path.exists(self.roblox_local_dir):
+            open_directory(self.roblox_local_dir)
             
     def _copyPathToClipboard(self):
         """安全地复制路径到剪贴板"""
-        if self._parent_window and hasattr(self._parent_window, 'copyPathToClipboard') and self.default_dir:
-            self._parent_window.copyPathToClipboard(self.default_dir)
+        if self._parent_window and hasattr(self._parent_window, 'copyPathToClipboard') and hasattr(self, 'roblox_local_dir'):
+            self._parent_window.copyPathToClipboard(self.roblox_local_dir)
             
     def _clearCache(self):
         """安全地调用清除缓存方法"""

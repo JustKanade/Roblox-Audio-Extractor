@@ -131,14 +131,14 @@ def _safely_apply_theme(window, theme_setting, config_manager):
                 logger.debug(f"应用自定义主题色: {theme_color_value}")
             else:
                 # 应用默认主题色
-                setThemeColor(QColor("#ffff893f"))
-                logger.debug("应用默认主题色: #ffff893f")
+                setThemeColor(QColor("#ffe8b3ff"))
+                logger.debug("应用默认主题色: #ffe8b3ff")
             
         except Exception as e:
             logger.error(f"应用主题颜色时出错: {e}")
             # 回退到默认颜色
             try:
-                setThemeColor(QColor("#ffff893f"))
+                setThemeColor(QColor("#ffe8b3ff"))
             except Exception:
                 pass
 

@@ -755,7 +755,7 @@ class MainWindow(FluentWindow):
             return
 
         # 创建并启动缓存清理线程
-        self.cache_clear_worker = CacheClearWorker(self.default_dir)
+        self.cache_clear_worker = CacheClearWorker()
 
         # 连接信号
         self.cache_clear_worker.progressUpdated.connect(self.updateCacheProgress)
@@ -881,8 +881,12 @@ class MainWindow(FluentWindow):
                 parent=self
             )
 
-    def clearHistory(self):
-        """清除提取历史"""
+    def clearHistory(self, record_type="all"):
+        """清除提取历史
+        
+        Args:
+            record_type: 要清除的记录类型，默认为'all'表示清除所有记录
+        """
         # 确认对话框
         result = MessageBox(
             lang.get("clear_history"),
@@ -891,24 +895,32 @@ class MainWindow(FluentWindow):
         )
 
         if not result.exec():
-            self.historyInterface.logHandler.info(lang.get("operation_cancelled"))
+            if hasattr(self.historyInterface, 'logHandler'):
+                self.historyInterface.logHandler.info(lang.get("operation_cancelled"))
             return
             
         try:
             # 清除历史记录
-            self.download_history.clear_history()
+            if record_type == "all":
+                self.download_history.clear_history()
+                message = lang.get("all_history_cleared")
+            else:
+                # 确保record_type是字符串类型
+                record_type_str = str(record_type)
+                self.download_history.clear_history(record_type_str)
+                message = lang.get("history_type_cleared").format(record_type_str.capitalize())
 
             # 延迟刷新界面，避免立即更新UI导致的问题
             QTimer.singleShot(100, self.historyInterface.refreshHistoryInterfaceAfterClear)
                 
             # 显示成功消息
             if hasattr(self.historyInterface, 'logHandler'):
-                self.historyInterface.logHandler.success(lang.get("history_cleared"))
+                self.historyInterface.logHandler.success(message)
 
             # 延迟显示通知，避免阻塞
             QTimer.singleShot(200, lambda: InfoBar.success(
                 title=lang.get("task_completed"),
-                content=lang.get('history_cleared'),
+                content=message,
                 orient=Qt.Horizontal,
                 isClosable=True,
                 position=InfoBarPosition.TOP,
@@ -919,7 +931,7 @@ class MainWindow(FluentWindow):
             # 更新提取界面的历史记录显示
             if hasattr(self, 'extractInterface') and hasattr(self.extractInterface, 'updateHistorySize'):
                 self.extractInterface.updateHistorySize()
-                
+        
         except Exception as e:
             # 显示错误消息
             if hasattr(self.historyInterface, 'logHandler'):

@@ -58,7 +58,7 @@ FLUENT_TRANSLATIONS = {
 }
 
 # 默认主题颜色 - 这个颜色永远不会被修改
-DEFAULT_THEME_COLOR = "#ff893f"
+DEFAULT_THEME_COLOR = "#e8b3ff"
 
 def get_text(key):
     """获取翻译文本，如果lang未初始化则使用默认值"""

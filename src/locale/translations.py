@@ -129,32 +129,36 @@ def get_translations():
                 CHINESE: "清除缓存"
             },
             'cache_description': {
-                ENGLISH: "Clear all audio cache files with 'oggs' in their names from the default cache directory.\n\nUse this when you want to extract audio from a specific game: clear the cache first, then run the game until it's fully loaded before extracting.",
-                CHINESE: "清除默认缓存目录中所有带'oggs'字样的音频缓存文件。\n\n当你想要提取某一特定游戏的音频时使用：先清除缓存，然后运行游戏直至完全加载后再进行提取。"
+                ENGLISH: "Clear Roblox database and storage cache to free up disk space. Extracted files will be preserved.",
+                CHINESE: "清除Roblox数据库和存储缓存，释放磁盘空间。提取的文件将被保留。"
+            },
+            'cache_details': {
+                ENGLISH: "This operation will clear:\n1. rbx-storage.db database file\n2. Contents of rbx-storage folder (except the extracted folder)",
+                CHINESE: "此操作将清除以下内容：\n1. rbx-storage.db 数据库文件\n2. rbx-storage 文件夹中的内容（除了extracted文件夹）"
             },
             'confirm_clear_cache': {
-                ENGLISH: "Are you sure you want to clear all audio cache files?\n\nThis operation cannot be undone.",
-                CHINESE: "确定要清除所有音频缓存文件吗？\n\n此操作无法撤销。"
+                ENGLISH: "Are you sure you want to clear Roblox database and storage cache?\n\nThis operation cannot be undone.",
+                CHINESE: "确定要清除Roblox数据库和存储缓存吗？\n\n此操作无法撤销。"
             },
             'cache_cleared': {
-                ENGLISH: "Successfully cleared {0} of {1} audio cache files.",
-                CHINESE: "成功清除了 {0} 个缓存文件，共 {1} 个。"
+                ENGLISH: "Successfully cleared {0} of {1} cache items.",
+                CHINESE: "成功清除了 {0} 个缓存项，共 {1} 个。"
             },
             'no_cache_found': {
-                ENGLISH: "No audio cache files found.",
-                CHINESE: "未找到音频缓存文件。"
+                ENGLISH: "No cache items found.",
+                CHINESE: "未找到缓存项。"
             },
             'clear_cache_failed': {
                 ENGLISH: "Failed to clear cache: {0}",
                 CHINESE: "清除缓存失败：{0}"
             },
             'cache_location': {
-                ENGLISH: "Cache Directory",
-                CHINESE: "缓存目录"
+                ENGLISH: "Cache Location",
+                CHINESE: "缓存位置"
             },
-            'cache_dir_not_found': {
-                ENGLISH: "Cache directory not found.",
-                CHINESE: "未找到缓存目录。"
+            'path_not_found': {
+                ENGLISH: "Roblox directory not found",
+                CHINESE: "未找到Roblox目录"
             },
             "error_occurred": {
                 ENGLISH: "An error occurred: {}",
@@ -180,9 +184,78 @@ def get_translations():
                 ENGLISH: "Extraction history has been cleared.",
                 CHINESE: "提取历史已清除。"
             },
+            "select_history_type_to_clear": {
+                ENGLISH: "Select which history records to clear:",
+                CHINESE: "选择要清除的历史记录类型:"
+            },
+            "all_history": {
+                ENGLISH: "All History Records",
+                CHINESE: "所有历史记录"
+            },
+            "all_history_cleared": {
+                ENGLISH: "All history records cleared successfully",
+                CHINESE: "所有历史记录已成功清除"
+            },
+            "history_type_cleared": {
+                ENGLISH: "{0} history records cleared successfully",
+                CHINESE: "{0}历史记录已成功清除"
+            },
+            "audio": {
+                ENGLISH: "Audio",
+                CHINESE: "音频"
+            },
+            "image": {
+                ENGLISH: "Image",
+                CHINESE: "图像"
+            },
+            "texture": {
+                ENGLISH: "Texture",
+                CHINESE: "纹理"
+            },
+            "model": {
+                ENGLISH: "Model",
+                CHINESE: "模型"
+            },
+            "other": {
+                ENGLISH: "Other",
+                CHINESE: "其他"
+            },
+            "audio_files": {
+                ENGLISH: "Audio files: {0}",
+                CHINESE: "音频文件数: {0}"
+            },
+            "image_files": {
+                ENGLISH: "Image files: {0}",
+                CHINESE: "图像文件数: {0}"
+            },
+            "texture_files": {
+                ENGLISH: "Texture files: {0}",
+                CHINESE: "纹理文件数: {0}"
+            },
+            "model_files": {
+                ENGLISH: "Model files: {0}",
+                CHINESE: "模型文件数: {0}"
+            },
+            "other_files": {
+                ENGLISH: "Other files: {0}",
+                CHINESE: "其他文件数: {0}"
+            },
             "operation_cancelled": {
                 ENGLISH: "Operation cancelled.",
                 CHINESE: "操作已取消。"
+            },
+            # 历史记录相关
+            "history_size": {
+                ENGLISH: "History size",
+                CHINESE: "历史记录数量"
+            },
+            "unique_contents": {
+                ENGLISH: "unique contents",
+                CHINESE: "唯一内容"
+            },
+            "files": {
+                ENGLISH: "files",
+                CHINESE: "文件"
             },
             # 数据库扫描相关翻译
             "scan_database": {

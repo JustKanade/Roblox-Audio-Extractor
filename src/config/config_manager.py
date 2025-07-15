@@ -39,7 +39,7 @@ class ConfigManager:
             "save_logs": False,  # 是否保存日志
             "auto_open_output_dir": True,  # 提取完成后是否自动打开输出目录
             "use_custom_theme_color": False,  # 是否使用自定义主题颜色
-            "theme_color": "#ff893f"  # 默认主题颜色
+            "theme_color": "#e8b3ff"  # 默认主题颜色
         }
 
         try:
@@ -119,7 +119,7 @@ class ConfigManager:
                 qfluent_config["QFluentWidgets"]["ThemeColor"] = theme_color
             else:
                 # 使用默认主题色 #ff0078d4
-                qfluent_config["QFluentWidgets"]["ThemeColor"] = "#ffff893f"
+                qfluent_config["QFluentWidgets"]["ThemeColor"] = "#ffe8b3ff"
             
             # 保存到PyQt-Fluent-Widgets配置文件
             os.makedirs(os.path.dirname(self.qfluent_config_file), exist_ok=True)
