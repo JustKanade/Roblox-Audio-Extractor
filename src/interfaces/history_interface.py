@@ -54,8 +54,8 @@ class HistoryInterface(QWidget):
         # 主内容容器
         content_widget = QWidget()
         content_layout = QVBoxLayout(content_widget)
-        content_layout.setContentsMargins(30, 30, 30, 30)
-        content_layout.setSpacing(20)
+        content_layout.setContentsMargins(20, 20, 20, 20)
+        content_layout.setSpacing(15)
 
         # 历史统计卡片
         stats_card = CardWidget()

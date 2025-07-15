@@ -51,8 +51,8 @@ class ClearCacheInterface(QWidget):
         content_widget = QWidget()
         content_layout = QVBoxLayout(content_widget)
         # 与Extract界面保持一致的边距和间隔
-        content_layout.setContentsMargins(30, 30, 30, 30)
-        content_layout.setSpacing(20)
+        content_layout.setContentsMargins(20, 20, 20, 20)
+        content_layout.setSpacing(15)
 
         # 缓存信息卡片
         info_card = CardWidget()

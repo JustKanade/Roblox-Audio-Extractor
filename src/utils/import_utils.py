@@ -62,8 +62,51 @@ def import_libs() -> Dict[str, Any]:
         _imported_modules['ThreadPoolExecutor'] = None
         print("警告: 无法导入模块 concurrent.futures")
     
+    # 添加对 PyQt5 和 qfluentwidgets 的支持
+    try:
+        # 重要的库先导入
+        import PyQt5
+        import qfluentwidgets
+        from PyQt5.QtWidgets import QApplication
+        from PyQt5.QtGui import QWheelEvent
+        from PyQt5.QtCore import Qt
+        
+        _imported_modules['PyQt5'] = PyQt5
+        _imported_modules['qfluentwidgets'] = qfluentwidgets
+        _imported_modules['QApplication'] = QApplication
+        
+        # 应用 QWheelEvent 补丁，修复在style_sheet.py中的错误
+        patch_qfluent_wheel_event()
+    except ImportError as e:
+        print(f"警告: 无法导入 PyQt5/qfluentwidgets: {e}")
+    
     _LIBS_IMPORTED = True
     return _imported_modules
+
+def patch_qfluent_wheel_event():
+    """
+    修复 qfluentwidgets 中的 QWheelEvent 错误
+    问题: style_sheet.py 中的 eventFilter 方法错误地尝试调用 QWheelEvent 的 propertyName 方法
+    """
+    try:
+        from PyQt5.QtGui import QWheelEvent
+        from qfluentwidgets.common.style_sheet import StyleSheetManager
+        
+        # 创建新的 eventFilter 函数
+        original_event_filter = StyleSheetManager.eventFilter
+        
+        def patched_filter(self, a0, a1):
+            # 如果是滚轮事件，直接返回 False，避免调用 propertyName
+            if isinstance(a1, QWheelEvent):
+                return False
+            # 否则使用原始方法
+            return original_event_filter(self, a0, a1)
+        
+        # 应用猴子补丁
+        StyleSheetManager.eventFilter = patched_filter
+        print("成功应用 QWheelEvent 补丁")
+    except Exception as e:
+        print(f"应用 QWheelEvent 补丁失败: {e}")
 
 def get_module(module_name: str) -> Any:
     """

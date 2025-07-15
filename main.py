@@ -110,15 +110,16 @@ class MainWindow(FluentWindow):
         # 确保在启动时同步配置到PyQt-Fluent-Widgets
         self.config_manager.sync_theme_to_qfluent()
         
-        # 打印配置文件内容，用于调试
-        print(f"QFluentWidgets配置文件路径: {self.config_manager.qfluent_config_file}")
-        if os.path.exists(self.config_manager.qfluent_config_file):
-            try:
-                with open(self.config_manager.qfluent_config_file, 'r', encoding='utf-8') as f:
-                    qfluent_config = json.load(f)
-                    print(f"QFluentWidgets配置内容: {qfluent_config}")
-            except Exception as e:
-                print(f"读取QFluentWidgets配置失败: {e}")
+        # 只有在debug模式开启时才输出调试信息
+        if self.config_manager.get("debug_mode_enabled", False):
+            print(f"QFluentWidgets配置文件路径: {self.config_manager.qfluent_config_file}")
+            if os.path.exists(self.config_manager.qfluent_config_file):
+                try:
+                    with open(self.config_manager.qfluent_config_file, 'r', encoding='utf-8') as f:
+                        qfluent_config = json.load(f)
+                        print(f"QFluentWidgets配置内容: {qfluent_config}")
+                except Exception as e:
+                    print(f"读取QFluentWidgets配置失败: {e}")
 
         # 初始化语言管理器
         global lang
@@ -184,11 +185,13 @@ class MainWindow(FluentWindow):
         # 应用窗口置顶设置
         always_on_top = self.config_manager.get("always_on_top", False)
         if always_on_top:
-            # 使用更长的延迟，确保窗口已完全初始化
-            print("窗口初始化时设置置顶")
             # 使用两段式延迟，先显示窗口，再设置置顶
             QTimer.singleShot(500, lambda: self.show())
             QTimer.singleShot(1500, lambda: apply_always_on_top(self, True))
+            
+            # 只有在debug模式开启时才输出调试信息
+            if self.config_manager.get("debug_mode_enabled", False):
+                print("窗口初始化时设置置顶")
             
         # 预加载其他主题样式，确保首次切换主题时流畅
         current_theme = self.config_manager.get("theme", "dark")
@@ -199,11 +202,14 @@ class MainWindow(FluentWindow):
 
     def applyThemeFromConfig(self):
         """从配置文件应用主题设置"""
-        # 打印当前配置状态
-        use_custom_theme_color = self.config_manager.get("use_custom_theme_color", False)
-        theme_color = self.config_manager.get("theme_color", "#0078d4")
-        theme_mode = self.config_manager.get("theme", "dark")
-        print(f"应用主题前配置状态: theme={theme_mode}, use_custom_theme_color={use_custom_theme_color}, theme_color={theme_color}")
+        # 只有在debug模式开启时才输出调试信息
+        if self.config_manager.get("debug_mode_enabled", False):
+            use_custom_theme_color = self.config_manager.get("use_custom_theme_color", False)
+            theme_color = self.config_manager.get("theme_color", "#0078d4")
+            theme_mode = self.config_manager.get("theme", "dark")
+            print(f"QFluentWidgets配置文件路径: {self.config_manager.qfluent_config_file}")
+            print(f"QFluentWidgets配置内容: {self.config_manager.get_qfluent_config()}")
+            print(f"应用主题前配置状态: theme={theme_mode}, use_custom_theme_color={use_custom_theme_color}, theme_color={theme_color}")
         
         # 使用主题管理器应用主题
         apply_theme_from_config(self, self.config_manager, CentralLogHandler.getInstance())
@@ -410,10 +416,9 @@ class MainWindow(FluentWindow):
             if current_widget == self.historyInterface:
                 self.historyInterface.refreshHistoryInterface()
             # 如果切换到提取界面，更新线程数设置
-            elif current_widget == self.extractInterface and hasattr(current_widget, 'threadsSpinBox'):
-                # 从配置中读取默认线程数并更新界面
-                default_threads = self.config_manager.get("threads", min(32, multiprocessing.cpu_count() * 2))
-                current_widget.threadsSpinBox.setValue(default_threads)
+            elif current_widget == self.extractInterface:
+                if hasattr(current_widget, 'updateThreadsValue'):
+                    current_widget.updateThreadsValue()
         except Exception as e:
             pass
           
@@ -662,7 +667,7 @@ class MainWindow(FluentWindow):
                     if os.path.exists(audio_dir):
                         open_success = open_directory(audio_dir)
                         if open_success:
-                            self.extractLogHandler.info(lang.get("opening_output_dir", "音频总文件夹"))
+                            self.extractLogHandler.info(lang.get("opening_output_dir", lang.get("audio_folder")))
                         else:
                             self.extractLogHandler.info(lang.get("manual_navigate", audio_dir))
                     else:

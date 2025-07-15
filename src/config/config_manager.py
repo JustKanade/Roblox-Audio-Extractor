@@ -148,4 +148,15 @@ class ConfigManager:
     def set(self, key, value):
         """设置配置值"""
         self.config[key] = value
-        self.save_config() 
+        self.save_config()
+        
+    def get_qfluent_config(self):
+        """获取QFluentWidgets配置文件内容"""
+        try:
+            if os.path.exists(self.qfluent_config_file):
+                with open(self.qfluent_config_file, 'r', encoding='utf-8') as f:
+                    return json.load(f)
+            return {"QFluentWidgets": {"ThemeMode": "Auto", "ThemeColor": "#ffff893f"}}
+        except Exception as e:
+            logger.error(f"读取QFluentWidgets配置失败: {e}")
+            return {"QFluentWidgets": {"ThemeMode": "Auto", "ThemeColor": "#ffff893f"}} 

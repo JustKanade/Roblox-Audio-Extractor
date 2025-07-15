@@ -104,8 +104,8 @@ class SettingsInterface(QWidget):
         # 主内容容器
         content_widget = QWidget()
         content_layout = QVBoxLayout(content_widget)
-        content_layout.setContentsMargins(30, 30, 30, 30)
-        content_layout.setSpacing(20)
+        content_layout.setContentsMargins(20, 20, 20, 20)
+        content_layout.setSpacing(15)
 
         # 应用设置组
         app_group = QWidget()
@@ -564,6 +564,12 @@ class SettingsInterface(QWidget):
             self.config_manager.set("threads", value)
             if hasattr(self, 'settingsLogHandler'):
                 self.settingsLogHandler.info(self.get_text("saved", f"{self.get_text('default_threads')}: {value}"))
+            
+            # 同步更新提取界面的线程数设置
+            if self._parent_window and hasattr(self._parent_window, 'extractInterface'):
+                extract_interface = self._parent_window.extractInterface
+                if hasattr(extract_interface, 'updateThreadsValue'):
+                    extract_interface.updateThreadsValue()
                 
     def browseOutputDirectory(self):
         """浏览输出目录对话框"""

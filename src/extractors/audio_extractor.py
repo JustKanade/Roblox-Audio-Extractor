@@ -16,11 +16,18 @@ import queue
 import datetime
 import traceback
 import multiprocessing
-from typing import Dict, List, Any, Set, Optional
+from typing import Dict, List, Any, Set, Optional, Tuple, Union
 from enum import Enum, auto
 
 # 统一的日志设置
 logger = logging.getLogger(__name__)
+
+# 尝试导入sqlite3
+try:
+    import sqlite3
+except ImportError:
+    # 如果内置sqlite3不可用，则设为None
+    sqlite3 = None
 
 # 分类方法枚举
 class ClassificationMethod(Enum):
@@ -188,7 +195,8 @@ class RobloxAudioExtractor:
     def __init__(self, base_dir: str, num_threads: int = 1, keywords: Optional[List[str]] = None,
                  download_history: Optional[ExtractedHistory] = None,
                  classification_method: ClassificationMethod = ClassificationMethod.DURATION,
-                 custom_output_dir: Optional[str] = None):
+                 custom_output_dir: Optional[str] = None,
+                 scan_db: bool = True):
         """初始化提取器"""
         self.base_dir = os.path.abspath(base_dir)
         self.num_threads = num_threads or min(32, multiprocessing.cpu_count() * 2)
@@ -197,6 +205,7 @@ class RobloxAudioExtractor:
         self.classification_method = classification_method
         self.cancelled = False
         self._cancel_check_fn = None  # 用于存储外部取消检查函数
+        self.scan_db = scan_db  # 是否扫描数据库
 
         # 初始化库相关属性
         self.gzip = None
@@ -266,6 +275,27 @@ class RobloxAudioExtractor:
             os.makedirs(path, exist_ok=True)
             self.category_dirs[category] = path
             
+        # 数据库相关
+        self.db_path = self._get_roblox_db_path()
+        self.db_storage_folder = self._get_roblox_db_storage_folder()
+        
+    def _get_roblox_db_path(self) -> str:
+        """获取Roblox数据库路径"""
+        local_appdata = os.environ.get('LOCALAPPDATA', '')
+        if not local_appdata:
+            return ""
+            
+        db_path = os.path.join(local_appdata, "Roblox", "rbx-storage.db")
+        return db_path if os.path.exists(db_path) else ""
+        
+    def _get_roblox_db_storage_folder(self) -> str:
+        """获取Roblox数据库存储文件夹路径"""
+        local_appdata = os.environ.get('LOCALAPPDATA', '')
+        if not local_appdata:
+            return ""
+            
+        storage_folder = os.path.join(local_appdata, "Roblox", "rbx-storage")
+        return storage_folder if os.path.isdir(storage_folder) else ""
 
     def _import_libs(self):
         """按需导入库，减少启动时间和内存占用"""
@@ -308,6 +338,7 @@ class RobloxAudioExtractor:
         output_path_norm = os.path.normpath(self.output_dir)
         audio_path_norm = os.path.normpath(self.audio_dir)
 
+        # 扫描文件系统
         def scan_directory(dir_path):
             """递归扫描目录"""
             try:
@@ -321,35 +352,99 @@ class RobloxAudioExtractor:
                                 audio_path_norm not in entry_path_norm):
                                 scan_directory(entry.path)
                         elif entry.is_file():
-                            # 如果文件名中不包含关键字且不以.ogg结尾
+                            # 检查是否已经是.ogg文件，跳过它们
                             name = entry.name
-                            # 检查是否已经是.ogg文件
                             if name.endswith('.ogg'):
                                 continue
                                 
-                            # 检查是否包含任何关键字
-                            should_skip = False
-                            for keyword in self.keywords:
-                                if keyword in name:
-                                    should_skip = True
-                                    break
-                                    
-                            if not should_skip:
-                                # 使用stat获取文件大小而不是打开文件
-                                try:
-                                    stat_info = entry.stat()
-                                    if stat_info.st_size >= 10:  # 如果文件大小至少为10字节
-                                        files_to_process.append(entry.path)
-                                except OSError:
-                                    # 忽略无法访问的文件
-                                    pass
+                            # 直接处理所有文件，不进行关键字过滤
+                            # 使用stat获取文件大小
+                            try:
+                                stat_info = entry.stat()
+                                # 检查文件大小，确保不是空文件
+                                if stat_info.st_size >= 10:  # 如果文件大小至少为10字节
+                                    files_to_process.append(entry.path)
+                            except OSError:
+                                # 忽略无法访问的文件
+                                pass
             except (PermissionError, OSError):
                 # 忽略无法访问的目录
                 pass
 
-        # 开始扫描
+        # 开始扫描文件系统
         scan_directory(self.base_dir)
+        
+        # 如果启用了数据库扫描且sqlite3可用且数据库路径存在
+        if self.scan_db and sqlite3 is not None and self.db_path and os.path.exists(self.db_path):
+            db_files = self.scan_roblox_database()
+            files_to_process.extend(db_files)
+        elif self.scan_db and (sqlite3 is None or not os.path.exists(self.db_path)):
+            print(f"! 数据库扫描已启用但无法执行: {'SQLite3模块不可用' if sqlite3 is None else f'数据库路径不存在: {self.db_path}'}")
+            
         return files_to_process
+        
+    def scan_roblox_database(self) -> List[str]:
+        """扫描Roblox数据库获取缓存文件"""
+        db_files = []
+        
+        if not self.db_path or not os.path.exists(self.db_path):
+            print(f"! Roblox数据库路径不可用: {self.db_path}")
+            return db_files
+            
+        if sqlite3 is None:
+            print(f"! SQLite3模块不可用，无法扫描数据库")
+            return db_files
+            
+        try:
+            # 创建临时目录存储数据库内容
+            db_temp_dir = os.path.join(self.output_dir, "db_temp")
+            os.makedirs(db_temp_dir, exist_ok=True)
+            
+            # 连接数据库
+            conn = sqlite3.connect(self.db_path)
+            cursor = conn.cursor()
+            
+            # 查询文件表
+            cursor.execute("SELECT id, content FROM files")
+            rows = cursor.fetchall()
+            
+            for row in rows:
+                try:
+                    file_id, content = row
+                    
+                    if not file_id:
+                        continue
+                        
+                    # 将ID转换为十六进制字符串
+                    file_hash = ''.join([f'{b:02x}' for b in file_id])
+                    
+                    # 创建临时文件路径
+                    temp_file_path = os.path.join(db_temp_dir, file_hash)
+                    
+                    # 如果content为None，尝试从文件系统获取
+                    if content is None and self.db_storage_folder:
+                        # 获取前两个字符作为子目录
+                        subdir = file_hash[:2]
+                        file_path = os.path.join(self.db_storage_folder, subdir, file_hash)
+                        
+                        if os.path.exists(file_path):
+                            db_files.append(file_path)
+                    else:
+                        # 将内容写入临时文件
+                        with open(temp_file_path, 'wb') as f:
+                            f.write(content)
+                        db_files.append(temp_file_path)
+                except Exception as e:
+                    self._log_error("db_scan", f"处理数据库记录时出错: {str(e)}")
+                    
+            conn.close()
+            print(f"✓ 从数据库中找到 {len(db_files)} 个文件")
+            
+        except Exception as e:
+            self._log_error("db_scan", f"扫描数据库时出错: {str(e)}")
+            print(f"! 扫描数据库时出错: {str(e)}")
+            
+        return db_files
 
     def process_files(self) -> Dict[str, Any]:
         """处理目录中的文件"""
@@ -511,88 +606,132 @@ class RobloxAudioExtractor:
         
         提取流程:
         1. 定位原始文件：从Roblox缓存目录中读取文件
-        2. 文件识别：通过读取前2048字节检查是否包含OggS或ID3头部标识
-        3. 提取音频数据：找到OggS或ID3头部在文件中的位置，从该位置开始截取剩余所有数据
+        2. 文件识别：检查是否包含OggS或ID3头部或MP3标识
+        3. 提取音频数据：找到音频头部在文件中的位置，从该位置开始截取剩余所有数据
         4. 保存文件：将提取的数据保存为带有.ogg扩展名的新文件
         """
         try:
+            # 确保必要的库已导入
+            if not self._libs_imported:
+                self._import_libs()
+                
             # 使用二进制模式打开文件
             with open(file_path, 'rb') as f:
-                # 读取前2048字节检查OGG头或ID3头
-                header_chunk = f.read(2048)
+                # 读取前4KB作为头部块，足够识别大部分格式
+                header_chunk = f.read(4096)
                 
-                # 查找OggS头部标识
+                # 检测OGG格式 (OggS头)
                 ogg_start = header_chunk.find(b'OggS')
-                
                 if ogg_start >= 0:
-                    # 如果在前2048字节中找到了OggS头部，重置文件指针到头部位置
+                    # 如果找到OggS头部，重置文件指针并读取
                     f.seek(ogg_start)
-                    # 从该位置开始截取剩余所有数据
                     return f.read()
                 
-                # 查找ID3头部标识
+                # 检测MP3格式 (ID3标签或MP3帧头)
                 id3_start = header_chunk.find(b'ID3')
+                mp3_frame_sync = False
                 
-                if id3_start >= 0:
-                    # 在ID3后寻找OggS头部
+                # 检查MP3帧同步标记 (0xFF 0xEx)
+                for i in range(len(header_chunk) - 1):
+                    if (header_chunk[i] & 0xFF) == 0xFF and (header_chunk[i + 1] & 0xE0) == 0xE0:
+                        mp3_frame_sync = True
+                        break
+                
+                if id3_start >= 0 or mp3_frame_sync:
+                    # 先检查ID3标签后是否有OggS头
+                    if id3_start >= 0:
+                        # 读取整个文件
+                        f.seek(0)
+                        content = f.read()
+                        
+                        # 在ID3之后查找OggS
+                        post_id3_content = content[id3_start:]
+                        ogg_in_id3 = post_id3_content.find(b'OggS')
+                        if ogg_in_id3 >= 0:
+                            # 找到嵌入在ID3后的OggS
+                            return post_id3_content[ogg_in_id3:]
+                    
+                    # 如果没有找到嵌入的OggS，这可能是MP3文件
+                    # 重新读取整个文件作为MP3返回
                     f.seek(0)
-                    content = f.read()
-                    
-                    # 在ID3标记之后查找OggS
-                    post_id3_content = content[id3_start:]
-                    ogg_in_id3 = post_id3_content.find(b'OggS')
-                    
-                    if ogg_in_id3 >= 0:
-                        # 找到了嵌入在ID3之后的OggS
-                        return post_id3_content[ogg_in_id3:]
+                    return f.read()
                 
-                # 如果前2048字节中没有找到OggS头部，检查整个文件
+                # 检查整个文件
                 f.seek(0)
                 content = f.read()
                 
-                # 查找OggS标记
+                # 再次查找OggS头
                 ogg_start = content.find(b'OggS')
                 if ogg_start >= 0:
-                    # 从OggS头部位置开始截取剩余所有数据
                     return content[ogg_start:]
                 
-                # 尝试作为gzip解压
-                try:
-                    if not self._libs_imported:
-                        self._import_libs()
-                    # 尝试解压
-                    decompressed = self.gzip.decompress(content)
-                    ogg_start = decompressed.find(b'OggS')
-                    if ogg_start >= 0:
-                        return decompressed[ogg_start:]
-                except Exception:
-                    pass
+                # 如果文件很小，可能是压缩格式，尝试解压
+                if len(content) < 1024 * 1024 and self.gzip is not None:  # 小于1MB的文件才尝试解压
+                    try:
+                        # 尝试gzip解压
+                        decompressed = self.gzip.decompress(content)
+                        # 查找解压后内容中的OggS
+                        ogg_start = decompressed.find(b'OggS')
+                        if ogg_start >= 0:
+                            return decompressed[ogg_start:]
+                        
+                        # 查找解压后内容中的ID3或MP3帧
+                        id3_start = decompressed.find(b'ID3')
+                        if id3_start >= 0:
+                            return decompressed[id3_start:]
+                        
+                        # 检查MP3帧同步标记
+                        for i in range(len(decompressed) - 1):
+                            if (decompressed[i] & 0xFF) == 0xFF and (decompressed[i + 1] & 0xE0) == 0xE0:
+                                return decompressed[i:]
+                    except Exception:
+                        pass
 
             return None
-        except Exception:
+        except Exception as e:
+            self._log_error(file_path, f"Error extracting content: {str(e)}")
             return None
 
     def _is_valid_ogg(self, content: bytes) -> bool:
-        """检查内容是否为有效的OGG文件"""
+        """检查内容是否为有效的OGG或MP3文件"""
+        if len(content) < 4:
+            return False
+            
         # 检查OGG文件头
-        return content[:4] == b'OggS'
+        if content[:4] == b'OggS':
+            return True
+            
+        # 检查MP3文件头 (ID3标签)
+        if content[:3] == b'ID3':
+            return True
+            
+        # 检查MP3帧同步标记
+        if (content[0] & 0xFF) == 0xFF and (content[1] & 0xE0) == 0xE0:
+            return True
+            
+        return False
 
     def _get_audio_duration(self, file_path: str) -> float:
         """获取音频文件的时长（秒）"""
         try:
+            # 确保必要的库已导入
             if not self._libs_imported:
                 self._import_libs()
+                
+            # 检查subprocess模块是否可用
+            if self.subprocess is None:
+                return 0.0
 
             subprocess_flags = 0
-            if os.name == 'nt':  # Windows
+            if os.name == 'nt' and hasattr(self.subprocess, 'CREATE_NO_WINDOW'):
                 subprocess_flags = self.subprocess.CREATE_NO_WINDOW
 
             # 使用ffprobe获取音频时长
             result = self.subprocess.run(
                 ["ffprobe", "-v", "quiet", "-show_entries", "format=duration",
                  "-of", "csv=p=0", file_path],
-                stdout=self.subprocess.PIPE,
-                stderr=self.subprocess.PIPE,
+                stdout=self.subprocess.PIPE if hasattr(self.subprocess, 'PIPE') else None,
+                stderr=self.subprocess.PIPE if hasattr(self.subprocess, 'PIPE') else None,
                 creationflags=subprocess_flags,
                 text=True
             )
@@ -627,13 +766,22 @@ class RobloxAudioExtractor:
     def _save_ogg_file(self, source_path: str, content: bytes) -> Optional[str]:
         """保存提取的OGG文件 - 使用更高效的文件写入"""
         try:
-            # 生成临时文件名
+            # 获取源文件的原始文件名
             base_name = os.path.basename(source_path)
+            # 添加时间戳，但不再添加随机后缀
             timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+            
+            # 确保库已导入
             if not self._libs_imported:
                 self._import_libs()
-            random_suffix = ''.join(self.random.choices(self.string.ascii_lowercase + self.string.digits, k=4))
-            temp_name = f"temp_{base_name}_{timestamp}_{random_suffix}.ogg"
+                
+            # 检查shutil模块是否可用
+            if self.shutil is None:
+                import shutil
+                self.shutil = shutil
+                
+            # 创建临时文件
+            temp_name = f"temp_{base_name}.ogg"
             temp_path = os.path.join(self.output_dir, temp_name)
 
             # 保存临时文件
@@ -651,13 +799,16 @@ class RobloxAudioExtractor:
 
             output_dir = self.category_dirs[category]
 
-            # 生成最终文件名
-            output_name = f"{base_name}_{timestamp}_{random_suffix}.ogg"
+            # 生成最终文件名 - 只使用原始文件名和时间戳
+            output_name = f"{base_name}.ogg"
             output_path = os.path.join(output_dir, output_name)
+            
+            # 如果文件已存在，添加时间戳以避免覆盖
+            if os.path.exists(output_path):
+                output_name = f"{base_name}_{timestamp}.ogg"
+                output_path = os.path.join(output_dir, output_name)
 
             # 移动文件到正确的类别目录
-            if not self._libs_imported:
-                self._import_libs()
             self.shutil.move(temp_path, output_path)
 
             return output_path

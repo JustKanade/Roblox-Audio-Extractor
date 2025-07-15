@@ -22,16 +22,18 @@ class ExtractionWorker(QThread):
     finished = pyqtSignal(dict)  # 完成信号(结果字典)
     logMessage = pyqtSignal(str, str)  # 日志消息信号(消息, 类型)
 
-    def __init__(self, base_dir, num_threads, download_history, classification_method, custom_output_dir=None):
+    def __init__(self, base_dir, num_threads, download_history, classification_method, custom_output_dir=None, scan_db=True):
         super().__init__()
         self.base_dir = base_dir
         self.num_threads = num_threads
         self.download_history = download_history
         self.classification_method = classification_method
         self.custom_output_dir = custom_output_dir
+        self.scan_db = scan_db
         self.is_cancelled = False
         self.total_files = 0
         self.processed_count = 0
+        self.actual_extracted_count = 0  # 记录实际提取的文件数量
         self.extractor = None
 
     def run(self):
@@ -48,7 +50,8 @@ class ExtractionWorker(QThread):
                 ["oggs", "ID3"],  # 同时搜索 "oggs" 和 "ID3"
                 self.download_history,
                 self.classification_method,
-                self.custom_output_dir  # 传入自定义输出路径
+                self.custom_output_dir,  # 传入自定义输出路径
+                self.scan_db  # 是否扫描数据库
             )
 
             # 设置取消检查函数
@@ -81,9 +84,16 @@ class ExtractionWorker(QThread):
 
             # 创建一个用于更新进度的函数
             original_process_file = self.extractor.process_file
+            self.actual_extracted_count = 0  # 记录实际提取的文件数量
 
             def process_file_with_progress(file_path):
+                # 调用原始处理方法，获取处理结果
                 result = original_process_file(file_path)
+                # 如果成功提取了文件，增加实际提取计数
+                if result:
+                    self.actual_extracted_count += 1
+                
+                # 更新总处理进度
                 self.processed_count += 1
                 elapsed = time.time() - start_time
                 speed = self.processed_count / elapsed if elapsed > 0 else 0
@@ -100,6 +110,9 @@ class ExtractionWorker(QThread):
 
             # 进行处理
             extraction_result = self.extractor.process_files()
+            
+            # 使用实际提取的文件数量更新结果
+            extraction_result["processed"] = self.actual_extracted_count
 
             # 确保历史记录被保存 - 修复：强制保存历史记录
             if self.download_history:

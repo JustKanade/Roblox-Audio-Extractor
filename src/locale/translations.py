@@ -184,6 +184,71 @@ def get_translations():
                 ENGLISH: "Operation cancelled.",
                 CHINESE: "操作已取消。"
             },
+            # 数据库扫描相关翻译
+            "scan_database": {
+                ENGLISH: "Scan Roblox Database",
+                CHINESE: "扫描Roblox数据库"
+            },
+            "scan_database_info": {
+                ENGLISH: "Scan rbx-storage.db to extract more audio files",
+                CHINESE: "扫描rbx-storage.db以提取更多音频文件"
+            },
+            "extract_audio_title": {
+                ENGLISH: "Extract Audio Files",
+                CHINESE: "提取音频文件"
+            },
+            "input_dir": {
+                ENGLISH: "Input Directory:",
+                CHINESE: "输入目录:"
+            },
+            "input_dir_placeholder": {
+                ENGLISH: "Path to Roblox cache directory",
+                CHINESE: "Roblox缓存目录路径"
+            },
+            "browse": {
+                ENGLISH: "Browse",
+                CHINESE: "浏览"
+            },
+            "by_duration": {
+                ENGLISH: "By Duration",
+                CHINESE: "按时长"
+            },
+            "by_size": {
+                ENGLISH: "By Size",
+                CHINESE: "按大小"
+            },
+            "threads": {
+                ENGLISH: "Threads:",
+                CHINESE: "线程数:"
+            },
+            "threads_info": {
+                ENGLISH: "Higher values may increase speed but use more CPU",
+                CHINESE: "更高的值可能提高速度但会使用更多CPU"
+            },
+            "log_title": {
+                ENGLISH: "Extraction Log",
+                CHINESE: "提取日志"
+            },
+            "preparing": {
+                ENGLISH: "Preparing...",
+                CHINESE: "准备中..."
+            },
+            "error": {
+                ENGLISH: "Error",
+                CHINESE: "错误"
+            },
+            "invalid_dir": {
+                ENGLISH: "Invalid directory path",
+                CHINESE: "无效的目录路径"
+            },
+            "info_duration_categories": {
+                ENGLISH: "Files will be sorted into folders by duration",
+                CHINESE: "文件将按时长分类到不同文件夹"
+            },
+            "info_size_categories": {
+                ENGLISH: "Files will be sorted into folders by file size",
+                CHINESE: "文件将按文件大小分类到不同文件夹"
+            },
             # 新增分类方法相关翻译
             "classification_method": {
                 ENGLISH: "Classification Method",
@@ -503,6 +568,10 @@ def get_translations():
             "ogg_category": {
                 ENGLISH: "OGG",
                 CHINESE: "OGG"
+            },
+            "audio_folder": {
+                ENGLISH: "Audio folder",
+                CHINESE: "音频总文件夹"
             },
             "readme_title": {
                 ENGLISH: "Roblox Audio Files - Classification Information",
