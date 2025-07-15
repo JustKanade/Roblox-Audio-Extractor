@@ -14,77 +14,11 @@ from PyQt5.QtWidgets import (
 )
 from PyQt5.QtCore import Qt, pyqtSignal
 
-try:
-    from qfluentwidgets import (
-        CardWidget, SwitchButton, FluentIcon, InfoBar,
-        InfoBarPosition, StrongBodyLabel, BodyLabel, IconWidget,
-        PrimaryPushButton
-    )
-    HAS_FLUENT_WIDGETS = True
-except ImportError:
-    print("无法导入qfluentwidgets组件，将使用基本的控件替代")
-    from PyQt5.QtWidgets import QLabel, QFrame, QCheckBox, QPushButton
-    HAS_FLUENT_WIDGETS = False
-    
-    # 创建替代类
-    class CardWidget(QFrame):
-        def __init__(self, parent=None):
-            super().__init__(parent)
-            self.setStyleSheet("background-color: #f5f5f5; border-radius: 8px; padding: 8px;")
-    
-    class SwitchButton(QCheckBox):
-        checkedChanged = pyqtSignal(bool)
-        
-        def __init__(self, parent=None):
-            super().__init__(parent)
-            self.toggled.connect(self.checkedChanged)
-            
-        def setChecked(self, checked):
-            super().setChecked(checked)
-            
-        def isChecked(self):
-            return super().isChecked()
-    
-    class FluentIcon:
-        COMMAND_PROMPT = None
-    
-    class InfoBar:
-        @staticmethod
-        def success(title, content, orient=1, isClosable=True, position=None, duration=3000, parent=None):
-            pass
-        
-        @staticmethod
-        def warning(title, content, orient=1, isClosable=True, position=None, duration=3000, parent=None):
-            pass
-        
-        @staticmethod
-        def error(title, content, orient=1, isClosable=True, position=None, duration=3000, parent=None):
-            pass
-        
-        @staticmethod
-        def info(title, content, orient=1, isClosable=True, position=None, duration=3000, parent=None):
-            pass
-    
-    class InfoBarPosition:
-        TOP = None
-    
-    class StrongBodyLabel(QLabel):
-        def __init__(self, text, parent=None):
-            super().__init__(text, parent)
-            self.setStyleSheet("font-weight: bold; font-size: 14px;")
-            
-    class BodyLabel(QLabel):
-        def __init__(self, text, parent=None):
-            super().__init__(text, parent)
-    
-    class IconWidget(QWidget):
-        def __init__(self, icon, parent=None):
-            super().__init__(parent)
-            self.setFixedSize(16, 16)
-            
-    class PrimaryPushButton(QPushButton):
-        def __init__(self, text, parent=None):
-            super().__init__(text, parent)
+from qfluentwidgets import (
+    CardWidget, SwitchButton, FluentIcon, InfoBar,
+    InfoBarPosition, StrongBodyLabel, BodyLabel, IconWidget,
+    PrimaryPushButton
+)
 
 
 class DebugModeCard(CardWidget):
@@ -124,7 +58,10 @@ class DebugModeCard(CardWidget):
         title_icon.setFixedSize(16, 16)
         
         # 标题
-        title_label = StrongBodyLabel(self.lang.get("debug_mode") if self.lang else "Debug模式")
+        title_text = "Debug模式"
+        if self.lang and hasattr(self.lang, 'get'):
+            title_text = self.lang.get("debug_mode") or title_text
+        title_label = StrongBodyLabel(title_text)
         
         title_layout.addWidget(title_icon)
         title_layout.addWidget(title_label)
@@ -135,7 +72,11 @@ class DebugModeCard(CardWidget):
         # Debug模式选项
         debug_mode_row = QHBoxLayout()
         
-        debug_mode_label = BodyLabel(self.lang.get("debug_mode_description") if self.lang else "在程序崩溃时生成错误日志")
+        description_text = "在程序崩溃时生成错误日志"
+        if self.lang and hasattr(self.lang, 'get'):
+            description_text = self.lang.get("debug_mode_description") or description_text
+        debug_mode_label = BodyLabel(description_text)
+        
         self.debug_mode_switch = SwitchButton()
         self.debug_mode_switch.setChecked(self.debug_mode_enabled)
         self.debug_mode_switch.checkedChanged.connect(self.on_debug_mode_changed)
@@ -150,7 +91,10 @@ class DebugModeCard(CardWidget):
         button_row = QHBoxLayout()
         button_row.setContentsMargins(0, 5, 0, 0)  # 添加一点上边距
         
-        open_logs_button = PrimaryPushButton(self.lang.get("open_error_logs_folder") if self.lang else "打开错误日志文件夹")
+        button_text = "打开错误日志文件夹"
+        if self.lang and hasattr(self.lang, 'get'):
+            button_text = self.lang.get("open_error_logs_folder") or button_text
+        open_logs_button = PrimaryPushButton(button_text)
         open_logs_button.clicked.connect(self.open_error_logs_folder)
         
         button_row.addStretch()
@@ -164,12 +108,27 @@ class DebugModeCard(CardWidget):
         if self.config_manager:
             self.config_manager.set("debug_mode_enabled", is_checked)
             
+        # 获取标题和内容
+        if is_checked:
+            title = "Debug模式已启用"
+            content = "程序将在崩溃时生成详细的错误日志"
+            
+            if self.lang and hasattr(self.lang, 'get'):
+                title = self.lang.get("debug_mode_enabled") or title
+                content = self.lang.get("debug_mode_enabled_tip") or content
+        else:
+            title = "Debug模式已禁用"
+            content = "程序崩溃时不会生成错误日志"
+            
+            if self.lang and hasattr(self.lang, 'get'):
+                title = self.lang.get("debug_mode_disabled") or title
+                content = self.lang.get("debug_mode_disabled_tip") or content
+                
         # 显示提示消息
         self.showMessage(
             "success" if is_checked else "info",
-            self.lang.get("debug_mode_enabled" if is_checked else "debug_mode_disabled") if self.lang else "Debug模式已启用" if is_checked else "Debug模式已禁用",
-            self.lang.get("debug_mode_enabled_tip" if is_checked else "debug_mode_disabled_tip") if self.lang else 
-            "程序将在崩溃时生成详细的错误日志" if is_checked else "程序崩溃时不会生成错误日志"
+            title,
+            content
         )
     
     def open_error_logs_folder(self):
@@ -194,20 +153,28 @@ class DebugModeCard(CardWidget):
                 subprocess.Popen(['open', crash_log_dir])
             else:  # Linux
                 subprocess.Popen(['xdg-open', crash_log_dir])
+            
+            # 获取成功消息
+            title = "打开文件夹成功"
+            content = "已打开错误日志文件夹"
+            
+            if self.lang and hasattr(self.lang, 'get'):
+                title = self.lang.get("open_folder_success") or title
+                content = self.lang.get("error_logs_folder_opened") or content
                 
             # 显示成功消息
-            self.showMessage(
-                "success",
-                self.lang.get("open_folder_success") if self.lang else "打开文件夹成功",
-                self.lang.get("error_logs_folder_opened") if self.lang else "已打开错误日志文件夹"
-            )
+            self.showMessage("success", title, content)
         except Exception as e:
+            # 获取错误消息
+            title = "打开文件夹失败"
+            content = f"打开文件夹时出错: {str(e)}"
+            
+            if self.lang and hasattr(self.lang, 'get'):
+                title = self.lang.get("open_folder_failed") or title
+                content = self.lang.get("error_opening_folder", str(e)) or content
+            
             # 显示错误消息
-            self.showMessage(
-                "error",
-                self.lang.get("open_folder_failed") if self.lang else "打开文件夹失败",
-                self.lang.get("error_opening_folder", str(e)) if self.lang else f"打开文件夹时出错: {str(e)}"
-            )
+            self.showMessage("error", title, content)
     
     def showMessage(self, msg_type, title, content):
         """显示消息通知
@@ -217,18 +184,15 @@ class DebugModeCard(CardWidget):
             title: 标题
             content: 内容
         """
-        # 创建orient参数，避免直接使用Qt.Horizontal
-        orient = 1  # Qt.Horizontal的值是1
-        
         # 获取主窗口作为父控件，确保消息显示在最上方
         main_window = self.window()
         parent = main_window if main_window else self
         
         if msg_type == "success":
-            InfoBar.success(title, content, orient=orient, isClosable=True, position=InfoBarPosition.TOP, duration=3000, parent=parent)
+            InfoBar.success(title, content, orient=Qt.Horizontal, isClosable=True, position=InfoBarPosition.TOP, duration=3000, parent=parent)
         elif msg_type == "warning":
-            InfoBar.warning(title, content, orient=orient, isClosable=True, position=InfoBarPosition.TOP, duration=3000, parent=parent)
+            InfoBar.warning(title, content, orient=Qt.Horizontal, isClosable=True, position=InfoBarPosition.TOP, duration=3000, parent=parent)
         elif msg_type == "error":
-            InfoBar.error(title, content, orient=orient, isClosable=True, position=InfoBarPosition.TOP, duration=3000, parent=parent)
+            InfoBar.error(title, content, orient=Qt.Horizontal, isClosable=True, position=InfoBarPosition.TOP, duration=3000, parent=parent)
         else:
-            InfoBar.info(title, content, orient=orient, isClosable=True, position=InfoBarPosition.TOP, duration=3000, parent=parent) 
+            InfoBar.info(title, content, orient=Qt.Horizontal, isClosable=True, position=InfoBarPosition.TOP, duration=3000, parent=parent) 

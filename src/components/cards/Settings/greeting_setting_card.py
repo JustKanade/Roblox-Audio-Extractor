@@ -12,72 +12,10 @@ from PyQt5.QtWidgets import (
 )
 from PyQt5.QtCore import Qt, pyqtSignal
 
-try:
-    from qfluentwidgets import (
-        CardWidget, SwitchButton, FluentIcon, InfoBar,
-        InfoBarPosition, StrongBodyLabel, BodyLabel, IconWidget
-    )
-    HAS_FLUENT_WIDGETS = True
-except ImportError:
-    print("无法导入qfluentwidgets组件，将使用基本的控件替代")
-    from PyQt5.QtWidgets import QLabel, QFrame, QCheckBox
-    HAS_FLUENT_WIDGETS = False
-    
-    # 创建替代类
-    class CardWidget(QFrame):
-        def __init__(self, parent=None):
-            super().__init__(parent)
-            self.setStyleSheet("background-color: #f5f5f5; border-radius: 8px; padding: 8px;")
-    
-    class SwitchButton(QCheckBox):
-        checkedChanged = pyqtSignal(bool)
-        
-        def __init__(self, parent=None):
-            super().__init__(parent)
-            self.toggled.connect(self.checkedChanged)
-            
-        def setChecked(self, checked):
-            super().setChecked(checked)
-            
-        def isChecked(self):
-            return super().isChecked()
-    
-    class FluentIcon:
-        HEART = None
-    
-    class InfoBar:
-        @staticmethod
-        def success(title, content, orient=1, isClosable=True, position=None, duration=3000, parent=None):
-            pass
-        
-        @staticmethod
-        def warning(title, content, orient=1, isClosable=True, position=None, duration=3000, parent=None):
-            pass
-        
-        @staticmethod
-        def error(title, content, orient=1, isClosable=True, position=None, duration=3000, parent=None):
-            pass
-        
-        @staticmethod
-        def info(title, content, orient=1, isClosable=True, position=None, duration=3000, parent=None):
-            pass
-    
-    class InfoBarPosition:
-        TOP = None
-    
-    class StrongBodyLabel(QLabel):
-        def __init__(self, text, parent=None):
-            super().__init__(text, parent)
-            self.setStyleSheet("font-weight: bold; font-size: 14px;")
-            
-    class BodyLabel(QLabel):
-        def __init__(self, text, parent=None):
-            super().__init__(text, parent)
-    
-    class IconWidget(QWidget):
-        def __init__(self, icon, parent=None):
-            super().__init__(parent)
-            self.setFixedSize(16, 16)
+from qfluentwidgets import (
+    CardWidget, SwitchButton, FluentIcon, InfoBar,
+    InfoBarPosition, StrongBodyLabel, BodyLabel, IconWidget
+)
 
 # 导入语言管理器
 try:
@@ -159,7 +97,7 @@ class GreetingSettingCard(CardWidget):
     def _get_text(self, key, default=""):
         """获取翻译文本"""
         global lang
-        if lang:
+        if lang and hasattr(lang, 'get'):
             return lang.get(key, default)
         
         # 默认文本（中文）

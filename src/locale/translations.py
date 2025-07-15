@@ -469,8 +469,8 @@ def get_translations():
                 CHINESE: "稍后重启"
             },
             "about_description": {
-                ENGLISH: "An open-source tool for extracting audio files from Roblox cache. Files can be classified by audio duration or file size.",
-                CHINESE: "一个用于从 Roblox 缓存中提取音频文件的开源工具。文件可以按音频时长或文件大小分类。"
+                ENGLISH: "An open-source tool for extracting resource files from Roblox cache.",
+                CHINESE: "一个用于从 Roblox 缓存中提取缓存资源的开源工具。"
             },
             "features": {
                 ENGLISH: "Features",
@@ -485,12 +485,12 @@ def get_translations():
                 CHINESE: "重复检测"
             },
             "feature_3": {
-                ENGLISH: "Audio classification by duration or size",
-                CHINESE: "按时长或大小分类音频"
+                ENGLISH: "Multiple classification methods",
+                CHINESE: "多种分类方法"
             },
             "feature_4": {
-                ENGLISH: "Automatic MP3 conversion",
-                CHINESE: "自动 MP3 转换"
+                ENGLISH: "Automatic conversion",
+                CHINESE: "自动转换"
             },
             "default_dir": {
                 ENGLISH: "Default directory",
@@ -921,7 +921,7 @@ def get_translations():
             },
             "check_update_now": {
                 ENGLISH: "Check Now",
-                CHINESE: "立即检查更新"
+                CHINESE: "检查更新"
             },
             "checking_update": {
                 ENGLISH: "Checking for updates...",

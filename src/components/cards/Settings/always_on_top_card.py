@@ -13,72 +13,10 @@ from PyQt5.QtWidgets import (
 )
 from PyQt5.QtCore import Qt, pyqtSignal
 
-try:
-    from qfluentwidgets import (
-        CardWidget, SwitchButton, FluentIcon, InfoBar,
-        InfoBarPosition, StrongBodyLabel, BodyLabel, IconWidget
-    )
-    HAS_FLUENT_WIDGETS = True
-except ImportError:
-    print("无法导入qfluentwidgets组件，将使用基本的控件替代")
-    from PyQt5.QtWidgets import QLabel, QFrame, QCheckBox
-    HAS_FLUENT_WIDGETS = False
-    
-    # 创建替代类
-    class CardWidget(QFrame):
-        def __init__(self, parent=None):
-            super().__init__(parent)
-            self.setStyleSheet("background-color: #f5f5f5; border-radius: 8px; padding: 8px;")
-    
-    class SwitchButton(QCheckBox):
-        checkedChanged = pyqtSignal(bool)
-        
-        def __init__(self, parent=None):
-            super().__init__(parent)
-            self.toggled.connect(self.checkedChanged)
-            
-        def setChecked(self, checked):
-            super().setChecked(checked)
-            
-        def isChecked(self):
-            return super().isChecked()
-    
-    class FluentIcon:
-        PIN = None
-    
-    class InfoBar:
-        @staticmethod
-        def success(title, content, orient=1, isClosable=True, position=None, duration=3000, parent=None):
-            pass
-        
-        @staticmethod
-        def warning(title, content, orient=1, isClosable=True, position=None, duration=3000, parent=None):
-            pass
-        
-        @staticmethod
-        def error(title, content, orient=1, isClosable=True, position=None, duration=3000, parent=None):
-            pass
-        
-        @staticmethod
-        def info(title, content, orient=1, isClosable=True, position=None, duration=3000, parent=None):
-            pass
-    
-    class InfoBarPosition:
-        TOP = None
-    
-    class StrongBodyLabel(QLabel):
-        def __init__(self, text, parent=None):
-            super().__init__(text, parent)
-            self.setStyleSheet("font-weight: bold; font-size: 14px;")
-            
-    class BodyLabel(QLabel):
-        def __init__(self, text, parent=None):
-            super().__init__(text, parent)
-    
-    class IconWidget(QWidget):
-        def __init__(self, icon, parent=None):
-            super().__init__(parent)
-            self.setFixedSize(16, 16)
+from qfluentwidgets import (
+    CardWidget, SwitchButton, FluentIcon, InfoBar,
+    InfoBarPosition, StrongBodyLabel, BodyLabel, IconWidget
+)
 
 # 导入语言管理器
 try:
@@ -247,23 +185,33 @@ class AlwaysOnTopCard(CardWidget):
         else:
             # 移除置顶标志
             flags &= ~Qt.WindowStaysOnTopHint
-        
-        # 应用新标志 - 这会导致窗口重建
+            
+        # 应用修改后的窗口标志
         window.setWindowFlags(flags)
         
         # 恢复窗口状态
-        if was_maximized:
-            window.showMaximized()
-        else:
+        if was_visible:
             window.setGeometry(geometry)
-            if was_visible:
-                window.show()
+            window.show()
+            if was_maximized:
+                window.showMaximized()
     
     def _get_text(self, key, default=""):
-        """获取本地化文本"""
-        if lang:
+        """获取翻译文本"""
+        global lang
+        if lang and hasattr(lang, 'get'):
             return lang.get(key, default)
-        return default
+        
+        # 默认文本（中文）
+        texts = {
+            "always_on_top": "总是置顶窗口",
+            "always_on_top_description": "程序窗口将始终显示在其他窗口之上",
+            "always_on_top_enabled": "总是置顶已启用",
+            "always_on_top_disabled": "总是置顶已禁用",
+            "always_on_top_enabled_tip": "窗口将始终显示在其他窗口之上",
+            "always_on_top_disabled_tip": "窗口将遵循正常的窗口叠放顺序"
+        }
+        return texts.get(key, default)
     
     def showMessage(self, msg_type, title, content):
         """显示消息通知
@@ -273,18 +221,15 @@ class AlwaysOnTopCard(CardWidget):
             title: 标题
             content: 内容
         """
-        # 创建orient参数，避免直接使用Qt.Horizontal
-        orient = 1  # Qt.Horizontal的值是1
-        
         # 获取主窗口作为父控件，确保消息显示在最上方
         main_window = self.window()
         parent = main_window if main_window else self
         
         if msg_type == "success":
-            InfoBar.success(title, content, orient=orient, isClosable=True, position=InfoBarPosition.TOP, duration=3000, parent=parent)
+            InfoBar.success(title, content, orient=Qt.Horizontal, isClosable=True, position=InfoBarPosition.TOP, duration=3000, parent=parent)
         elif msg_type == "warning":
-            InfoBar.warning(title, content, orient=orient, isClosable=True, position=InfoBarPosition.TOP, duration=3000, parent=parent)
+            InfoBar.warning(title, content, orient=Qt.Horizontal, isClosable=True, position=InfoBarPosition.TOP, duration=3000, parent=parent)
         elif msg_type == "error":
-            InfoBar.error(title, content, orient=orient, isClosable=True, position=InfoBarPosition.TOP, duration=3000, parent=parent)
+            InfoBar.error(title, content, orient=Qt.Horizontal, isClosable=True, position=InfoBarPosition.TOP, duration=3000, parent=parent)
         else:
-            InfoBar.info(title, content, orient=orient, isClosable=True, position=InfoBarPosition.TOP, duration=3000, parent=parent) 
+            InfoBar.info(title, content, orient=Qt.Horizontal, isClosable=True, position=InfoBarPosition.TOP, duration=3000, parent=parent) 

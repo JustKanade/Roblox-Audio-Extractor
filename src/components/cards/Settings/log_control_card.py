@@ -9,72 +9,15 @@ import os
 from datetime import datetime
 import traceback
 from PyQt5.QtWidgets import (
-    QVBoxLayout, QHBoxLayout, QFileDialog, QWidget,
-    QPushButton, QLabel, QMessageBox
+    QVBoxLayout, QHBoxLayout, QFileDialog, QWidget
 )
 from PyQt5.QtCore import Qt
 
-try:
-    from qfluentwidgets import (
-        CardWidget, PushButton, FluentIcon, MessageBox,
-        InfoBar, InfoBarPosition, StrongBodyLabel
-    )
-    HAS_FLUENT_WIDGETS = True
-except ImportError:
-    print("无法导入qfluentwidgets组件，将使用基本的控件替代")
-    HAS_FLUENT_WIDGETS = False
+from qfluentwidgets import (
+    CardWidget, PushButton, FluentIcon, MessageBox,
+    InfoBar, InfoBarPosition, StrongBodyLabel
+)
     
-    # 创建替代类
-    class CardWidget(QWidget):
-        def __init__(self, parent=None):
-            super().__init__(parent)
-            # 添加基本样式
-            self.setStyleSheet("""
-                background-color: #f5f5f5;
-                border-radius: 8px;
-                padding: 8px;
-            """)
-    
-    class PushButton(QPushButton):
-        def __init__(self, icon=None, text="", parent=None):
-            super().__init__(text, parent)
-    
-    class FluentIcon:
-        SAVE = None
-        DELETE = None
-    
-    class MessageBox:
-        def __init__(self, title, content, parent=None):
-            self.mb = QMessageBox(QMessageBox.Information, title, content, QMessageBox.Yes | QMessageBox.No, parent)
-        
-        def exec(self):
-            return self.mb.exec() == QMessageBox.Yes
-    
-    class InfoBar:
-        @staticmethod
-        def success(title, content, orient=1, isClosable=True, position=None, duration=3000, parent=None):
-            QMessageBox.information(parent, title, content)
-        
-        @staticmethod
-        def warning(title, content, orient=1, isClosable=True, position=None, duration=3000, parent=None):
-            QMessageBox.warning(parent, title, content)
-        
-        @staticmethod
-        def error(title, content, orient=1, isClosable=True, position=None, duration=3000, parent=None):
-            QMessageBox.critical(parent, title, content)
-        
-        @staticmethod
-        def info(title, content, orient=1, isClosable=True, position=None, duration=3000, parent=None):
-            QMessageBox.information(parent, title, content)
-    
-    class InfoBarPosition:
-        TOP = None
-    
-    class StrongBodyLabel(QLabel):
-        def __init__(self, text, parent=None):
-            super().__init__(text, parent)
-            self.setStyleSheet("font-weight: bold; font-size: 14px;")
-
 class LogControlCard(CardWidget):
     """日志控制卡片，提供导出和清空日志功能"""
     
@@ -226,18 +169,15 @@ class LogControlCard(CardWidget):
             title: 标题
             content: 内容
         """
-        # 创建orient参数，避免直接使用Qt.Horizontal
-        orient = 1  # Qt.Horizontal的值是1
-        
         # 获取主窗口作为父控件，确保消息显示在最上方
         main_window = self.window()
         parent = main_window if main_window else self
         
         if msg_type == "success":
-            InfoBar.success(title, content, orient=orient, isClosable=True, position=InfoBarPosition.TOP, duration=3000, parent=parent)
+            InfoBar.success(title, content, orient=Qt.Horizontal, isClosable=True, position=InfoBarPosition.TOP, duration=3000, parent=parent)
         elif msg_type == "warning":
-            InfoBar.warning(title, content, orient=orient, isClosable=True, position=InfoBarPosition.TOP, duration=3000, parent=parent)
+            InfoBar.warning(title, content, orient=Qt.Horizontal, isClosable=True, position=InfoBarPosition.TOP, duration=3000, parent=parent)
         elif msg_type == "error":
-            InfoBar.error(title, content, orient=orient, isClosable=True, position=InfoBarPosition.TOP, duration=3000, parent=parent)
+            InfoBar.error(title, content, orient=Qt.Horizontal, isClosable=True, position=InfoBarPosition.TOP, duration=3000, parent=parent)
         else:
-            InfoBar.info(title, content, orient=orient, isClosable=True, position=InfoBarPosition.TOP, duration=3000, parent=parent) 
+            InfoBar.info(title, content, orient=Qt.Horizontal, isClosable=True, position=InfoBarPosition.TOP, duration=3000, parent=parent) 

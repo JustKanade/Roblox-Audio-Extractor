@@ -362,14 +362,6 @@ class MainWindow(FluentWindow):
         self.addSubInterface(self.aboutInterface, FluentIcon.INFO, lang.get("about"),
                              position=NavigationItemPosition.BOTTOM)
 
-        # 初始化各个界面 - 去除setupHomeInterface的调用
-        # 移除setupExtractInterface调用，因为已经使用了ExtractAudioInterface类
-        # 移除setupExtractImagesInterface调用，因为已经使用了ExtractImagesInterface类
-        # 移除setupExtractTexturesInterface调用，因为已经使用了ExtractTexturesInterface类
-        # 移除setupClearCacheInterface调用，因为已经使用了ClearCacheInterface类
-        # 移除setupHistoryInterface调用，因为已经使用了HistoryInterface类
-        # 移除setupSettingsInterface的调用，因为已经使用了SettingsInterface类
-        # 移除setupAboutInterface的调用，因为已经使用了AboutInterface类
 
         # 设置默认界面 - 使用界面对象而不是文本
         self.switchTo(self.homeInterface)
