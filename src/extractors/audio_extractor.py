@@ -43,6 +43,7 @@ class ExtractedHistory:
         """初始化提取历史"""
         self.history_file = history_file
         self.file_hashes: Set[str] = set()
+        self.content_hashes: Set[str] = set()  # 新增：专门存储内容哈希
         self.modified = False  # 跟踪是否修改过，避免不必要的保存
         self._lock = threading.Lock()  # 添加锁以保证线程安全
         self.load_history()
@@ -57,12 +58,29 @@ class ExtractedHistory:
                     with self._lock:
                         if isinstance(data, list):
                             self.file_hashes = set(data)
-                        elif isinstance(data, dict) and 'hashes' in data:
-                            self.file_hashes = set(data['hashes'])
+                            # 从现有哈希中提取内容哈希部分
+                            self.content_hashes = set()
+                            for hash_value in self.file_hashes:
+                                parts = hash_value.split('_')
+                                if len(parts) > 1:
+                                    self.content_hashes.add(parts[0])
+                        elif isinstance(data, dict):
+                            if 'hashes' in data:
+                                self.file_hashes = set(data['hashes'])
+                            if 'content_hashes' in data:
+                                self.content_hashes = set(data['content_hashes'])
+                            else:
+                                # 从文件哈希中提取内容哈希
+                                self.content_hashes = set()
+                                for hash_value in self.file_hashes:
+                                    parts = hash_value.split('_')
+                                    if len(parts) > 1:
+                                        self.content_hashes.add(parts[0])
         except Exception as e:
             logger.error(f"Error loading history: {str(e)}")
             with self._lock:
                 self.file_hashes = set()
+                self.content_hashes = set()
 
     def save_history(self) -> None:
         """将历史记录保存到JSON文件"""
@@ -72,11 +90,14 @@ class ExtractedHistory:
                 # 确保目录存在
                 os.makedirs(os.path.dirname(self.history_file), exist_ok=True)
 
-                # 保存历史记录
+                # 保存历史记录，使用新的格式包含内容哈希
                 with open(self.history_file, 'w') as f:
-                    json.dump(list(self.file_hashes), f)
+                    json.dump({
+                        'hashes': list(self.file_hashes),
+                        'content_hashes': list(self.content_hashes)
+                    }, f)
                 self.modified = False
-                logger.info(f"History saved: {len(self.file_hashes)} files recorded")
+                logger.info(f"History saved: {len(self.file_hashes)} files recorded, {len(self.content_hashes)} unique content hashes")
             except Exception as e:
                 logger.error(f"Error saving history: {str(e)}")
 
@@ -85,6 +106,10 @@ class ExtractedHistory:
         with self._lock:
             if file_hash not in self.file_hashes:
                 self.file_hashes.add(file_hash)
+                # 提取内容哈希部分
+                parts = file_hash.split('_')
+                if len(parts) > 1:
+                    self.content_hashes.add(parts[0])
                 self.modified = True
 
     def is_processed(self, file_hash: str) -> bool:
@@ -92,12 +117,18 @@ class ExtractedHistory:
         with self._lock:
             return file_hash in self.file_hashes
 
+    def is_content_processed(self, content_hash: str) -> bool:
+        """检查内容哈希是否已处理"""
+        with self._lock:
+            return content_hash in self.content_hashes
+
     def clear_history(self) -> None:
         """清除所有提取历史"""
         with self._lock:
             try:
                 # 清空内存中的历史记录
                 self.file_hashes = set()
+                self.content_hashes = set()
                 self.modified = True
 
                 # 确保目录存在
@@ -105,7 +136,7 @@ class ExtractedHistory:
 
                 # 写入空的历史记录文件
                 with open(self.history_file, 'w') as f:
-                    json.dump([], f)
+                    json.dump({'hashes': [], 'content_hashes': []}, f)
 
                 logger.info("History cleared successfully")
             except Exception as e:
@@ -396,8 +427,9 @@ class RobloxAudioExtractor:
             return db_files
             
         try:
-            # 创建临时目录存储数据库内容
-            db_temp_dir = os.path.join(self.output_dir, "db_temp")
+            # 创建临时目录存储数据库内容，确保有唯一标识
+            db_scan_time = int(time.time())
+            db_temp_dir = os.path.join(self.output_dir, f"db_temp_{db_scan_time}")
             os.makedirs(db_temp_dir, exist_ok=True)
             
             # 连接数据库
@@ -407,6 +439,10 @@ class RobloxAudioExtractor:
             # 查询文件表
             cursor.execute("SELECT id, content FROM files")
             rows = cursor.fetchall()
+            
+            # 记录处理过的内容哈希，避免数据库中的重复
+            content_hashes = set()
+            skipped_count = 0
             
             for row in rows:
                 try:
@@ -418,9 +454,6 @@ class RobloxAudioExtractor:
                     # 将ID转换为十六进制字符串
                     file_hash = ''.join([f'{b:02x}' for b in file_id])
                     
-                    # 创建临时文件路径
-                    temp_file_path = os.path.join(db_temp_dir, file_hash)
-                    
                     # 如果content为None，尝试从文件系统获取
                     if content is None and self.db_storage_folder:
                         # 获取前两个字符作为子目录
@@ -428,24 +461,59 @@ class RobloxAudioExtractor:
                         file_path = os.path.join(self.db_storage_folder, subdir, file_hash)
                         
                         if os.path.exists(file_path):
+                            # 读取文件内容的前8KB用于哈希计算
+                            try:
+                                with open(file_path, 'rb') as f:
+                                    content_head = f.read(8192)
+                                if content_head:
+                                    content_hash = hashlib.md5(content_head).hexdigest()
+                                    # 检查是否已在历史记录中
+                                    if self.download_history and self._is_content_hash_in_history(content_hash):
+                                        skipped_count += 1
+                                        continue
+                            except Exception:
+                                pass
+                            
                             db_files.append(file_path)
-                    else:
-                        # 将内容写入临时文件
-                        with open(temp_file_path, 'wb') as f:
-                            f.write(content)
-                        db_files.append(temp_file_path)
+                    elif content:
+                        # 计算内容哈希，避免重复提取
+                        content_hash = hashlib.md5(content[:8192]).hexdigest()  # 使用前8KB计算哈希
+                        
+                        # 检查是否已在历史记录中
+                        if self.download_history and self._is_content_hash_in_history(content_hash):
+                            skipped_count += 1
+                            continue
+                        
+                        if content_hash not in content_hashes:
+                            content_hashes.add(content_hash)
+                            
+                            # 创建临时文件路径，添加内容哈希以确保唯一性
+                            temp_file_path = os.path.join(db_temp_dir, f"{content_hash}_{file_hash}")
+                            
+                            # 将内容写入临时文件
+                            with open(temp_file_path, 'wb') as f:
+                                f.write(content)
+                            db_files.append(temp_file_path)
                 except Exception as e:
                     self._log_error("db_scan", f"处理数据库记录时出错: {str(e)}")
                     
             conn.close()
-            print(f"✓ 从数据库中找到 {len(db_files)} 个文件")
+            print(f"✓ 从数据库中找到 {len(db_files)} 个文件，跳过 {skipped_count} 个已处理文件")
             
         except Exception as e:
             self._log_error("db_scan", f"扫描数据库时出错: {str(e)}")
             print(f"! 扫描数据库时出错: {str(e)}")
             
         return db_files
-
+        
+    def _is_content_hash_in_history(self, content_hash: str) -> bool:
+        """检查内容哈希是否已在历史记录中"""
+        if not self.download_history:
+            return False
+            
+        # 使用新的直接内容哈希检查
+        return self.download_history.is_content_processed(content_hash)
+        
     def process_files(self) -> Dict[str, Any]:
         """处理目录中的文件"""
         # 扫描文件并记录开始时间
@@ -525,6 +593,21 @@ class RobloxAudioExtractor:
         # 如果提取历史记录可用，保存它
         if self.download_history:
             self.download_history.save_history()
+            
+        # 清理临时文件夹
+        try:
+            # 查找并删除所有db_temp_开头的临时目录
+            for item in os.listdir(self.output_dir):
+                temp_dir_path = os.path.join(self.output_dir, item)
+                if os.path.isdir(temp_dir_path) and item.startswith("db_temp_"):
+                    try:
+                        import shutil
+                        shutil.rmtree(temp_dir_path, ignore_errors=True)
+                        print(f"✓ 已清理临时文件夹: {item}")
+                    except Exception as e:
+                        print(f"! 清理临时文件夹失败: {str(e)}")
+        except Exception as e:
+            print(f"! 清理临时文件过程中出错: {str(e)}")
 
         # 计算结果统计
         total_time = time.time() - processing_start
@@ -557,15 +640,7 @@ class RobloxAudioExtractor:
             return False
 
         try:
-            # 计算文件哈希
-            file_hash = self._get_file_hash(file_path)
-
-            # 如果文件已经处理过了，则跳过
-            if self.download_history and self.download_history.is_processed(file_hash):
-                self.stats.increment('already_processed')
-                return False
-
-            # 尝试读取文件内容
+            # 读取文件内容
             file_content = self._extract_ogg_content(file_path)
             if not file_content:
                 return False
@@ -573,9 +648,24 @@ class RobloxAudioExtractor:
             # 确保是合法的OGG文件头
             if not self._is_valid_ogg(file_content):
                 return False
+                
+            # 计算内容哈希
+            content_hash = hashlib.md5(file_content[:8192]).hexdigest()
+            
+            # 先检查内容是否已在历史记录中
+            if self.download_history and self.download_history.is_content_processed(content_hash):
+                self.stats.increment('already_processed')
+                return False
+                
+            # 计算文件哈希（包含内容和路径信息）
+            file_hash = self._get_file_hash(file_path)
+            
+            # 检查完整文件哈希是否已处理过
+            if self.download_history and self.download_history.is_processed(file_hash):
+                self.stats.increment('already_processed')
+                return False
 
-            # 计算内容哈希以检测重复
-            content_hash = hashlib.md5(file_content).hexdigest()
+            # 检查当前批次是否有重复
             if self.hash_cache.is_duplicate(content_hash):
                 self.stats.increment('duplicate_files')
                 return False
@@ -825,10 +915,22 @@ class RobloxAudioExtractor:
 
     def _get_file_hash(self, file_path: str) -> str:
         """计算文件的哈希值"""
-        # 使用文件路径和修改时间作为简单哈希，避免读取文件内容
         try:
-            file_stat = os.stat(file_path)
-            return hashlib.md5(f"{file_path}_{file_stat.st_size}_{file_stat.st_mtime}".encode()).hexdigest()
+            # 首先读取文件内容的前8KB用于哈希计算
+            # 对于音频文件，开头部分通常包含足够的唯一特征
+            with open(file_path, 'rb') as f:
+                content_head = f.read(8192)  # 读取前8KB
+            
+            if content_head:
+                # 将文件内容的哈希与文件路径结合，确保唯一性
+                # 使用内容作为主要哈希依据，但仍然包含路径信息
+                content_hash = hashlib.md5(content_head).hexdigest()
+                path_hash = hashlib.md5(file_path.encode()).hexdigest()[:8]
+                return f"{content_hash}_{path_hash}"
+            else:
+                # 如果无法读取内容，退回到使用文件信息
+                file_stat = os.stat(file_path)
+                return hashlib.md5(f"{file_path}_{file_stat.st_size}_{file_stat.st_mtime}".encode()).hexdigest()
         except Exception:
             # 如果无法获取文件信息，使用文件路径
             return hashlib.md5(file_path.encode()).hexdigest()

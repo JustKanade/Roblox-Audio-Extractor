@@ -102,6 +102,36 @@ class ExtractAudioInterface(QWidget):
 
         settings_layout.addLayout(path_layout)
 
+        # 添加历史记录大小信息
+        history_layout = QHBoxLayout()
+        history_layout.setSpacing(10)
+        
+        history_icon = IconWidget(FluentIcon.HISTORY, self)
+        history_icon.setFixedSize(16, 16)
+        history_layout.addWidget(history_icon)
+        
+        # 显示历史记录大小
+        history_size = 0
+        content_size = 0
+        if self.download_history:
+            history_size = self.download_history.get_history_size()
+            if hasattr(self.download_history, 'content_hashes'):
+                content_size = len(self.download_history.content_hashes)
+                
+        self.historyCountLabel = CaptionLabel(
+            f"{self.get_text('history_size')}: {history_size} {self.get_text('files')}, "
+            f"{content_size} {self.get_text('unique_contents')}"
+        )
+        history_layout.addWidget(self.historyCountLabel)
+        
+        # 添加清除历史按钮
+        self.clearHistoryBtn = PushButton(self.get_text("clear_history"))
+        self.clearHistoryBtn.setIcon(FluentIcon.DELETE)
+        self.clearHistoryBtn.clicked.connect(self.clearHistory)
+        history_layout.addWidget(self.clearHistoryBtn)
+        
+        settings_layout.addLayout(history_layout)
+
         # 添加分类方法选择
         classification_layout = QVBoxLayout()  # 改为垂直布局
         classification_layout.setSpacing(8)
@@ -432,18 +462,21 @@ class ExtractAudioInterface(QWidget):
         # 重置进度条为0而不是100
         self.updateProgressBar(0)
         self.updateProgressLabel(self.get_text("ready"))
+        
+        # 更新历史记录大小显示
+        self.updateHistorySize()
 
         if result.get("success", False):
             # 显示提取结果
             if "processed" in result and result["processed"] > 0:
-                self.extractLogHandler.success(self.get_text("extraction_complete"))
-                self.extractLogHandler.info(self.get_text("processed", result['processed']))
-                self.extractLogHandler.info(self.get_text("skipped_duplicates", result.get('duplicates', 0)))
-                self.extractLogHandler.info(self.get_text("skipped_already_processed", result.get('already_processed', 0)))
-                self.extractLogHandler.info(self.get_text("errors", result.get('errors', 0)))
-                self.extractLogHandler.info(self.get_text("time_spent", result.get('duration', 0)))
-                self.extractLogHandler.info(self.get_text("files_per_sec", result.get('files_per_second', 0)))
-                self.extractLogHandler.info(self.get_text("output_dir", result.get('output_dir', '')))
+                self.handleExtractionLog(self.get_text("extraction_complete"), "success")
+                self.handleExtractionLog(self.get_text("processed", result['processed']), "info")
+                self.handleExtractionLog(self.get_text("skipped_duplicates", result.get('duplicates', 0)), "info")
+                self.handleExtractionLog(self.get_text("skipped_already_processed", result.get('already_processed', 0)), "info")
+                self.handleExtractionLog(self.get_text("errors", result.get('errors', 0)), "info")
+                self.handleExtractionLog(self.get_text("time_spent", result.get('duration', 0)), "info")
+                self.handleExtractionLog(self.get_text("files_per_sec", result.get('files_per_second', 0)), "info")
+                self.handleExtractionLog(self.get_text("output_dir", result.get('output_dir', '')), "info")
 
                 # 输出目录
                 final_dir = result.get("output_dir", "")
@@ -588,3 +621,61 @@ class ExtractAudioInterface(QWidget):
             saved_threads = self.config_manager.get("threads", default_threads)
             if hasattr(self, 'threads_spin'):
                 self.threads_spin.setValue(saved_threads) 
+
+    def clearHistory(self):
+        """清除提取历史记录"""
+        if not self.download_history:
+            self.handleExtractionLog(self.get_text("history_not_available"), "error")
+            return
+            
+        # 确认对话框
+        result = MessageBox(
+            self.get_text("confirm"),
+            self.get_text("clear_history_confirm"),
+            self._parent_window or self
+        )
+
+        if result.exec():
+            try:
+                # 清除历史记录
+                self.download_history.clear_history()
+                
+                # 更新历史记录大小显示
+                self.updateHistorySize()
+                
+                # 显示成功消息
+                self.handleExtractionLog(self.get_text("history_cleared"), "success")
+                
+                InfoBar.success(
+                    self.get_text("success"),
+                    self.get_text("history_cleared"),
+                    duration=3000,
+                    position=InfoBarPosition.TOP,
+                    parent=self._parent_window or self
+                )
+            except Exception as e:
+                # 显示错误消息
+                self.handleExtractionLog(f"{self.get_text('clear_history_failed')}: {str(e)}", "error")
+                
+                InfoBar.error(
+                    self.get_text("error"),
+                    f"{self.get_text('clear_history_failed')}: {str(e)}",
+                    duration=3000,
+                    position=InfoBarPosition.TOP,
+                    parent=self._parent_window or self
+                )
+    
+    def updateHistorySize(self):
+        """更新历史记录大小显示"""
+        if not self.download_history:
+            return
+            
+        history_size = self.download_history.get_history_size()
+        content_size = 0
+        if hasattr(self.download_history, 'content_hashes'):
+            content_size = len(self.download_history.content_hashes)
+            
+        self.historyCountLabel.setText(
+            f"{self.get_text('history_size')}: {history_size} {self.get_text('files')}, "
+            f"{content_size} {self.get_text('unique_contents')}"
+        ) 

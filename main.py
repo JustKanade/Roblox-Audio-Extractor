@@ -900,7 +900,7 @@ class MainWindow(FluentWindow):
 
             # 延迟刷新界面，避免立即更新UI导致的问题
             QTimer.singleShot(100, self.historyInterface.refreshHistoryInterfaceAfterClear)
-
+                
             # 显示成功消息
             if hasattr(self.historyInterface, 'logHandler'):
                 self.historyInterface.logHandler.success(lang.get("history_cleared"))
@@ -915,6 +915,11 @@ class MainWindow(FluentWindow):
                 duration=3000,
                 parent=self
             ))
+            
+            # 更新提取界面的历史记录显示
+            if hasattr(self, 'extractInterface') and hasattr(self.extractInterface, 'updateHistorySize'):
+                self.extractInterface.updateHistorySize()
+                
         except Exception as e:
             # 显示错误消息
             if hasattr(self.historyInterface, 'logHandler'):
