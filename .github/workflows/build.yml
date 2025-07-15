@@ -153,22 +153,24 @@ jobs:
             --windows-icon-from-ico=res/icons/logo.ico `
             --include-data-dir=res=res/ `
             --include-data-dir=src=src/ `
-            --output-dir=dist `
+            --output-dir=. `
             --assume-yes-for-downloads `
             --enable-plugin=pyqt5 `
             --follow-imports `
             main.py
           
-          # 重命名输出目录中的可执行文件
-          $outputDir = "main.dist"
-          if (Test-Path -Path $outputDir) {
+          # 检查输出目录并移动文件
+          if (Test-Path -Path "main.dist") {
             if (-not (Test-Path -Path dist)) {
               New-Item -ItemType Directory -Path dist
             }
-            Rename-Item -Path "$outputDir\main.exe" -NewName "$name.exe"
-            Copy-Item -Path "$outputDir\$name.exe" -Destination "dist\" -Force
+            Rename-Item -Path "main.dist\main.exe" -NewName "$name.exe"
+            Copy-Item -Path "main.dist\$name.exe" -Destination "dist\" -Force
+            # 复制所有依赖文件
+            Copy-Item -Path "main.dist\*" -Destination "dist\" -Recurse -Force -Exclude "$name.exe"
           } else {
-            Write-Error "构建输出目录 $outputDir 不存在"
+            Write-Error "构建输出目录 main.dist 不存在"
+            Get-ChildItem -Path . -Directory | ForEach-Object { Write-Host $_.FullName }
             exit 1
           }
       - uses: actions/upload-artifact@v4
@@ -212,19 +214,31 @@ jobs:
           python -m nuitka --standalone \
             --include-data-dir=res=res/ \
             --include-data-dir=src=src/ \
-            --output-dir=dist \
+            --output-dir=. \
             --assume-yes-for-downloads \
             --enable-plugin=pyqt5 \
             --follow-imports \
             main.py
           
-          # 重命名并移动输出文件
+          # 检查输出目录并移动文件
           mkdir -p dist
           if [ -d "main.dist" ]; then
-            mv main.dist/main dist/$name
-            chmod +x dist/$name
+            # 在Linux上，可执行文件名可能是main或main.bin
+            if [ -f "main.dist/main" ]; then
+              mv "main.dist/main" "dist/$name"
+            elif [ -f "main.dist/main.bin" ]; then
+              mv "main.dist/main.bin" "dist/$name"
+            else
+              echo "无法找到可执行文件"
+              ls -la main.dist/
+              exit 1
+            fi
+            # 复制所有依赖文件
+            cp -r main.dist/* dist/ 2>/dev/null || true
+            chmod +x "dist/$name"
           else
             echo "构建输出目录 main.dist 不存在"
+            find . -type d -maxdepth 1
             exit 1
           fi
       - uses: actions/upload-artifact@v4
@@ -266,22 +280,30 @@ jobs:
           python -m nuitka --standalone \
             --include-data-dir=res=res/ \
             --include-data-dir=src=src/ \
+            --output-dir=. \
             --assume-yes-for-downloads \
             --enable-plugin=pyqt5 \
             --follow-imports \
             --macos-create-app-bundle \
             main.py
           
-          # 创建单文件版本
+          # 检查输出目录并创建单文件版本
           mkdir -p dist
           if [ -d "main.app" ]; then
+            # 复制整个应用程序包
             cp -r main.app dist/
             mv dist/main.app dist/"$name.app"
+            
             # 创建可执行文件副本
-            cp dist/"$name.app"/Contents/MacOS/main dist/$name
-            chmod +x dist/$name
+            if [ -f "main.app/Contents/MacOS/main" ]; then
+              cp "main.app/Contents/MacOS/main" "dist/$name"
+            else
+              find main.app -type f -perm +111 -exec cp {} "dist/$name" \; -quit
+            fi
+            chmod +x "dist/$name"
           else
             echo "构建输出目录 main.app 不存在"
+            find . -type d -maxdepth 1
             exit 1
           fi
       - uses: actions/upload-artifact@v4
