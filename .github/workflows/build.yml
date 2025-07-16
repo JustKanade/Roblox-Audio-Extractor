@@ -115,7 +115,9 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: Source-With-Version-Info
-          path: main.py
+          path: |
+            .
+            !.git
           retention-days: 7
 
   build-windows:
@@ -167,6 +169,12 @@ jobs:
             $name = "Roblox_Audio_Extractor_${{ needs.prepare.outputs.tag }}_win"
           }
           
+          # 确保main.py存在
+          if (-Not (Test-Path "main.py")) {
+            Write-Output "错误: main.py 文件不存在!"
+            exit 1
+          }
+          
           nuitka main.py `
             --standalone `
             --onefile `
@@ -180,7 +188,6 @@ jobs:
             --enable-plugin=anti-bloat `
             --noinclude-default-mode=nofollow `
             --nofollow-imports `
-            --compress-level=2 `
             --lto=yes `
             --upx-dir="./upx/upx-5.0.1-win64" `
             --include-data-files="reshacker\ResourceHacker.exe=ResourceHacker.exe"
@@ -192,7 +199,12 @@ jobs:
           } else {
             $name = "Roblox_Audio_Extractor_${{ needs.prepare.outputs.tag }}_win"
           }
-          Get-FileHash -Algorithm SHA256 "dist\$name.exe"
+          $exePath = "dist\$name.exe"
+          if (Test-Path $exePath) {
+            Get-FileHash -Algorithm SHA256 $exePath
+          } else {
+            Write-Output "构建文件不存在: $exePath"
+          }
       - uses: actions/upload-artifact@v4
         with:
           name: Windows-Build
@@ -238,6 +250,12 @@ jobs:
             name="Roblox_Audio_Extractor_${{ needs.prepare.outputs.tag }}_linux"
           fi
           
+          # 确保main.py存在
+          if [ ! -f "main.py" ]; then
+            echo "错误: main.py 文件不存在!"
+            exit 1
+          fi
+          
           nuitka main.py \
             --standalone \
             --onefile \
@@ -249,7 +267,6 @@ jobs:
             --enable-plugin=anti-bloat \
             --noinclude-default-mode=nofollow \
             --nofollow-imports \
-            --compress-level=2 \
             --lto=yes
       - name: Print SHA256 hash
         run: |
@@ -259,7 +276,11 @@ jobs:
           else
             name="Roblox_Audio_Extractor_${{ needs.prepare.outputs.tag }}_linux"
           fi
-          sha256sum "dist/$name"
+          if [ -f "dist/$name" ]; then
+            sha256sum "dist/$name"
+          else
+            echo "构建文件不存在: dist/$name"
+          fi
       - uses: actions/upload-artifact@v4
         with:
           name: Linux-Build
@@ -298,40 +319,56 @@ jobs:
         run: |
           # 如果是稳定版本，使用简单的命名
           if [ "${{ needs.prepare.outputs.channel }}" = "stable" ]; then
-            name="Roblox_Audio_Extractor_v${{ needs.prepare.outputs.version }}_macos"
+            name="Roblox_Audio_Extractor_v${{ needs.prepare.outputs.version }}"
           else
-            name="Roblox_Audio_Extractor_${{ needs.prepare.outputs.tag }}_macos"
+            name="Roblox_Audio_Extractor_${{ needs.prepare.outputs.tag }}"
+          fi
+          
+          # 确保main.py存在
+          if [ ! -f "main.py" ]; then
+            echo "错误: main.py 文件不存在!"
+            exit 1
           fi
           
           nuitka main.py \
             --standalone \
-            --onefile \
             --macos-create-app-bundle \
-            --macos-app-name="Roblox Audio Extractor" \
-            --macos-target-arch="arm64,x86_64" \
+            --macos-app-name="$name" \
+            --macos-target-arch="universal" \
             --output-dir=dist \
-            --output-filename=$name \
             --include-data-dir=res=res \
             --include-data-dir=src=src \
             --enable-plugin=pyqt5 \
             --enable-plugin=anti-bloat \
             --noinclude-default-mode=nofollow \
             --nofollow-imports \
-            --compress-level=2 \
             --lto=yes
+      - name: Create ZIP archive
+        run: |
+          if [ "${{ needs.prepare.outputs.channel }}" = "stable" ]; then
+            name="Roblox_Audio_Extractor_v${{ needs.prepare.outputs.version }}"
+          else
+            name="Roblox_Audio_Extractor_${{ needs.prepare.outputs.tag }}"
+          fi
+          cd dist
+          zip -r "${name}_macos.zip" "${name}.app"
       - name: Print SHA256 hash
         run: |
           echo "SHA256 for macOS build:"
           if [ "${{ needs.prepare.outputs.channel }}" = "stable" ]; then
-            name="Roblox_Audio_Extractor_v${{ needs.prepare.outputs.version }}_macos"
+            name="Roblox_Audio_Extractor_v${{ needs.prepare.outputs.version }}"
           else
-            name="Roblox_Audio_Extractor_${{ needs.prepare.outputs.tag }}_macos"
+            name="Roblox_Audio_Extractor_${{ needs.prepare.outputs.tag }}"
           fi
-          shasum -a 256 "dist/$name"
+          if [ -f "dist/${name}_macos.zip" ]; then
+            shasum -a 256 "dist/${name}_macos.zip"
+          else
+            echo "构建文件不存在: dist/${name}_macos.zip"
+          fi
       - uses: actions/upload-artifact@v4
         with:
           name: macOS-Build
-          path: dist/*
+          path: dist/*.zip
           retention-days: 7
 
   release:
