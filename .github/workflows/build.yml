@@ -155,11 +155,10 @@ jobs:
         run: |
           Invoke-WebRequest -Uri "https://dependencywalker.com/depends22_x64.zip" -OutFile "depends.zip"
           Expand-Archive depends.zip -DestinationPath "$env:LOCALAPPDATA\Nuitka\Nuitka\Cache\downloads\depends\x86_64"
-      - name: Download and Compress Resource Hacker
+      - name: List files in workspace
         run: |
-          Invoke-WebRequest -Uri "https://www.angusj.com/resourcehacker/resource_hacker.zip" -OutFile "resource_hacker.zip"
-          Expand-Archive resource_hacker.zip -DestinationPath "reshacker\"
-          upx\upx-5.0.1-win64\upx.exe --best --lzma reshacker\ResourceHacker.exe
+          Write-Output "Workspace contents:"
+          Get-ChildItem -Recurse | Select-Object FullName
       - name: Build application
         run: |
           # 如果是稳定版本，使用简单的命名
@@ -173,6 +172,10 @@ jobs:
           if (-Not (Test-Path "main.py")) {
             Write-Output "错误: main.py 文件不存在!"
             exit 1
+          }
+          
+          if (-Not (Test-Path "dist")) {
+            New-Item -ItemType Directory -Path "dist"
           }
           
           nuitka main.py `
@@ -189,8 +192,15 @@ jobs:
             --noinclude-default-mode=nofollow `
             --nofollow-imports `
             --lto=yes `
-            --upx-dir="./upx/upx-5.0.1-win64" `
-            --include-data-files="reshacker\ResourceHacker.exe=ResourceHacker.exe"
+            --upx-dir="./upx/upx-5.0.1-win64"
+      - name: List files in dist directory
+        run: |
+          Write-Output "Dist directory contents:"
+          if (Test-Path "dist") {
+            Get-ChildItem -Path "dist" -Recurse | Select-Object FullName
+          } else {
+            Write-Output "Dist directory does not exist!"
+          }
       - name: Print SHA256 hash
         run: |
           Write-Output "SHA256 for Windows build:"
@@ -209,170 +219,11 @@ jobs:
         with:
           name: Windows-Build
           path: dist/*.exe
-          retention-days: 7
-
-  build-linux:
-    needs: [prepare, update-version-info]
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/download-artifact@v4
-        with:
-          name: Source-With-Version-Info
-          path: .
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.10"
-          cache: 'pip'
-      - name: Cache Python dependencies
-        uses: actions/cache@v4
-        with:
-          path: ~/.cache/pip
-          key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
-          restore-keys: |
-            ${{ runner.os }}-pip-
-      - name: Install dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y libxcb-xinerama0 libxkbcommon-x11-0
-          python -m pip install --upgrade pip
-          pip install -r requirements.txt
-          pip install nuitka
-      - name: Build application
-        env:
-          NUITKA_AUTO_DOWNLOADS: "yes"
-          NUITKA_CCACHE_BINARY: "none"
-        run: |
-          # 如果是稳定版本，使用简单的命名
-          if [ "${{ needs.prepare.outputs.channel }}" = "stable" ]; then
-            name="Roblox_Audio_Extractor_v${{ needs.prepare.outputs.version }}_linux"
-          else
-            name="Roblox_Audio_Extractor_${{ needs.prepare.outputs.tag }}_linux"
-          fi
-          
-          # 确保main.py存在
-          if [ ! -f "main.py" ]; then
-            echo "错误: main.py 文件不存在!"
-            exit 1
-          fi
-          
-          nuitka main.py \
-            --standalone \
-            --onefile \
-            --output-dir=dist \
-            --output-filename=$name \
-            --include-data-dir=res=res \
-            --include-data-dir=src=src \
-            --enable-plugin=pyqt5 \
-            --enable-plugin=anti-bloat \
-            --noinclude-default-mode=nofollow \
-            --nofollow-imports \
-            --lto=yes
-      - name: Print SHA256 hash
-        run: |
-          echo "SHA256 for Linux build:"
-          if [ "${{ needs.prepare.outputs.channel }}" = "stable" ]; then
-            name="Roblox_Audio_Extractor_v${{ needs.prepare.outputs.version }}_linux"
-          else
-            name="Roblox_Audio_Extractor_${{ needs.prepare.outputs.tag }}_linux"
-          fi
-          if [ -f "dist/$name" ]; then
-            sha256sum "dist/$name"
-          else
-            echo "构建文件不存在: dist/$name"
-          fi
-      - uses: actions/upload-artifact@v4
-        with:
-          name: Linux-Build
-          path: dist/*
-          retention-days: 7
-
-  build-macos:
-    needs: [prepare, update-version-info]
-    runs-on: macos-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/download-artifact@v4
-        with:
-          name: Source-With-Version-Info
-          path: .
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.10"
-          cache: 'pip'
-      - name: Cache Python dependencies
-        uses: actions/cache@v4
-        with:
-          path: ~/.cache/pip
-          key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
-          restore-keys: |
-            ${{ runner.os }}-pip-
-      - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install -r requirements.txt
-          pip install nuitka
-      - name: Build application
-        env:
-          NUITKA_AUTO_DOWNLOADS: "yes"
-          NUITKA_CCACHE_BINARY: "none"
-        run: |
-          # 如果是稳定版本，使用简单的命名
-          if [ "${{ needs.prepare.outputs.channel }}" = "stable" ]; then
-            name="Roblox_Audio_Extractor_v${{ needs.prepare.outputs.version }}"
-          else
-            name="Roblox_Audio_Extractor_${{ needs.prepare.outputs.tag }}"
-          fi
-          
-          # 确保main.py存在
-          if [ ! -f "main.py" ]; then
-            echo "错误: main.py 文件不存在!"
-            exit 1
-          fi
-          
-          nuitka main.py \
-            --standalone \
-            --macos-create-app-bundle \
-            --macos-app-name="$name" \
-            --macos-target-arch="universal" \
-            --output-dir=dist \
-            --include-data-dir=res=res \
-            --include-data-dir=src=src \
-            --enable-plugin=pyqt5 \
-            --enable-plugin=anti-bloat \
-            --noinclude-default-mode=nofollow \
-            --nofollow-imports \
-            --lto=yes
-      - name: Create ZIP archive
-        run: |
-          if [ "${{ needs.prepare.outputs.channel }}" = "stable" ]; then
-            name="Roblox_Audio_Extractor_v${{ needs.prepare.outputs.version }}"
-          else
-            name="Roblox_Audio_Extractor_${{ needs.prepare.outputs.tag }}"
-          fi
-          cd dist
-          zip -r "${name}_macos.zip" "${name}.app"
-      - name: Print SHA256 hash
-        run: |
-          echo "SHA256 for macOS build:"
-          if [ "${{ needs.prepare.outputs.channel }}" = "stable" ]; then
-            name="Roblox_Audio_Extractor_v${{ needs.prepare.outputs.version }}"
-          else
-            name="Roblox_Audio_Extractor_${{ needs.prepare.outputs.tag }}"
-          fi
-          if [ -f "dist/${name}_macos.zip" ]; then
-            shasum -a 256 "dist/${name}_macos.zip"
-          else
-            echo "构建文件不存在: dist/${name}_macos.zip"
-          fi
-      - uses: actions/upload-artifact@v4
-        with:
-          name: macOS-Build
-          path: dist/*.zip
+          if-no-files-found: error
           retention-days: 7
 
   release:
-    needs: [prepare, build-windows, build-linux, build-macos]
+    needs: [prepare, build-windows]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -409,7 +260,5 @@ jobs:
             
           files: |
             artifacts/Windows-Build/*
-            artifacts/Linux-Build/*
-            artifacts/macOS-Build/*
           prerelease: ${{ needs.prepare.outputs.channel != 'stable' }}
           draft: true  # 设置为草稿，以便添加发布说明后再正式发布
