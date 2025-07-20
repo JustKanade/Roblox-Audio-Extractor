@@ -447,7 +447,8 @@ class MainWindow(FluentWindow):
         
         # 获取当前语言设置
         current_language = lang.get_language_name()
-        language_code = 'en' if current_language == 'English' else 'zh'
+        # 修改判断逻辑，检查实际使用的语言而非名称
+        language_code = 'zh' if lang.current_language == lang.CHINESE else 'en'
         
         # 检查问候语是否启用
         greeting_enabled = self.config_manager.get("greeting_enabled", True)
