@@ -23,7 +23,7 @@ except ImportError:
     class FluentTheme:
         @staticmethod
         def primaryColor():
-            return QColor("#0078d4")  # 默认蓝色
+            return QColor("#e8b3ff")  # 默认蓝色
 
 from src.utils.file_utils import resource_path
 import os

@@ -335,6 +335,8 @@ class HomeInterface(QWidget):
             # 断点设置
             MOBILE_BREAKPOINT = 600
             TABLET_BREAKPOINT = 900
+            DESKTOP_BREAKPOINT = 1200
+            LARGE_DESKTOP_BREAKPOINT = 1600
 
             # 调整功能特色项目的大小和排列
             if hasattr(self, 'features_flow_layout'):
@@ -350,9 +352,15 @@ class HomeInterface(QWidget):
                             elif window_width < TABLET_BREAKPOINT:
                                 # 平板设备：中等大小
                                 widget.updateSize(140, 75, 200, 75)
-                            else:
+                            elif window_width < DESKTOP_BREAKPOINT:
                                 # 桌面设备：正常大小
                                 widget.updateSize(160, 80, 220, 80)
+                            elif window_width < LARGE_DESKTOP_BREAKPOINT:
+                                # 大型桌面：更大的项目
+                                widget.updateSize(180, 85, 240, 85)
+                            else:
+                                # 超大屏幕（最大化）：最大项目
+                                widget.updateSize(200, 90, 260, 90)
 
             # 在小屏幕上隐藏图标
             if hasattr(self, 'home_icon_label'):
@@ -362,6 +370,82 @@ class HomeInterface(QWidget):
                         icon_container.setVisible(False)
                     else:
                         icon_container.setVisible(True)
+                        # 在大屏幕上增大图标尺寸
+                        if window_width >= LARGE_DESKTOP_BREAKPOINT:
+                            if hasattr(self, 'home_icon_label') and self.home_icon_label:
+                                try:
+                                    # 更新图标尺寸
+                                    icon_path = resource_path(os.path.join("res", "icons", "logo.png"))
+                                    if os.path.exists(icon_path):
+                                        pixmap = QPixmap(icon_path)
+                                        scaled_size = 100 if window_width >= LARGE_DESKTOP_BREAKPOINT else 80
+                                        scaled_pixmap = pixmap.scaled(
+                                            scaled_size, scaled_size,
+                                            Qt.KeepAspectRatio,
+                                            Qt.SmoothTransformation
+                                        )
+                                        self.home_icon_label.setPixmap(scaled_pixmap)
+                                        # 调整容器大小
+                                        icon_container.setFixedSize(scaled_size + 20, scaled_size + 20)
+                                except Exception:
+                                    pass
+
+            # 调整信息卡片的布局
+            # 在大屏幕上找到网格布局并调整列数
+            try:
+                info_container = None
+                for i in range(self.layout().count()):
+                    widget = self.layout().itemAt(i).widget()
+                    if isinstance(widget, ScrollArea):
+                        scroll_content = widget.widget()
+                        if scroll_content and scroll_content.layout():
+                            for j in range(scroll_content.layout().count()):
+                                item = scroll_content.layout().itemAt(j)
+                                if item and item.widget():
+                                    if isinstance(item.widget().layout(), QGridLayout):
+                                        info_container = item.widget()
+                                        break
+                
+                # 如果找到了网格布局容器
+                if info_container and info_container.layout():
+                    grid_layout = info_container.layout()
+                    
+                    # 根据窗口宽度调整卡片的最小宽度
+                    system_card = None
+                    dir_card = None
+                    
+                    # 寻找系统和目录卡片
+                    for i in range(grid_layout.count()):
+                        item = grid_layout.itemAt(i)
+                        if item and item.widget() and isinstance(item.widget(), CardWidget):
+                            widget = item.widget()
+                            if i == 0:  # 系统卡片通常是第一个
+                                system_card = widget
+                            elif i == 1:  # 目录卡片通常是第二个
+                                dir_card = widget
+                    
+                    # 调整卡片最小宽度
+                    if system_card:
+                        if window_width < TABLET_BREAKPOINT:
+                            system_card.setMinimumWidth(200)
+                        elif window_width < DESKTOP_BREAKPOINT:
+                            system_card.setMinimumWidth(250)
+                        elif window_width < LARGE_DESKTOP_BREAKPOINT:
+                            system_card.setMinimumWidth(300)
+                        else:
+                            system_card.setMinimumWidth(350)
+                    
+                    if dir_card:
+                        if window_width < TABLET_BREAKPOINT:
+                            dir_card.setMinimumWidth(200)
+                        elif window_width < DESKTOP_BREAKPOINT:
+                            dir_card.setMinimumWidth(250)
+                        elif window_width < LARGE_DESKTOP_BREAKPOINT:
+                            dir_card.setMinimumWidth(300)
+                        else:
+                            dir_card.setMinimumWidth(350)
+            except Exception:
+                pass
 
         except Exception as e:
             # 静默处理异常，避免影响UI正常运行
