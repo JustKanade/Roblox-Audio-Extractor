@@ -273,8 +273,8 @@ def get_translations():
                 CHINESE: "扫描Roblox数据库"
             },
             "scan_database_info": {
-                ENGLISH: "Scan rbx-storage.db to extract more audio files",
-                CHINESE: "扫描rbx-storage.db以提取更多音频文件"
+                ENGLISH: "",
+                CHINESE: ""
             },
             "extract_audio_title": {
                 ENGLISH: "Extract Audio Files",
@@ -305,8 +305,8 @@ def get_translations():
                 CHINESE: "线程数:"
             },
             "threads_info": {
-                ENGLISH: "Higher values may increase speed but use more CPU",
-                CHINESE: "更高的值可能提高速度但会使用更多CPU"
+                ENGLISH: "",
+                CHINESE: " "
             },
             "log_title": {
                 ENGLISH: "Extraction Log",
@@ -497,8 +497,8 @@ def get_translations():
                 CHINESE: "默认目录"
             },
             "input_dir": {
-                ENGLISH: "Enter directory (press Enter for default)",
-                CHINESE: "输入目录（按回车使用默认值）"
+                ENGLISH: "Enter directory",
+                CHINESE: "输入目录"
             },
             "dir_not_exist": {
                 ENGLISH: "Directory does not exist: {}",

@@ -121,36 +121,7 @@ class HomeInterface(QWidget):
         welcome_layout.addWidget(action_container)
         content_layout.addWidget(welcome_card)
 
-        # 功能特色卡片 - 使用响应式FlowLayout
-        features_card = CardWidget()
-        features_layout = QVBoxLayout(features_card)
-        features_layout.setContentsMargins(20, 15, 20, 15)
-        features_layout.setSpacing(12)
 
-        features_title = SubtitleLabel(self.lang.get("features"))
-        features_title.setObjectName("featuresTitle")
-        features_layout.addWidget(features_title)
-
-        # 创建响应式功能特色容器
-        features_container = QWidget()
-        self.features_flow_layout = FlowLayout(features_container)
-        self.features_flow_layout.setSpacing(10)
-        self.features_flow_layout.setContentsMargins(0, 0, 0, 0)
-
-        # 功能特色项目
-        feature_items = [
-            (FluentIcon.SPEED_HIGH, self.lang.get("feature_1")),
-            (FluentIcon.ACCEPT, self.lang.get("feature_2")),
-            (FluentIcon.FOLDER, self.lang.get("feature_3")),
-            (FluentIcon.MUSIC, self.lang.get("feature_4"))
-        ]
-
-        for icon, text in feature_items:
-            feature_widget = ResponsiveFeatureItem(icon, text)
-            self.features_flow_layout.addWidget(feature_widget)
-
-        features_layout.addWidget(features_container)
-        content_layout.addWidget(features_card)
 
         # 信息行 - 响应式网格布局
         info_container = QWidget()

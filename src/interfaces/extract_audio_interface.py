@@ -103,46 +103,7 @@ class ExtractAudioInterface(QWidget):
 
         settings_layout.addLayout(path_layout)
 
-        # 添加历史记录大小信息
-        history_layout = QHBoxLayout()
-        history_layout.setSpacing(10)
-        
-        history_icon = IconWidget(FluentIcon.HISTORY, self)
-        history_icon.setFixedSize(16, 16)
-        history_layout.addWidget(history_icon)
-        
-        # 显示历史记录大小
-        history_size = 0
-        content_size = 0
-        if self.download_history:
-            history_size = self.download_history.get_history_size()
-            if hasattr(self.download_history, 'get_content_hash_count'):
-                content_size = self.download_history.get_content_hash_count()
-                
-        self.historyCountLabel = CaptionLabel(
-            f"{self.get_text('history_size')}: {history_size} {self.get_text('files')}, "
-            f"{content_size} {self.get_text('unique_contents')}"
-        )
-        history_layout.addWidget(self.historyCountLabel)
-        
-        # 添加弹性空间，使按钮靠右对齐
-        history_layout.addStretch(1)
-        
-        # 添加查看历史按钮
-        self.viewHistoryBtn = TransparentPushButton(FluentIcon.HISTORY, "", self)
-        self.viewHistoryBtn.setToolTip(self.get_text("view_history"))
-        self.viewHistoryBtn.clicked.connect(self.switchToHistoryInterface)
-        self.viewHistoryBtn.setFixedSize(24, 24)
-        history_layout.addWidget(self.viewHistoryBtn)
-        
-        # 添加清除历史按钮 - 直接使用透明按钮而不是下拉菜单
-        self.clearHistoryBtn = TransparentPushButton(FluentIcon.DELETE, "", self)
-        self.clearHistoryBtn.setToolTip(self.get_text("clear_history"))
-        self.clearHistoryBtn.clicked.connect(self.clearHistory)
-        self.clearHistoryBtn.setFixedSize(24, 24)
-        history_layout.addWidget(self.clearHistoryBtn)
-        
-        settings_layout.addLayout(history_layout)
+ 
 
         # 添加分类方法选择
         classification_layout = QVBoxLayout()  # 改为垂直布局
