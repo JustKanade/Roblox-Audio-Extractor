@@ -64,6 +64,7 @@ class AppConfig(QConfig):
     customOutputDir = ConfigItem("Paths", "CustomOutputDir", "", FolderValidator())
     globalInputPath = ConfigItem("Paths", "GlobalInputPath", "", FolderValidator())
     lastInputDir = ConfigItem("Paths", "LastInputDir", "", FolderValidator())
+    launchFilePath = ConfigItem("Paths", "LaunchFilePath", "")
     
     # 性能配置
     threads = RangeConfigItem(

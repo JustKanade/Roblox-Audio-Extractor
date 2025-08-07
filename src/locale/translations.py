@@ -755,6 +755,26 @@ def get_translations():
                 ENGLISH: "Quick Start",
                 CHINESE: "快速开始"
             },
+            "launch": {
+                ENGLISH: "Launch",
+                CHINESE: "启动"
+            },
+            "launch_file_settings": {
+                ENGLISH: "Launch File Settings",
+                CHINESE: "启动文件设置"
+            },
+            "select_launch_file": {
+                ENGLISH: "Select Launch File",
+                CHINESE: "选择启动文件"
+            },
+            "launch_file_description": {
+                ENGLISH: "Configure the file to launch when clicking the Launch button.",
+                CHINESE: "配置点击启动按钮时要启动的文件。"
+            },
+            "no_launch_file": {
+                ENGLISH: "No file selected",
+                CHINESE: "未选择文件"
+            },
             "recent_activity": {
                 ENGLISH: "Recent Activity",
                 CHINESE: "最近活动"

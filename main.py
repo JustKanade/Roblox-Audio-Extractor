@@ -352,6 +352,8 @@ class MainWindow(FluentWindow):
         except Exception as e:
             print(f"添加头像组件时出错: {e}")
 
+        # 添加Launch按钮 - 在JustKanade头像和设置按钮之间
+        self.addLaunchButton()
      
         self.addSubInterface(self.settingsInterface, FluentIcon.SETTING, lang.get("settings"),
                              position=NavigationItemPosition.BOTTOM)
@@ -1077,6 +1079,158 @@ class MainWindow(FluentWindow):
             duration=3000,
             parent=self
         )
+    
+    def addLaunchButton(self):
+        """添加Launch按钮到导航栏"""
+        # 获取初始的Launch按钮文本
+        launch_text = self.getLaunchButtonText()
+        
+        self.launch_navigation_item = self.navigationInterface.addItem(
+            routeKey="launch_button",
+            icon=FluentIcon.PLAY,
+            text=launch_text,
+            onClick=self.launchFile,
+            selectable=False,
+            position=NavigationItemPosition.BOTTOM
+        )
+        
+    def getLaunchButtonText(self):
+        """获取Launch按钮的文本"""
+        launch_file_path = self.config_manager.cfg.get(self.config_manager.cfg.launchFilePath)
+        if launch_file_path and os.path.isfile(launch_file_path):
+            filename = os.path.basename(launch_file_path)
+            name_without_ext = os.path.splitext(filename)[0]
+            return f"{lang.get('launch')} {name_without_ext}"
+        else:
+            return lang.get("launch")
+    
+    def updateLaunchButton(self):
+        """更新Launch按钮的显示文本"""
+        new_text = self.getLaunchButtonText()
+        
+        try:
+            # 尝试直接更新现有按钮的文本，而不是移除重新添加
+            if hasattr(self, 'launch_navigation_item') and self.launch_navigation_item:
+                # 尝试直接修改按钮文本
+                try:
+                    # 查找Launch按钮并更新其文本
+                    navigation_items = self.navigationInterface.items
+                    if "launch_button" in navigation_items:
+                        launch_item = navigation_items["launch_button"]
+                        if hasattr(launch_item, 'setText'):
+                            launch_item.setText(new_text)
+                            print(f"成功通过setText更新Launch按钮文本: {new_text}")
+                            return  # 如果成功更新文本，直接返回
+                        elif hasattr(launch_item, 'text'):
+                            launch_item.text = new_text
+                            print(f"成功通过text属性更新Launch按钮文本: {new_text}")
+                            if hasattr(launch_item, 'update'):
+                                launch_item.update()
+                            return
+                        elif hasattr(launch_item, '_text'):
+                            launch_item._text = new_text
+                            print(f"成功通过_text属性更新Launch按钮文本: {new_text}")
+                            if hasattr(launch_item, 'update'):
+                                launch_item.update()
+                            return
+                except Exception as direct_update_error:
+                    print(f"直接更新文本失败: {direct_update_error}")
+                
+                # 如果直接更新失败，重新构建所有底部按钮以保持正确顺序
+                print("直接更新失败，重新构建底部导航按钮...")
+                
+                # 移除所有底部按钮
+                try:
+                    self.navigationInterface.removeWidget("launch_button")
+                except:
+                    pass
+                try:
+                    self.navigationInterface.removeWidget(self.settingsInterface.objectName())
+                except:
+                    pass
+                try:
+                    self.navigationInterface.removeWidget(self.aboutInterface.objectName())
+                except:
+                    pass
+                
+                # 按正确顺序重新添加所有底部按钮
+                # 1. Launch按钮
+                self.launch_navigation_item = self.navigationInterface.addItem(
+                    routeKey="launch_button",
+                    icon=FluentIcon.PLAY,
+                    text=new_text,
+                    onClick=self.launchFile,
+                    selectable=False,
+                    position=NavigationItemPosition.BOTTOM
+                )
+                
+                # 2. Settings按钮
+                self.addSubInterface(self.settingsInterface, FluentIcon.SETTING, lang.get("settings"),
+                                     position=NavigationItemPosition.BOTTOM)
+                
+                # 3. About按钮
+                self.addSubInterface(self.aboutInterface, FluentIcon.INFO, lang.get("about"),
+                                     position=NavigationItemPosition.BOTTOM)
+                                 
+        except Exception as e:
+            print(f"更新Launch按钮时出错: {e}")
+    
+    def launchFile(self):
+        """启动选定的文件"""
+        launch_file_path = self.config_manager.cfg.get(self.config_manager.cfg.launchFilePath)
+        
+        if not launch_file_path:
+            InfoBar.warning(
+                title=lang.get("no_launch_file"),
+                content="Please set a launch file in Settings first.",
+                orient=Qt.Horizontal,
+                isClosable=True,
+                position=InfoBarPosition.TOP,
+                duration=3000,
+                parent=self
+            )
+            return
+        
+        if not os.path.isfile(launch_file_path):
+            InfoBar.error(
+                title="File Not Found",
+                content=f"The launch file does not exist: {launch_file_path}",
+                orient=Qt.Horizontal,
+                isClosable=True,
+                position=InfoBarPosition.TOP,
+                duration=3000,
+                parent=self
+            )
+            return
+        
+        try:
+            # 启动文件
+            if sys.platform == "win32":
+                os.startfile(launch_file_path)
+            elif sys.platform == "darwin":  # macOS
+                os.system(f"open '{launch_file_path}'")
+            else:  # Linux/Unix
+                os.system(f"xdg-open '{launch_file_path}'")
+            
+            InfoBar.success(
+                title="File Launched",
+                content=f"Successfully launched: {os.path.basename(launch_file_path)}",
+                orient=Qt.Horizontal,
+                isClosable=True,
+                position=InfoBarPosition.TOP,
+                duration=2000,
+                parent=self
+            )
+        except Exception as e:
+            InfoBar.error(
+                title="Launch Failed",
+                content=f"Failed to launch file: {str(e)}",
+                orient=Qt.Horizontal,
+                isClosable=True,
+                position=InfoBarPosition.TOP,
+                duration=3000,
+                parent=self
+            )
 
 
 def main():

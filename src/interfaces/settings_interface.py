@@ -59,6 +59,11 @@ try:
 except ImportError:
     ThreadCountCard = None
 
+try:
+    from src.components.cards.Settings.launch_file_card import LaunchFileCard
+except ImportError:
+    LaunchFileCard = None
+
 class SettingsInterface(QWidget):
     """设置界面类"""
     
@@ -278,6 +283,12 @@ class SettingsInterface(QWidget):
         )
         greeting_card.checkedChanged.connect(self.onGreetingChanged)
         group.addSettingCard(greeting_card)
+        
+        # 启动文件设置
+        if LaunchFileCard is not None:
+            self.launchFileCard = LaunchFileCard(self)
+            self.launchFileCard.launchFileChanged.connect(self.onLaunchFileChanged)
+            group.addSettingCard(self.launchFileCard)
     
     def createUISettingsCards(self, group):
         """创建界面设置卡片"""
@@ -458,6 +469,19 @@ class SettingsInterface(QWidget):
             self.config_manager.set("greeting_enabled", isChecked)
             if hasattr(self, 'settingsLogHandler'):
                 self.settingsLogHandler.info(f"问候语: {'启用' if isChecked else '禁用'}")
+    
+    def onLaunchFileChanged(self, file_path):
+        """启动文件改变事件"""
+        if hasattr(self, 'settingsLogHandler'):
+            if file_path:
+                filename = os.path.basename(file_path)
+                self.settingsLogHandler.info(f"启动文件已设置: {filename}")
+            else:
+                self.settingsLogHandler.info("启动文件设置已清除")
+        
+        # 通知主窗口更新Launch按钮显示
+        if self._parent_window and hasattr(self._parent_window, 'updateLaunchButton'):
+            self._parent_window.updateLaunchButton()
     
     def onLanguageChanged(self, config_item):
         """语言改变事件"""
