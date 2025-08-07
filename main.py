@@ -168,6 +168,10 @@ class MainWindow(FluentWindow):
         # 设置自动主题
         setTheme(Theme.AUTO)
 
+        # 启用 Mica 效果（Windows 11）
+        mica_enabled = self.config_manager.cfg.get(self.config_manager.cfg.micaEnabled)
+        self.setMicaEffectEnabled(mica_enabled)
+
         # 设置窗口图标
         try:
             icon_path = resource_path(os.path.join("res", "icons", "logo.png"))
@@ -354,6 +358,9 @@ class MainWindow(FluentWindow):
         self.addSubInterface(self.aboutInterface, FluentIcon.INFO, lang.get("about"),
                              position=NavigationItemPosition.BOTTOM)
 
+        # 启用导航界面的亚克力效果
+        acrylic_enabled = self.config_manager.cfg.get(self.config_manager.cfg.acrylicEnabled)
+        self.navigationInterface.setAcrylicEnabled(acrylic_enabled)
 
         # 设置默认界面 - 使用界面对象而不是文本
         self.switchTo(self.homeInterface)

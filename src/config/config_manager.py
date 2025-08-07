@@ -8,6 +8,7 @@ import os
 import json
 import logging
 import multiprocessing
+import sys
 from PyQt5.QtGui import QColor
 from qfluentwidgets import (qconfig, QConfig, ConfigItem, OptionsConfigItem, BoolValidator,
                             OptionsValidator, RangeConfigItem, RangeValidator, ColorConfigItem,
@@ -15,6 +16,10 @@ from qfluentwidgets import (qconfig, QConfig, ConfigItem, OptionsConfigItem, Boo
 
 # 设置日志记录
 logger = logging.getLogger(__name__)
+
+def isWin11():
+    """检查是否为 Windows 11"""
+    return sys.platform == 'win32' and sys.getwindowsversion().build >= 22000
 
 class ThemeSerializer(ConfigSerializer):
     """主题序列化器"""
@@ -46,6 +51,10 @@ class AppConfig(QConfig):
     
     # 主题色配置 - 使用官方ColorConfigItem
     themeColor = ColorConfigItem("Appearance", "ThemeColor", QColor("#e8b3ff"))
+    
+    # 窗口效果配置
+    micaEnabled = ConfigItem("MainWindow", "MicaEnabled", isWin11(), BoolValidator())
+    acrylicEnabled = ConfigItem("MainWindow", "AcrylicEnabled", True, BoolValidator())
     
     # 路径配置
     lastDirectory = ConfigItem("Paths", "LastDirectory", "", FolderValidator())

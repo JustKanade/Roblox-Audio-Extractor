@@ -47,6 +47,29 @@ def get_translations():
                 CHINESE: "启用或禁用程序启动时的问候通知。",
                 ENGLISH: "Enable or disable greeting notifications when the program starts."
             },
+            
+            # 亚克力效果设置相关
+            "acrylic_effect": {
+                CHINESE: "亚克力效果",
+                ENGLISH: "Acrylic Effect"
+            },
+            "acrylic_effect_desc": {
+                CHINESE: "控制导航栏的半透明亚克力效果",
+                ENGLISH: "Control the semi-transparent acrylic effect of the navigation bar"
+            },
+            "acrylic_windows_only": {
+                CHINESE: "注意：亚克力效果在 Windows 上效果最佳",
+                ENGLISH: "Note: Acrylic effect works best on Windows"
+            },
+            "enabled": {
+                CHINESE: "已启用",
+                ENGLISH: "Enabled"
+            },
+            "disabled": {
+                CHINESE: "已禁用", 
+                ENGLISH: "Disabled"
+            },
+            
             "greeting_enabled": {
                 CHINESE: "问候语已启用",
                 ENGLISH: "Greetings Enabled"

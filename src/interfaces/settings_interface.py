@@ -308,6 +308,17 @@ class SettingsInterface(QWidget):
         if CustomThemeColorCard is not None:
             self.themeColorCard = CustomThemeColorCard(self.config_manager)
             group.addSettingCard(self.themeColorCard)
+        
+        # 亚克力效果设置 - 使用标准的 SwitchSettingCard
+        acrylic_card = SwitchSettingCard(
+            FluentIcon.TRANSPARENT,
+            self.get_text("acrylic_effect") or "亚克力效果",
+            self.get_text("acrylic_effect_desc") or "控制导航栏的半透明亚克力效果",
+            self.config_manager.cfg.acrylicEnabled if self.config_manager else None
+        )
+        acrylic_card.checkedChanged.connect(self.onAcrylicToggled)
+        group.addSettingCard(acrylic_card)
+        self.acrylicCard = acrylic_card
     
     def createPerformanceSettingsCards(self, group):
         """创建性能设置卡片"""
@@ -487,6 +498,21 @@ class SettingsInterface(QWidget):
             self.config_manager.set("disable_avatar_auto_update", isChecked)
             if hasattr(self, 'settingsLogHandler'):
                 self.settingsLogHandler.info(f"禁用头像自动更新: {'启用' if isChecked else '禁用'}")
+
+    def onAcrylicToggled(self, isChecked):
+        """亚克力效果设置改变事件"""
+        if self.config_manager:
+            # 保存到配置
+            self.config_manager.cfg.set(self.config_manager.cfg.acrylicEnabled, isChecked)
+            
+            # 立即应用到导航界面
+            if self._parent_window and hasattr(self._parent_window, 'navigationInterface'):
+                self._parent_window.navigationInterface.setAcrylicEnabled(isChecked)
+            
+            # 记录日志
+            if hasattr(self, 'settingsLogHandler'):
+                status = self.get_text("enabled") if isChecked else self.get_text("disabled")
+                self.settingsLogHandler.info(f"{self.get_text('acrylic_effect')}: {status}")
 
     def saveThreadsConfig(self, value):
         """保存线程数配置"""
