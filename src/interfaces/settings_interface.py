@@ -54,6 +54,11 @@ try:
 except ImportError:
     GlobalInputPathCard = None
 
+try:
+    from src.components.cards.Settings.thread_count_card import ThreadCountCard
+except ImportError:
+    ThreadCountCard = None
+
 class SettingsInterface(QWidget):
     """设置界面类"""
     
@@ -308,14 +313,20 @@ class SettingsInterface(QWidget):
         """创建性能设置卡片"""
         
         # 默认线程数设置
-        threads_card = RangeSettingCard(
-            self.threadsConfig,
-            FluentIcon.SPEED_OFF,
-            self.get_text("default_threads") or "默认线程数",
-            self.get_text("threads_description") or "设置提取任务的默认线程数"
-        )
-        threads_card.valueChanged.connect(self.saveThreadsConfig)
-        group.addSettingCard(threads_card)
+        if ThreadCountCard is not None:
+            threads_card = ThreadCountCard(self.config_manager)
+            threads_card.valueChanged.connect(self.saveThreadsConfig)
+            group.addSettingCard(threads_card)
+        else:
+            # 降级到原来的RangeSettingCard
+            threads_card = RangeSettingCard(
+                self.threadsConfig,
+                FluentIcon.SPEED_OFF,
+                self.get_text("default_threads") or "默认线程数",
+                self.get_text("threads_description") or "设置提取任务的默认线程数"
+            )
+            threads_card.valueChanged.connect(self.saveThreadsConfig)
+            group.addSettingCard(threads_card)
     
     def createOutputSettingsCards(self, group):
         """创建输出设置卡片"""

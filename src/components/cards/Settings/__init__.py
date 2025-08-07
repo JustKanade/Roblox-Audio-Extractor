@@ -46,6 +46,11 @@ try:
 except ImportError:
     GreetingSettingCard = None
 
+try:
+    from .thread_count_card import ThreadCountCard
+except ImportError:
+    ThreadCountCard = None
+
 __all__ = [
     'CustomThemeColorCard',
     'VersionCheckCard',
@@ -55,5 +60,6 @@ __all__ = [
     'DebugModeCard',
     'GlobalInputPathCard',
     'AlwaysOnTopCard',
-    'GreetingSettingCard'
+    'GreetingSettingCard',
+    'ThreadCountCard'
 ] 
