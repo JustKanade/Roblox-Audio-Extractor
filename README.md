@@ -1,7 +1,7 @@
 # Roblox Audio Extractor
 <div align="center">
   
-<img src="https://github.com/JustKanade/Roblox-Audio-Extractor/blob/main/.readme/images/Folder.png" alt="" width="300px">
+<img src="https://github.com/JustKanade/Roblox-Audio-Extractor/blob/main/res/icons/logo.png" alt="" width="300px">
 
 **An efficient tool with modern GUI for extracting and converting audio files from Roblox cache**
 
