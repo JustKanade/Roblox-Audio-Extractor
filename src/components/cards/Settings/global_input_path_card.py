@@ -3,7 +3,7 @@ from PyQt5.QtWidgets import QHBoxLayout, QVBoxLayout, QFileDialog, QWidget
 from PyQt5.QtGui import QKeyEvent
 
 from qfluentwidgets import (
-    ExpandSettingCard, LineEdit, PushButton, BodyLabel, 
+    SettingCard, LineEdit, PushButton, BodyLabel, 
     FluentIcon, setFont
 )
 
@@ -26,7 +26,7 @@ class CustomLineEdit(LineEdit):
             super().keyPressEvent(event)
 
 
-class GlobalInputPathCard(ExpandSettingCard):
+class GlobalInputPathCard(SettingCard):
     """全局输入路径设置卡片"""
     
     inputPathChanged = pyqtSignal(str)
@@ -36,16 +36,12 @@ class GlobalInputPathCard(ExpandSettingCard):
         self.config_manager = config_manager
         
         # 获取翻译文本
-        title = ""
-        description = ""
-        if lang:
-            title = lang.get("global_input_path_title") or ""
-            description = lang.get("global_input_path_description") or ""
+        title = self._get_text("global_input_path_title") or "Global Input Path"
         
         super().__init__(
             FluentIcon.FOLDER,
-            title or "全局输入路径",
-            description or "设置全局统一的输入路径，将应用于所有提取操作",
+            title,
+
             parent
         )
         
@@ -59,45 +55,32 @@ class GlobalInputPathCard(ExpandSettingCard):
     
     def _setupContent(self):
         """设置内容"""
-        # 创建内容控件
+        # 创建右侧内容容器 - 水平布局
         content_widget = QWidget()
-        content_layout = QVBoxLayout(content_widget)
-        content_layout.setContentsMargins(0, 0, 0, 0)
-        content_layout.setSpacing(12)
-        
-        # 当前路径显示
-        current_path_label = BodyLabel(self._get_text("current_path") or "当前路径:")
-        setFont(current_path_label, 13)
-        content_layout.addWidget(current_path_label)
-        
-        # 输入路径编辑框和浏览按钮的行
-        path_row = QHBoxLayout()
-        path_row.setSpacing(8)
+        content_layout = QHBoxLayout(content_widget)
+        content_layout.setContentsMargins(0, 0, 20, 0)  # 添加右边距避免超出边框
+        content_layout.setSpacing(8)
         
         # 输入路径编辑框
         self.inputPathEdit = CustomLineEdit()
-        self.inputPathEdit.setPlaceholderText(self._get_text("press_enter_restore_path") or "按Enter恢复默认Roblox缓存路径")
+        self.inputPathEdit.setPlaceholderText("Enter path or press Enter to restore default")  # 简化占位符文字
         self.inputPathEdit.setClearButtonEnabled(True)
         self.inputPathEdit.setText(self.config_manager.get("global_input_path", ""))
         self.inputPathEdit.editingFinished.connect(self._saveGlobalInputPath)
         self.inputPathEdit.enterPressed.connect(self._restoreDefaultPath)
+        self.inputPathEdit.setFixedHeight(32)
+        self.inputPathEdit.setMinimumWidth(300)  # 增加最小宽度确保文字显示完整
         
         # 浏览按钮
-        self.browseButton = PushButton(FluentIcon.FOLDER_ADD, self._get_text("browse") or "浏览")
-        self.browseButton.setFixedWidth(80)
+        self.browseButton = PushButton(FluentIcon.FOLDER_ADD, self._get_text("browse") or "Browse")
+        self.browseButton.setFixedSize(100, 32)  # 增加按钮宽度确保文字完整显示
         self.browseButton.clicked.connect(self._browseDirectory)
         
-        path_row.addWidget(self.inputPathEdit, 1)
-        path_row.addWidget(self.browseButton)
-        content_layout.addLayout(path_row)
+        content_layout.addWidget(self.inputPathEdit, 1)
+        content_layout.addWidget(self.browseButton)
         
-        # 提示信息
-        hint_label = BodyLabel(self._get_text("path_hint") or "提示：留空将使用默认的Roblox缓存路径")
-        hint_label.setStyleSheet("color: gray; font-size: 12px;")
-        content_layout.addWidget(hint_label)
-        
-        # 使用正确的API添加内容
-        self.addWidget(content_widget)
+        # 将内容添加到SettingCard的hBoxLayout
+        self.hBoxLayout.addWidget(content_widget)
     
     def _saveGlobalInputPath(self):
         """保存全局输入路径"""
@@ -116,7 +99,7 @@ class GlobalInputPathCard(ExpandSettingCard):
         current_path = self.inputPathEdit.text() or ""
         directory = QFileDialog.getExistingDirectory(
             self, 
-            self._get_text("select_directory") or "选择目录",
+            self._get_text("select_directory") or "Select Directory",
             current_path
         )
         if directory:

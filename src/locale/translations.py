@@ -924,8 +924,8 @@ def get_translations():
                 CHINESE: "检查更新"
             },
             "checking_update": {
-                ENGLISH: "Checking for updates...",
-                CHINESE: "正在检查更新..."
+                ENGLISH: "Checking...",
+                CHINESE: "检查中..."
             },
             "latest_version": {
                 ENGLISH: "Latest version: {}",
@@ -1022,12 +1022,12 @@ def get_translations():
                 CHINESE: "FFmpeg 状态"
             },
             "detect_ffmpeg": {
-                ENGLISH: "Detect FFmpeg",
-                CHINESE: "检测 FFmpeg"
+                ENGLISH: "Detect",
+                CHINESE: "检测"
             },
             "browse_ffmpeg": {
-                ENGLISH: "Browse FFmpeg",
-                CHINESE: "浏览 FFmpeg"
+                ENGLISH: "Browse",
+                CHINESE: "浏览"
             },
             "detecting": {
                 ENGLISH: "Detecting",
