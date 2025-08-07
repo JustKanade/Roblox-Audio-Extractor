@@ -1229,4 +1229,98 @@ def get_translations():
                 ENGLISH: "Path copied to clipboard: {}",
                 CHINESE: "路径已复制到剪贴板：{}"
             },
+            
+            # 版本检查设置相关
+            "version_check_description": {
+                ENGLISH: "Manage application version checking and update settings",
+                CHINESE: "管理应用程序版本检查和更新设置"
+            },
+            "latest_version": {
+                ENGLISH: "Latest version",
+                CHINESE: "最新版本"
+            },
+            "release_notes": {
+                ENGLISH: "Release Notes",
+                CHINESE: "更新说明"
+            },
+            "download_update": {
+                ENGLISH: "Download Update",
+                CHINESE: "下载更新"
+            },
+            "cancel": {
+                ENGLISH: "Cancel",
+                CHINESE: "取消"
+            },
+            "check_failed": {
+                ENGLISH: "Check Failed",
+                CHINESE: "检查失败"
+            },
+            
+            # FFmpeg状态相关
+            "ffmpeg_description": {
+                ENGLISH: "Detect and manage FFmpeg installation status",
+                CHINESE: "检测和管理FFmpeg安装状态"
+            },
+            "ffmpeg_found_in_path": {
+                ENGLISH: "Found FFmpeg in system PATH",
+                CHINESE: "在系统PATH中找到FFmpeg"
+            },
+            "ffmpeg_found_at": {
+                ENGLISH: "Found FFmpeg at",
+                CHINESE: "找到FFmpeg"
+            },
+            "ffmpeg_ready": {
+                ENGLISH: "FFmpeg is ready, duration classification feature can work properly",
+                CHINESE: "FFmpeg已准备就绪，时长分类功能可正常工作"
+            },
+            "ffmpeg_not_found": {
+                ENGLISH: "Not Found",
+                CHINESE: "未找到"
+            },
+            "ffmpeg_install_hint": {
+                ENGLISH: "Please install FFmpeg to enable audio duration classification",
+                CHINESE: "请安装FFmpeg以启用音频时长分类功能"
+            },
+            "ffmpeg_install_instruction": {
+                ENGLISH: "Please install FFmpeg to enable audio duration classification. You can manually specify FFmpeg path",
+                CHINESE: "请安装FFmpeg以启用音频时长分类功能。您可以手动指定FFmpeg路径"
+            },
+            "ffmpeg_custom_path": {
+                ENGLISH: "Custom path",
+                CHINESE: "自定义路径"
+            },
+            "ffmpeg_set_success": {
+                ENGLISH: "FFmpeg Setup Successful",
+                CHINESE: "FFmpeg设置成功"
+            },
+            "ffmpeg_path_updated": {
+                ENGLISH: "FFmpeg path has been updated",
+                CHINESE: "FFmpeg路径已更新"
+            },
+            "invalid_ffmpeg": {
+                ENGLISH: "Invalid FFmpeg File",
+                CHINESE: "无效的FFmpeg文件"
+            },
+            "invalid_ffmpeg_hint": {
+                ENGLISH: "The selected file is not a valid FFmpeg executable",
+                CHINESE: "选择的文件不是有效的FFmpeg可执行文件"
+            },
+            "ffmpeg_test_failed": {
+                ENGLISH: "FFmpeg Test Failed",
+                CHINESE: "FFmpeg测试失败"
+            },
+            "ffmpeg_test_error": {
+                ENGLISH: "Unable to run the selected FFmpeg file",
+                CHINESE: "无法运行选择的FFmpeg文件"
+            },
+            
+            # 全局输入路径相关
+            "current_path": {
+                ENGLISH: "Current Path",
+                CHINESE: "当前路径"
+            },
+            "path_hint": {
+                ENGLISH: "Tip: Leave empty to use default Roblox cache path",
+                CHINESE: "提示：留空将使用默认的Roblox缓存路径"
+            },
         }
