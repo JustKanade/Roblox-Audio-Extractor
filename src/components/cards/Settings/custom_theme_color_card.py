@@ -19,8 +19,7 @@ except ImportError:
 
 # 导入 PyQt-Fluent-Widgets
 from qfluentwidgets import (
-    CardWidget, SettingCard, PushButton, FluentIcon,
-    setThemeColor, ColorConfigItem, ColorValidator, ColorSerializer,
+    FluentIcon, setThemeColor, ColorConfigItem, 
     CustomColorSettingCard
 )
 
@@ -52,10 +51,10 @@ def get_text(key):
     return DEFAULT_TRANSLATIONS.get(key, key)
     
 
-class CustomThemeColorCard(QWidget):
+class CustomThemeColorCard(CustomColorSettingCard):
     """主题颜色设置卡片"""
 
-    colorChanged = pyqtSignal(QColor)  # 颜色变更信号
+    # 继承父类的colorChanged信号，不需要重新定义
 
     def __init__(self, config_manager, parent=None):
         """初始化主题颜色设置卡片
@@ -64,7 +63,6 @@ class CustomThemeColorCard(QWidget):
             config_manager: 配置管理器实例
             parent: 父控件
         """
-        super().__init__(parent)
         self.config_manager = config_manager
         
         # 固定的默认主题颜色，永远不变
@@ -77,8 +75,28 @@ class CustomThemeColorCard(QWidget):
         saved_color = self.config_manager.get("theme_color", DEFAULT_THEME_COLOR)
         self.customColor = QColor(saved_color)
         
-        # 初始化界面
-        self.setupFluentUI()
+        # 创建颜色配置项
+        colorConfigItem = ColorConfigItem(
+            group="Appearance", 
+            name="ThemeColor", 
+            default=self.customColor
+        )
+        
+        # 初始化父类CustomColorSettingCard
+        super().__init__(
+            configItem=colorConfigItem,
+            icon=FluentIcon.PALETTE,
+            title=get_text("theme_color_settings") or "主题颜色设置",
+            content="",
+            parent=parent
+        )
+        
+        # 连接颜色变更信号
+        self.colorChanged.connect(self.onColorChanged)
+        
+        # 延迟翻译组件内部文本
+        from PyQt5.QtCore import QTimer
+        QTimer.singleShot(100, lambda: self._translateFluentWidgetsTexts())
         
         # 应用当前主题颜色
         self.applyCurrentThemeColor()
@@ -90,41 +108,6 @@ class CustomThemeColorCard(QWidget):
         else:
             self.applyThemeColor(self.defaultColor)
     
-    def setupFluentUI(self):
-        """使用 PyQt-Fluent-Widgets 设置界面"""
-        layout = QVBoxLayout(self)
-        layout.setContentsMargins(0, 0, 0, 0)
-        
-        try:
-            # 创建颜色配置项，根据 qfluentwidgets 的 API 调整参数
-            colorConfigItem = ColorConfigItem(
-                group="Appearance", 
-                name="ThemeColor", 
-                default=self.customColor
-            )
-            
-            # 创建自定义颜色设置卡片
-            self.colorCard = CustomColorSettingCard(
-                configItem=colorConfigItem,
-                icon=FluentIcon.PALETTE,
-                title=get_text("theme_color_settings") or "主题颜色设置",
-                content="",
-                parent=self
-            )
-            
-            # 连接信号
-            self.colorCard.colorChanged.connect(self.onColorChanged)
-            
-            # 添加到布局
-            layout.addWidget(self.colorCard)
-            
-            # 延迟翻译组件内部文本
-            from PyQt5.QtCore import QTimer
-            QTimer.singleShot(100, lambda: self._translateFluentWidgetsTexts())
-            
-        except Exception as e:
-            logger.error(f"创建 Fluent 界面时出错: {e}")
-            
     def _translateFluentWidgetsTexts(self):
         """翻译 PyQt-Fluent-Widgets 组件内部文本"""
         try:
@@ -146,21 +129,21 @@ class CustomThemeColorCard(QWidget):
             logger.debug("当前是中文界面，开始应用中文翻译")
             
             # 翻译标签文本
-            for label in self.colorCard.findChildren(QLabel):
+            for label in self.findChildren(QLabel):
                 text = label.text()
                 if text in FLUENT_TRANSLATIONS:
                     logger.debug(f"翻译标签: '{text}' -> '{FLUENT_TRANSLATIONS[text]}'")
                     label.setText(FLUENT_TRANSLATIONS[text])
             
             # 翻译按钮文本
-            for button in self.colorCard.findChildren(QPushButton):
+            for button in self.findChildren(QPushButton):
                 text = button.text()
                 if text in FLUENT_TRANSLATIONS:
                     logger.debug(f"翻译按钮: '{text}' -> '{FLUENT_TRANSLATIONS[text]}'")
                     button.setText(FLUENT_TRANSLATIONS[text])
             
             # 翻译单选按钮文本
-            for radio in self.colorCard.findChildren(QRadioButton):
+            for radio in self.findChildren(QRadioButton):
                 text = radio.text()
                 if text in FLUENT_TRANSLATIONS:
                     logger.debug(f"翻译单选按钮: '{text}' -> '{FLUENT_TRANSLATIONS[text]}'")
@@ -186,9 +169,6 @@ class CustomThemeColorCard(QWidget):
         
         # 更新界面
         self.applyThemeColor(color)
-        
-        # 发送颜色变更信号
-        self.colorChanged.emit(color)
         
     def applyThemeColor(self, color):
         """应用主题颜色"""
