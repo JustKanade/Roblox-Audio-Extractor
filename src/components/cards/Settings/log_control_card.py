@@ -14,11 +14,11 @@ from PyQt5.QtWidgets import (
 from PyQt5.QtCore import Qt
 
 from qfluentwidgets import (
-    CardWidget, PushButton, FluentIcon, MessageBox,
-    InfoBar, InfoBarPosition, StrongBodyLabel
+    SettingCard, PushButton, FluentIcon, MessageBox,
+    InfoBar, InfoBarPosition
 )
     
-class LogControlCard(CardWidget):
+class LogControlCard(SettingCard):
     """日志控制卡片，提供导出和清空日志功能"""
     
     def __init__(self, parent=None, lang=None, central_log_handler=None):
@@ -30,41 +30,47 @@ class LogControlCard(CardWidget):
             lang: 语言管理器
             central_log_handler: 中央日志处理器实例
         """
-        super().__init__(parent)
         self.lang = lang
         self.central_log_handler = central_log_handler
-        self.setupUI()
+        
+        # 获取翻译文本
+        title = self.lang.get("log_management") if self.lang else "Log Management"
+        description = self.lang.get("log_management_description") if self.lang else "Export logs to file or clear all log entries"
+        
+        super().__init__(
+            FluentIcon.SAVE,
+            title,
+            description,
+            parent
+        )
+        
+        self._setupButtons()
     
-    def setupUI(self):
-        """设置UI布局"""
-        # 主布局
-        main_layout = QVBoxLayout(self)
-        main_layout.setContentsMargins(20, 15, 20, 15)
-        main_layout.setSpacing(15)
-        
-        # 标题
-        title = StrongBodyLabel(self.lang.get("log_management") if self.lang else "Log Management")
-        main_layout.addWidget(title)
-        
-        # 按钮区域
-        button_layout = QHBoxLayout()
-        button_layout.setSpacing(10)
+    def _setupButtons(self):
+        """设置按钮"""
+        # 创建按钮容器
+        button_widget = QWidget()
+        button_layout = QHBoxLayout(button_widget)
+        button_layout.setContentsMargins(0, 0, 20, 0)  # 设置右边距为20px
+        button_layout.setSpacing(8)
         
         # 导出日志按钮
         self.export_btn = PushButton(FluentIcon.SAVE, self.lang.get("export_logs") if self.lang else "Export Logs")
-        self.export_btn.setFixedHeight(36)
+        self.export_btn.setFixedHeight(32)
+        self.export_btn.setMinimumWidth(120)  # 确保按钮有足够宽度显示文字
         self.export_btn.clicked.connect(self.exportLogs)
         
         # 清空日志按钮
         self.clear_btn = PushButton(FluentIcon.DELETE, self.lang.get("clear_logs") if self.lang else "Clear Logs")
-        self.clear_btn.setFixedHeight(36)
+        self.clear_btn.setFixedHeight(32)
+        self.clear_btn.setMinimumWidth(120)  # 确保按钮有足够宽度显示文字
         self.clear_btn.clicked.connect(self.confirmClearLogs)
         
         button_layout.addWidget(self.export_btn)
         button_layout.addWidget(self.clear_btn)
-        button_layout.addStretch()
         
-        main_layout.addLayout(button_layout)
+        # 将按钮添加到SettingCard的hBoxLayout中
+        self.hBoxLayout.addWidget(button_widget)
     
     def exportLogs(self):
         """导出日志到文件"""
