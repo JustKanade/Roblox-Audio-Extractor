@@ -6,7 +6,7 @@ from PyQt5.QtWidgets import (
     QFrame, QSizePolicy
 )
 from PyQt5.QtCore import Qt, QRectF
-from PyQt5.QtGui import QPixmap, QFont, QPainter, QBrush, QPainterPath, QLinearGradient, QColor
+from PyQt5.QtGui import QPixmap, QFont
 
 from qfluentwidgets import (
     CardWidget, TitleLabel, SubtitleLabel,
@@ -15,22 +15,12 @@ from qfluentwidgets import (
     DisplayLabel, ScrollArea, isDarkTheme, setTheme, Theme
 )
 
-# 导入FluentTheme以获取当前主题色
-try:
-    from qfluentwidgets import FluentTheme
-except ImportError:
-    # 如果导入失败，创建一个模拟的FluentTheme类
-    class FluentTheme:
-        @staticmethod
-        def primaryColor():
-            return QColor("#e8b3ff")  # 默认蓝色
-
 from src.utils.file_utils import resource_path
 import os
 import sys
 
 
-class BannerWidget(QWidget):
+class BannerWidget(CardWidget):
     """ 横幅小部件 """
 
     def __init__(self, parent=None, config_manager=None, lang=None):
@@ -129,54 +119,6 @@ class BannerWidget(QWidget):
                 self.about_icon_label.setAlignment(Qt.AlignCenter)
         except Exception as e:
             print(f"无法加载关于页面图标: {e}")
-
-    def paintEvent(self, e):
-        """绘制事件，绘制渐变背景"""
-        super().paintEvent(e)
-        painter = QPainter(self)
-        painter.setRenderHints(
-            QPainter.SmoothPixmapTransform | QPainter.Antialiasing
-        )
-        painter.setPen(Qt.NoPen)
-
-        # 创建圆角矩形路径
-        path = QPainterPath()
-        path.setFillRule(Qt.WindingFill)
-        w, h = self.width(), self.height()
-        path.addRoundedRect(QRectF(0, 0, w, h), 10, 10)
-        
-        # 获取自定义主题色
-        theme_color = None
-        if self.config_manager:
-            if self.config_manager.get("use_custom_theme_color", False):
-                theme_color_str = self.config_manager.get("theme_color", "#e8b3ff")
-                theme_color = QColor(theme_color_str)
-            else:
-                # 如果没有启用自定义主题色，从QFluentWidgets获取当前主题色
-                theme_color = FluentTheme.primaryColor()
-        else:
-            # 如果没有config_manager，从QFluentWidgets获取当前主题色
-            theme_color = FluentTheme.primaryColor()
-            
-        # 如果没有自定义主题色或无效，使用默认主题色
-        if not theme_color or not theme_color.isValid():
-            theme_color = QColor("#e8b3ff")  
-
-        # 初始化线性渐变
-        gradient = QLinearGradient(0, 0, w, h)
-        
-        # 根据主题设置渐变颜色
-        if not isDarkTheme():
-            # 浅色主题：使用主题色的浅色变体
-            gradient.setColorAt(0, QColor(theme_color.red(), theme_color.green(), theme_color.blue(), 80))
-            gradient.setColorAt(1, QColor(theme_color.red(), theme_color.green(), theme_color.blue(), 10))
-        else:
-            # 深色主题：使用主题色的深色变体
-            gradient.setColorAt(0, QColor(theme_color.red()//2, theme_color.green()//2, theme_color.blue()//2, 120))
-            gradient.setColorAt(1, QColor(theme_color.red()//3, theme_color.green()//3, theme_color.blue()//3, 20))
-            
-        # 使用渐变填充路径
-        painter.fillPath(path, QBrush(gradient))
 
 
 class AboutInterface(QWidget):
