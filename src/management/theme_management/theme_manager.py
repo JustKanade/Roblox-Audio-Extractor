@@ -111,34 +111,27 @@ def _safely_apply_theme(window, theme_setting, config_manager):
         else:  # auto
             setTheme(Theme.AUTO, lazy=True)
         
-        # 应用主题颜色
+        # 应用主题颜色 - 使用新的qconfig系统
         try:
-            # 检查是否使用自定义主题色
-            use_custom_theme_color = config_manager.get("use_custom_theme_color", False)
-            theme_color_value = config_manager.get("theme_color", "#ff893f")
+            # 直接从配置项获取颜色
+            theme_color = config_manager.cfg.get(config_manager.cfg.themeColor)
             
-            if use_custom_theme_color:
-                # 确保颜色格式正确
-                if not theme_color_value.startswith('#'):
-                    theme_color_value = f"#{theme_color_value}"
-                
-                # 添加透明度前缀
-                if len(theme_color_value) == 7:  # #RRGGBB 格式
-                    theme_color_value = f"#ff{theme_color_value[1:]}"
-                    
-                # 直接应用主题色，不需要重新加载配置
-                setThemeColor(QColor(theme_color_value))
-                logger.debug(f"应用自定义主题色: {theme_color_value}")
+            if isinstance(theme_color, QColor) and theme_color.isValid():
+                # 直接应用主题色
+                setThemeColor(theme_color)
+                logger.debug(f"应用主题色: {theme_color.name()}")
             else:
                 # 应用默认主题色
-                setThemeColor(QColor("#ffe8b3ff"))
-                logger.debug("应用默认主题色: #ffe8b3ff")
+                default_color = QColor("#e8b3ff")
+                setThemeColor(default_color)
+                logger.debug(f"应用默认主题色: {default_color.name()}")
             
         except Exception as e:
             logger.error(f"应用主题颜色时出错: {e}")
             # 回退到默认颜色
             try:
-                setThemeColor(QColor("#ffe8b3ff"))
+                default_color = QColor("#e8b3ff")
+                setThemeColor(default_color)
             except Exception:
                 pass
 
@@ -170,17 +163,25 @@ def apply_theme_change(window, theme_name, config_manager, central_log_handler=N
         
         # 根据语言管理器获取主题名称对应的值
         if lang:
+            # 支持完整形式（"深色主题"、"浅色主题"）
             if theme_name == lang.get("theme_dark"):
                 theme_value = "dark"
             elif theme_name == lang.get("theme_light"):
                 theme_value = "light"
+            # 支持简短形式（"深色"、"浅色"、"跟随系统"）
+            elif theme_name == "深色":
+                theme_value = "dark"
+            elif theme_name == "浅色":
+                theme_value = "light"
+            elif theme_name == "跟随系统":
+                theme_value = "auto"
             else:
                 theme_value = "auto"
         else:
             # 如果没有语言管理器，根据名称判断
-            if "dark" in theme_name.lower():
+            if "dark" in theme_name.lower() or theme_name == "深色":
                 theme_value = "dark"
-            elif "light" in theme_name.lower():
+            elif "light" in theme_name.lower() or theme_name == "浅色":
                 theme_value = "light"
             else:
                 theme_value = "auto"

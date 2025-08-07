@@ -8,12 +8,70 @@ import os
 import json
 import logging
 import multiprocessing
+from PyQt5.QtGui import QColor
+from qfluentwidgets import (qconfig, QConfig, ConfigItem, OptionsConfigItem, BoolValidator,
+                            OptionsValidator, RangeConfigItem, RangeValidator, ColorConfigItem,
+                            Theme, FolderValidator, ConfigSerializer)
 
 # 设置日志记录
 logger = logging.getLogger(__name__)
 
+class ThemeSerializer(ConfigSerializer):
+    """主题序列化器"""
+    
+    def serialize(self, theme):
+        if theme == Theme.DARK:
+            return "dark"
+        elif theme == Theme.LIGHT:
+            return "light"
+        else:
+            return "auto"
+    
+    def deserialize(self, value: str):
+        if value == "dark":
+            return Theme.DARK
+        elif value == "light":
+            return Theme.LIGHT
+        else:
+            return Theme.AUTO
+
+class AppConfig(QConfig):
+    """应用程序配置类 - 使用官方qconfig系统"""
+    
+    # 基本配置
+    language = OptionsConfigItem(
+        "General", "Language", "auto", OptionsValidator(["auto", "en", "zh"]), restart=True)
+    theme = OptionsConfigItem(
+        "General", "Theme", Theme.AUTO, OptionsValidator([Theme.LIGHT, Theme.DARK, Theme.AUTO]), ThemeSerializer())
+    
+    # 主题色配置 - 使用官方ColorConfigItem
+    themeColor = ColorConfigItem("Appearance", "ThemeColor", QColor("#e8b3ff"))
+    
+    # 路径配置
+    lastDirectory = ConfigItem("Paths", "LastDirectory", "", FolderValidator())
+    customOutputDir = ConfigItem("Paths", "CustomOutputDir", "", FolderValidator())
+    globalInputPath = ConfigItem("Paths", "GlobalInputPath", "", FolderValidator())
+    lastInputDir = ConfigItem("Paths", "LastInputDir", "", FolderValidator())
+    
+    # 性能配置
+    threads = RangeConfigItem(
+        "Performance", "Threads", min(32, multiprocessing.cpu_count() * 2), 
+        RangeValidator(1, 64))
+    
+    # 功能配置
+    classificationMethod = OptionsConfigItem(
+        "Features", "ClassificationMethod", "duration", 
+        OptionsValidator(["duration", "size", "name"]))
+    saveLogs = ConfigItem("Features", "SaveLogs", False, BoolValidator())
+    autoOpenOutputDir = ConfigItem("Features", "AutoOpenOutputDir", True, BoolValidator())
+    alwaysOnTop = ConfigItem("Window", "AlwaysOnTop", False, BoolValidator())
+    debugMode = ConfigItem("Debug", "Enabled", False, BoolValidator())
+    autoCheckUpdate = ConfigItem("Update", "AutoCheck", True, BoolValidator())
+    greetingEnabled = ConfigItem("UI", "GreetingEnabled", True, BoolValidator())
+    disableAvatarAutoUpdate = ConfigItem("UI", "DisableAvatarAutoUpdate", False, BoolValidator())
+
 class ConfigManager:
-    """配置文件管理器"""
+    """配置文件管理器 - 结合官方qconfig和传统配置管理"""
 
     def __init__(self):
         self.config_dir = os.path.join(os.path.expanduser("~"), ".roblox_audio_extractor")
@@ -25,60 +83,100 @@ class ConfigManager:
         self.qfluent_config_file = os.path.join(self.qfluent_config_dir, "config.json")
         os.makedirs(self.qfluent_config_dir, exist_ok=True)
         
-        self.config = self.load_config()
+        # 创建配置实例
+        self.cfg = AppConfig()
+        
+        # 加载现有配置（向后兼容）
+        self.load_existing_config()
+        
+        # 使用qconfig加载配置
+        qconfig.load(self.config_file, self.cfg)
+        
+        # 连接配置变更信号
+        self._connect_config_signals()
 
-    def load_config(self):
-        """加载配置文件"""
-        default_config = {
-            "language": "auto",  # auto, en, zh
-            "theme": "auto",  # light, dark, auto
-            "last_directory": "",
-            "threads": min(32, multiprocessing.cpu_count() * 2),
-            "classification_method": "duration",
-            "custom_output_dir": "",  # 自定义输出目录，空字符串表示使用默认路径
-            "save_logs": False,  # 是否保存日志
-            "auto_open_output_dir": True,  # 提取完成后是否自动打开输出目录
-            "use_custom_theme_color": False,  # 是否使用自定义主题颜色
-            "theme_color": "#e8b3ff"  # 默认主题颜色
-        }
-
-        try:
-            if os.path.exists(self.config_file):
+    def load_existing_config(self):
+        """加载现有配置文件以保持向后兼容"""
+        if os.path.exists(self.config_file):
+            try:
                 with open(self.config_file, 'r', encoding='utf-8') as f:
-                    config = json.load(f)
-                    # 合并默认配置，确保所有必需的键都存在
-                    for key, value in default_config.items():
-                        if key not in config:
-                            config[key] = value
-                    return config
-            else:
-                return default_config
-        except Exception as e:
-            logger.error(f"加载配置文件失败: {e}")
-            return default_config
+                    old_config = json.load(f)
+                    
+                # 迁移旧配置到新系统
+                self._migrate_old_config(old_config)
+                    
+            except Exception as e:
+                logger.error(f"加载现有配置失败: {e}")
 
-    def save_config(self):
-        """保存配置文件"""
+    def _migrate_old_config(self, old_config):
+        """迁移旧配置到新的qconfig系统"""
         try:
-            with open(self.config_file, 'w', encoding='utf-8') as f:
-                json.dump(self.config, f, indent=4, ensure_ascii=False)
-                
-            # 同步主题色和主题模式到PyQt-Fluent-Widgets配置
-            self.sync_theme_to_qfluent()
+            # 语言配置
+            if "language" in old_config:
+                self.cfg.set(self.cfg.language, old_config["language"])
+            
+            # 主题配置
+            if "theme" in old_config:
+                theme_value = old_config["theme"]
+                if theme_value == "dark":
+                    self.cfg.set(self.cfg.theme, Theme.DARK)
+                elif theme_value == "light":
+                    self.cfg.set(self.cfg.theme, Theme.LIGHT)
+                else:
+                    self.cfg.set(self.cfg.theme, Theme.AUTO)
+            
+            # 主题色配置 - 关键迁移！
+            if "theme_color" in old_config and "use_custom_theme_color" in old_config:
+                if old_config.get("use_custom_theme_color", False):
+                    color_str = old_config["theme_color"]
+                    if isinstance(color_str, str) and color_str.startswith('#'):
+                        try:
+                            color = QColor(color_str)
+                            if color.isValid():
+                                self.cfg.set(self.cfg.themeColor, color)
+                                logger.info(f"迁移主题色配置: {color_str}")
+                        except Exception as e:
+                            logger.error(f"迁移主题色失败: {e}")
+            
+            # 其他配置项迁移
+            config_mapping = {
+                "last_directory": self.cfg.lastDirectory,
+                "custom_output_dir": self.cfg.customOutputDir,
+                "global_input_path": self.cfg.globalInputPath,
+                "last_input_dir": self.cfg.lastInputDir,
+                "threads": self.cfg.threads,
+                "classification_method": self.cfg.classificationMethod,
+                "save_logs": self.cfg.saveLogs,
+                "auto_open_output_dir": self.cfg.autoOpenOutputDir,
+                "always_on_top": self.cfg.alwaysOnTop,
+                "debug_mode": self.cfg.debugMode,
+                "auto_check_update": self.cfg.autoCheckUpdate,
+                "greeting_enabled": self.cfg.greetingEnabled,
+                "disable_avatar_auto_update": self.cfg.disableAvatarAutoUpdate,
+            }
+            
+            for old_key, config_item in config_mapping.items():
+                if old_key in old_config:
+                    self.cfg.set(config_item, old_config[old_key])
+                    
         except Exception as e:
-            logger.error(f"保存配置文件失败: {e}")
+            logger.error(f"配置迁移失败: {e}")
+
+    def _connect_config_signals(self):
+        """连接配置变更信号"""
+        # 主题变更时同步到PyQt-Fluent-Widgets配置
+        self.cfg.themeChanged.connect(self.sync_theme_to_qfluent)
+        # 监听主题色配置项的变更
+        self.cfg.themeColor.valueChanged.connect(self.sync_theme_to_qfluent)
 
     def sync_theme_to_qfluent(self):
-        """同步主题设置到PyQt-Fluent-Widgets配置文件
-        
-        仅更新配置文件，不强制重新加载配置，以避免干扰动画流程
-        """
+        """同步主题设置到PyQt-Fluent-Widgets配置文件"""
         try:
             # 默认配置
             qfluent_config = {
                 "QFluentWidgets": {
                     "ThemeMode": "Auto",
-                    "ThemeColor": "#ffff893f"
+                    "ThemeColor": "#ffe8b3ff"
                 }
             }
             
@@ -95,30 +193,25 @@ class ConfigManager:
                 qfluent_config["QFluentWidgets"] = {}
                 
             # 同步主题模式
-            theme_mode = self.config.get("theme", "auto")
-            if theme_mode == "dark":
+            theme_mode = self.cfg.get(self.cfg.theme)
+            if theme_mode == Theme.DARK:
                 qfluent_config["QFluentWidgets"]["ThemeMode"] = "Dark"
-            elif theme_mode == "light":
+            elif theme_mode == Theme.LIGHT:
                 qfluent_config["QFluentWidgets"]["ThemeMode"] = "Light"
             else:
                 qfluent_config["QFluentWidgets"]["ThemeMode"] = "Auto"
                 
             # 同步主题色
-            use_custom_color = self.config.get("use_custom_theme_color", False)
-            
-            if use_custom_color:
-                # 获取自定义主题色，确保是带#前缀的十六进制颜色格式
-                theme_color = self.config.get("theme_color", "#0078d4")
-                if not theme_color.startswith('#'):
-                    theme_color = f"#{theme_color}"
-                
-                # PyQt-Fluent-Widgets需要带ff前缀的ARGB格式
-                if len(theme_color) == 7:  # #RRGGBB 格式
-                    theme_color = f"#ff{theme_color[1:]}"
-                    
-                qfluent_config["QFluentWidgets"]["ThemeColor"] = theme_color
+            theme_color = self.cfg.get(self.cfg.themeColor)
+            if isinstance(theme_color, QColor) and theme_color.isValid():
+                # 转换为ARGB格式
+                color_name = theme_color.name()  # #RRGGBB
+                if len(color_name) == 7:  # #RRGGBB 格式
+                    argb_color = f"#ff{color_name[1:]}"  # 添加透明度前缀
+                else:
+                    argb_color = "#ffe8b3ff"  # 回退到默认色
+                qfluent_config["QFluentWidgets"]["ThemeColor"] = argb_color
             else:
-                # 使用默认主题色 #ff0078d4
                 qfluent_config["QFluentWidgets"]["ThemeColor"] = "#ffe8b3ff"
             
             # 保存到PyQt-Fluent-Widgets配置文件
@@ -126,29 +219,130 @@ class ConfigManager:
             with open(self.qfluent_config_file, 'w', encoding='utf-8') as f:
                 json.dump(qfluent_config, f, indent=4, ensure_ascii=False)
                 
-            # 确保配置文件权限正确（在非Windows系统上可能需要）
-            if os.name != 'nt':
-                try:
-                    os.chmod(self.qfluent_config_file, 0o644)
-                except Exception:
-                    pass
-                
-            # 不再尝试强制QFluentWidgets重新加载配置
-            # 这样可以避免干扰主题切换动画流程
+            logger.debug("已同步配置到PyQt-Fluent-Widgets")
                 
         except Exception as e:
             logger.error(f"同步主题到PyQt-Fluent-Widgets失败: {e}")
-            import traceback
-            logger.debug(traceback.format_exc())
 
     def get(self, key, default=None):
-        """获取配置值"""
-        return self.config.get(key, default)
+        """获取配置值 - 向后兼容接口"""
+        try:
+            # 映射旧的配置键到新的配置项
+            key_mapping = {
+                "language": self.cfg.language,
+                "theme": self.cfg.theme,
+                "theme_color": self.cfg.themeColor,
+                "use_custom_theme_color": None,  # 新系统中不需要这个标志
+                "last_directory": self.cfg.lastDirectory,
+                "custom_output_dir": self.cfg.customOutputDir,
+                "global_input_path": self.cfg.globalInputPath,
+                "last_input_dir": self.cfg.lastInputDir,
+                "threads": self.cfg.threads,
+                "classification_method": self.cfg.classificationMethod,
+                "save_logs": self.cfg.saveLogs,
+                "auto_open_output_dir": self.cfg.autoOpenOutputDir,
+                "always_on_top": self.cfg.alwaysOnTop,
+                "debug_mode": self.cfg.debugMode,
+                "debug_mode_enabled": self.cfg.debugMode,  # 别名
+                "auto_check_update": self.cfg.autoCheckUpdate,
+                "greeting_enabled": self.cfg.greetingEnabled,
+                "disable_avatar_auto_update": self.cfg.disableAvatarAutoUpdate,
+            }
+            
+            if key in key_mapping:
+                config_item = key_mapping[key]
+                if config_item is None:
+                    # 特殊处理
+                    if key == "use_custom_theme_color":
+                        # 新系统中，只要主题色不是默认色就算自定义
+                        current_color = self.cfg.get(self.cfg.themeColor)
+                        default_color = QColor("#e8b3ff")
+                        return current_color != default_color
+                    return default
+                    
+                value = self.cfg.get(config_item)
+                
+                # 特殊处理主题色返回值
+                if key == "theme_color" and isinstance(value, QColor):
+                    return value.name()  # 返回 #RRGGBB 格式
+                elif key == "theme" and isinstance(value, Theme):
+                    # 将Theme枚举转换为字符串
+                    if value == Theme.DARK:
+                        return "dark"
+                    elif value == Theme.LIGHT:
+                        return "light"
+                    else:
+                        return "auto"
+                        
+                return value
+            else:
+                logger.warning(f"未知配置键: {key}")
+                return default
+                
+        except Exception as e:
+            logger.error(f"获取配置值失败 {key}: {e}")
+            return default
 
     def set(self, key, value):
-        """设置配置值"""
-        self.config[key] = value
-        self.save_config()
+        """设置配置值 - 向后兼容接口"""
+        try:
+            # 映射旧的配置键到新的配置项
+            key_mapping = {
+                "language": self.cfg.language,
+                "theme": self.cfg.theme,
+                "theme_color": self.cfg.themeColor,
+                "use_custom_theme_color": None,  # 新系统中不需要这个标志
+                "last_directory": self.cfg.lastDirectory,
+                "custom_output_dir": self.cfg.customOutputDir,
+                "global_input_path": self.cfg.globalInputPath,
+                "last_input_dir": self.cfg.lastInputDir,
+                "threads": self.cfg.threads,
+                "classification_method": self.cfg.classificationMethod,
+                "save_logs": self.cfg.saveLogs,
+                "auto_open_output_dir": self.cfg.autoOpenOutputDir,
+                "always_on_top": self.cfg.alwaysOnTop,
+                "debug_mode": self.cfg.debugMode,
+                "debug_mode_enabled": self.cfg.debugMode,  # 别名
+                "auto_check_update": self.cfg.autoCheckUpdate,
+                "greeting_enabled": self.cfg.greetingEnabled,
+                "disable_avatar_auto_update": self.cfg.disableAvatarAutoUpdate,
+            }
+            
+            if key in key_mapping:
+                config_item = key_mapping[key]
+                if config_item is None:
+                    # 特殊处理
+                    if key == "use_custom_theme_color":
+                        # 在新系统中这个标志被忽略，因为直接设置颜色即可
+                        logger.debug(f"忽略 use_custom_theme_color 设置: {value}")
+                    return
+                    
+                # 特殊处理值转换
+                if key == "theme_color":
+                    if isinstance(value, str) and value.startswith('#'):
+                        color = QColor(value)
+                        if color.isValid():
+                            value = color
+                        else:
+                            logger.error(f"无效的颜色值: {value}")
+                            return
+                elif key == "theme":
+                    if isinstance(value, str):
+                        if value == "dark":
+                            value = Theme.DARK
+                        elif value == "light":
+                            value = Theme.LIGHT
+                        else:
+                            value = Theme.AUTO
+                            
+                self.cfg.set(config_item, value)
+                logger.debug(f"设置配置: {key} = {value}")
+                
+            else:
+                logger.warning(f"未知配置键: {key}")
+                
+        except Exception as e:
+            logger.error(f"设置配置值失败 {key}={value}: {e}")
         
     def get_qfluent_config(self):
         """获取QFluentWidgets配置文件内容"""
@@ -156,7 +350,7 @@ class ConfigManager:
             if os.path.exists(self.qfluent_config_file):
                 with open(self.qfluent_config_file, 'r', encoding='utf-8') as f:
                     return json.load(f)
-            return {"QFluentWidgets": {"ThemeMode": "Auto", "ThemeColor": "#ffff893f"}}
+            return {"QFluentWidgets": {"ThemeMode": "Auto", "ThemeColor": "#ffe8b3ff"}}
         except Exception as e:
             logger.error(f"读取QFluentWidgets配置失败: {e}")
-            return {"QFluentWidgets": {"ThemeMode": "Auto", "ThemeColor": "#ffff893f"}} 
+            return {"QFluentWidgets": {"ThemeMode": "Auto", "ThemeColor": "#ffe8b3ff"}} 

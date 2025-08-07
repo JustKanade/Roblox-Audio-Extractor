@@ -25,6 +25,7 @@ from functools import partial
 from src.utils.log_utils import LogHandler
 from src.utils.file_utils import get_roblox_default_dir
 from src.logging.central_log_handler import CentralLogHandler
+from src.management.language_management.language_manager import apply_language
 
 # 尝试导入可能的卡片组件
 try:
@@ -144,6 +145,25 @@ class SettingsInterface(QWidget):
             qconfig.set(self.autoOpenConfig, self.config_manager.get("auto_open_output_dir", True))
             qconfig.set(self.avatarConfig, self.config_manager.get("disable_avatar_auto_update", False))
             qconfig.set(self.threadsConfig, self.config_manager.get("threads", default_threads))
+            
+            # 加载语言配置项
+            current_language_display = self._get_language_display_name(self.config_manager.get("language", "auto"))
+            qconfig.set(self.languageConfig, current_language_display)
+            
+    def _get_language_display_name(self, language_code):
+        """将语言代码转换为显示名称"""
+        if language_code == "zh":
+            return "简体中文"
+        elif language_code == "en":
+            return "English"
+        else:  # "auto" or any other value
+            return "跟随系统设置"
+            
+    def _get_current_language_name(self):
+        """获取当前语言显示名称"""
+        if self.lang:
+            return self.lang.get_language_name()
+        return "跟随系统设置"
             
     def initUI(self):
         """初始化设置界面"""
@@ -325,9 +345,9 @@ class SettingsInterface(QWidget):
         
         # 自定义输出目录设置
         output_dir_card = PushSettingCard(
-            self.get_text("custom_output_dir") or "自定义输出目录",
-            FluentIcon.FOLDER_ADD,
             self.get_text("browse") or "浏览",
+            FluentIcon.FOLDER_ADD,
+            self.get_text("custom_output_dir") or "自定义输出目录",
             self.config_manager.get("custom_output_dir", "") if self.config_manager else ""
         )
         output_dir_card.clicked.connect(self.browseOutputDirectory)
@@ -419,9 +439,29 @@ class SettingsInterface(QWidget):
     
     def onLanguageChanged(self, config_item):
         """语言改变事件"""
-        # 调用父窗口的applyLanguage方法
-        if self._parent_window and hasattr(self._parent_window, 'applyLanguage'):
-            self._parent_window.applyLanguage()
+        # 获取选中的语言
+        selected_language = qconfig.get(config_item)
+        
+        # 获取当前语言名称
+        current_language = self._get_current_language_name()
+        
+        # 调用apply_language函数处理语言变更
+        if self.lang:
+            try:
+                apply_language(
+                    window=self._parent_window or self,
+                    selected_language=selected_language,
+                    current_language=current_language,
+                    lang=self.lang,
+                    settings_log_handler=getattr(self, 'settingsLogHandler', None)
+                )
+            except Exception as e:
+                # 如果apply_language出错，记录错误并回退到简单的applyLanguage调用
+                if hasattr(self, 'settingsLogHandler'):
+                    self.settingsLogHandler.error(f"语言设置出错: {e}")
+                # 尝试调用父窗口的applyLanguage方法作为后备
+                if self._parent_window and hasattr(self._parent_window, 'applyLanguage'):
+                    self._parent_window.applyLanguage()
     
     def onThemeChanged(self, config_item):
         """主题改变事件"""

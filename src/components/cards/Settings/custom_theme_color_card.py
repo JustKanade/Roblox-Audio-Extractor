@@ -19,16 +19,13 @@ except ImportError:
 
 # 导入 PyQt-Fluent-Widgets
 from qfluentwidgets import (
-    FluentIcon, setThemeColor, ColorConfigItem, 
-    CustomColorSettingCard
+    FluentIcon, setThemeColor, CustomColorSettingCard
 )
 
 # 默认翻译，如果lang未初始化时使用
 DEFAULT_TRANSLATIONS = {
     "theme_color_settings": "主题颜色设置",
-    "theme_color_default": "默认颜色",
-    "theme_color_custom": "自定义颜色",
-    "theme_color_choose": "选择颜色"
+    "theme_color_description": "更改应用程序的主题颜色",
 }
 
 # 添加 PyQt-Fluent-Widgets 组件内部使用的文本翻译
@@ -41,9 +38,6 @@ FLUENT_TRANSLATIONS = {
     'Pick Color': '选择颜色'
 }
 
-# 默认主题颜色 - 这个颜色永远不会被修改
-DEFAULT_THEME_COLOR = "#e8b3ff"
-
 def get_text(key):
     """获取翻译文本，如果lang未初始化则使用默认值"""
     if lang and hasattr(lang, 'get'):
@@ -52,9 +46,7 @@ def get_text(key):
     
 
 class CustomThemeColorCard(CustomColorSettingCard):
-    """主题颜色设置卡片"""
-
-    # 继承父类的colorChanged信号，不需要重新定义
+    """主题颜色设置卡片 - 采用官方标准实现"""
 
     def __init__(self, config_manager, parent=None):
         """初始化主题颜色设置卡片
@@ -65,48 +57,23 @@ class CustomThemeColorCard(CustomColorSettingCard):
         """
         self.config_manager = config_manager
         
-        # 固定的默认主题颜色，永远不变
-        self.defaultColor = QColor(DEFAULT_THEME_COLOR)
-        
-        # 从配置中读取用户设置
-        self.useCustom = self.config_manager.get("use_custom_theme_color", False)
-        
-        # 读取保存的自定义颜色
-        saved_color = self.config_manager.get("theme_color", DEFAULT_THEME_COLOR)
-        self.customColor = QColor(saved_color)
-        
-        # 创建颜色配置项
-        colorConfigItem = ColorConfigItem(
-            group="Appearance", 
-            name="ThemeColor", 
-            default=self.customColor
-        )
-        
-        # 初始化父类CustomColorSettingCard
+        # 使用官方标准实现：直接传递配置项给CustomColorSettingCard
         super().__init__(
-            configItem=colorConfigItem,
+            configItem=config_manager.cfg.themeColor,  # 直接使用配置管理器的颜色配置项
             icon=FluentIcon.PALETTE,
             title=get_text("theme_color_settings") or "主题颜色设置",
-            content="",
+            content=get_text("theme_color_description") or "更改应用程序的主题颜色",
             parent=parent
         )
         
-        # 连接颜色变更信号
-        self.colorChanged.connect(self.onColorChanged)
+        # 连接颜色变更信号 - 官方标准实现
+        self.colorChanged.connect(lambda color: setThemeColor(color))
         
         # 延迟翻译组件内部文本
         from PyQt5.QtCore import QTimer
         QTimer.singleShot(100, lambda: self._translateFluentWidgetsTexts())
         
-        # 应用当前主题颜色
-        self.applyCurrentThemeColor()
-    
-    def applyCurrentThemeColor(self):
-        """应用当前主题颜色（根据用户设置）"""
-        if self.useCustom:
-            self.applyThemeColor(self.customColor)
-        else:
-            self.applyThemeColor(self.defaultColor)
+        logger.debug("CustomThemeColorCard初始化完成 - 使用官方标准实现")
     
     def _translateFluentWidgetsTexts(self):
         """翻译 PyQt-Fluent-Widgets 组件内部文本"""
@@ -152,40 +119,4 @@ class CustomThemeColorCard(CustomColorSettingCard):
             logger.debug("已完成 PyQt-Fluent-Widgets 组件内部文本翻译")
         except Exception as e:
             logger.error(f"翻译 PyQt-Fluent-Widgets 组件内部文本时出错: {e}")
-    
-    def onColorChanged(self, color):
-        """当颜色更改时的处理函数"""
-        self.updateCustomColor(color)
-    
-    def updateCustomColor(self, color):
-        """更新自定义颜色"""
-        # 保存颜色
-        self.customColor = color
-        
-        # 更新配置
-        self.config_manager.set("theme_color", color.name())
-        self.config_manager.set("use_custom_theme_color", True)
-        self.useCustom = True
-        
-        # 更新界面
-        self.applyThemeColor(color)
-        
-    def applyThemeColor(self, color):
-        """应用主题颜色"""
-        # 获取颜色名称（格式为 #RRGGBB）
-        color_name = color.name()
-        
-        # 应用到 PyQt-Fluent-Widgets 主题
-        try:
-            setThemeColor(color)
-            logger.debug(f"应用主题颜色: {color_name}")
-        except Exception as e:
-            logger.error(f"应用主题颜色时出错: {e}")
-        
-        # 保存当前使用的颜色到配置
-        if color == self.defaultColor:
-            self.config_manager.set("use_custom_theme_color", False)
-        else:
-            self.config_manager.set("use_custom_theme_color", True)
-            self.config_manager.set("theme_color", color_name)
         

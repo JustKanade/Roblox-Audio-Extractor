@@ -104,22 +104,20 @@ class MainWindow(FluentWindow):
     def __init__(self):
         super().__init__()
 
-        # 初始化配置管理器
+        # 初始化配置管理器 - 使用新的qconfig系统
         self.config_manager = ConfigManager()
         
-        # 确保在启动时同步配置到PyQt-Fluent-Widgets
-        self.config_manager.sync_theme_to_qfluent()
+        # qconfig系统会自动处理配置的同步，无需手动调用
+        logger.debug("配置管理器初始化完成，使用qconfig系统")
         
         # 只有在debug模式开启时才输出调试信息
         if self.config_manager.get("debug_mode_enabled", False):
+            print(f"配置文件路径: {self.config_manager.config_file}")
             print(f"QFluentWidgets配置文件路径: {self.config_manager.qfluent_config_file}")
-            if os.path.exists(self.config_manager.qfluent_config_file):
-                try:
-                    with open(self.config_manager.qfluent_config_file, 'r', encoding='utf-8') as f:
-                        qfluent_config = json.load(f)
-                        print(f"QFluentWidgets配置内容: {qfluent_config}")
-                except Exception as e:
-                    print(f"读取QFluentWidgets配置失败: {e}")
+            print(f"QFluentWidgets配置内容: {self.config_manager.get_qfluent_config()}")
+            theme_color = self.config_manager.cfg.get(self.config_manager.cfg.themeColor)
+            theme_mode = self.config_manager.cfg.get(self.config_manager.cfg.theme)
+            print(f"当前主题配置: theme={theme_mode}, themeColor={theme_color.name() if isinstance(theme_color, QColor) else theme_color}")
 
         # 初始化语言管理器
         global lang
@@ -149,10 +147,7 @@ class MainWindow(FluentWindow):
         # 初始化UI
         self.initUI()
         
-        # 再次确保同步配置到PyQt-Fluent-Widgets，然后应用主题设置
-        self.config_manager.sync_theme_to_qfluent()
-        
-        # 应用保存的主题设置
+        # 应用保存的主题设置 - qconfig系统会自动处理主题色同步
         self.applyThemeFromConfig()
         
         # 应用响应式布局到所有界面
@@ -204,12 +199,9 @@ class MainWindow(FluentWindow):
         """从配置文件应用主题设置"""
         # 只有在debug模式开启时才输出调试信息
         if self.config_manager.get("debug_mode_enabled", False):
-            use_custom_theme_color = self.config_manager.get("use_custom_theme_color", False)
-            theme_color = self.config_manager.get("theme_color", "#0078d4")
-            theme_mode = self.config_manager.get("theme", "dark")
-            print(f"QFluentWidgets配置文件路径: {self.config_manager.qfluent_config_file}")
-            print(f"QFluentWidgets配置内容: {self.config_manager.get_qfluent_config()}")
-            print(f"应用主题前配置状态: theme={theme_mode}, use_custom_theme_color={use_custom_theme_color}, theme_color={theme_color}")
+            theme_color = self.config_manager.cfg.get(self.config_manager.cfg.themeColor)
+            theme_mode = self.config_manager.cfg.get(self.config_manager.cfg.theme)
+            print(f"应用主题前配置状态: theme={theme_mode}, themeColor={theme_color.name() if isinstance(theme_color, QColor) else theme_color}")
         
         # 使用主题管理器应用主题
         apply_theme_from_config(self, self.config_manager, CentralLogHandler.getInstance())
