@@ -14,6 +14,9 @@ from PyQt5.QtCore import QTimer
 from PyQt5.QtGui import QColor
 from qfluentwidgets import setTheme, Theme, setThemeColor
 
+# 导入默认主题色常量
+from src.config.config_manager import DEFAULT_THEME_COLOR
+
 # 设置日志记录
 logger = logging.getLogger(__name__)
 
@@ -122,7 +125,7 @@ def _safely_apply_theme(window, theme_setting, config_manager):
                 logger.debug(f"应用主题色: {theme_color.name()}")
             else:
                 # 应用默认主题色
-                default_color = QColor("#e8b3ff")
+                default_color = QColor(DEFAULT_THEME_COLOR)
                 setThemeColor(default_color)
                 logger.debug(f"应用默认主题色: {default_color.name()}")
             
@@ -130,7 +133,7 @@ def _safely_apply_theme(window, theme_setting, config_manager):
             logger.error(f"应用主题颜色时出错: {e}")
             # 回退到默认颜色
             try:
-                default_color = QColor("#e8b3ff")
+                default_color = QColor(DEFAULT_THEME_COLOR)
                 setThemeColor(default_color)
             except Exception:
                 pass

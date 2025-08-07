@@ -17,6 +17,9 @@ from qfluentwidgets import (qconfig, QConfig, ConfigItem, OptionsConfigItem, Boo
 # 设置日志记录
 logger = logging.getLogger(__name__)
 
+# 默认主题色常量
+DEFAULT_THEME_COLOR = "#009faa"
+
 def isWin11():
     """检查是否为 Windows 11"""
     return sys.platform == 'win32' and sys.getwindowsversion().build >= 22000
@@ -50,7 +53,7 @@ class AppConfig(QConfig):
         "General", "Theme", Theme.AUTO, OptionsValidator([Theme.LIGHT, Theme.DARK, Theme.AUTO]), ThemeSerializer())
     
     # 主题色配置 - 使用官方ColorConfigItem
-    themeColor = ColorConfigItem("Appearance", "ThemeColor", QColor("#e8b3ff"))
+    themeColor = ColorConfigItem("Appearance", "ThemeColor", QColor(DEFAULT_THEME_COLOR))
     
     # 窗口效果配置
     micaEnabled = ConfigItem("MainWindow", "MicaEnabled", isWin11(), BoolValidator())
@@ -265,7 +268,7 @@ class ConfigManager:
                     if key == "use_custom_theme_color":
                         # 新系统中，只要主题色不是默认色就算自定义
                         current_color = self.cfg.get(self.cfg.themeColor)
-                        default_color = QColor("#e8b3ff")
+                        default_color = QColor(DEFAULT_THEME_COLOR)
                         return current_color != default_color
                     return default
                     
