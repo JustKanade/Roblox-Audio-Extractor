@@ -425,7 +425,7 @@ class SettingsInterface(QWidget):
                 print(f"添加全局输入路径卡片时出错: {e}")
                 if hasattr(self, 'settingsLogHandler'):
                     self.settingsLogHandler.error(f"添加全局输入路径卡片时出错: {e}")
-        
+     
         # 自定义输出目录设置
         output_dir_card = PushSettingCard(
             self.get_text("browse"),
@@ -433,7 +433,10 @@ class SettingsInterface(QWidget):
             self.get_text("custom_output_dir"),
             self.config_manager.get("custom_output_dir", "") if self.config_manager else ""
         )
+        # 为按钮设置图标
+        output_dir_card.button.setIcon(FluentIcon.FOLDER_ADD.icon())
         output_dir_card.clicked.connect(self.browseOutputDirectory)
+        
         group.addSettingCard(output_dir_card)
         self.customOutputDirCard = output_dir_card
         
