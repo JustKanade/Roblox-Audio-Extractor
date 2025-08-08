@@ -2,7 +2,13 @@
 # -*- coding: utf-8 -*-
 
 from PyQt5.QtCore import QTimer
-from qfluentwidgets import SwitchSettingCard, FluentIcon, ConfigItem, BoolValidator
+from PyQt5.QtWidgets import QHBoxLayout, QWidget
+from qfluentwidgets import (
+    SwitchButton, FluentIcon
+)
+
+# 导入更新工具
+from src.utils.update_utils import BaseUpdateCard, set_language_manager as set_utils_lang
 
 # 导入语言管理器
 try:
@@ -14,6 +20,8 @@ def set_language_manager(language_manager):
     """设置语言管理器"""
     global lang
     lang = language_manager
+    # 同时设置工具模块的语言管理器
+    set_utils_lang(language_manager)
 
 def get_text(key: str, *args) -> str:
     """获取翻译文本的便利函数"""
@@ -22,7 +30,7 @@ def get_text(key: str, *args) -> str:
     return key
 
 
-class AutoCheckUpdateCard(SwitchSettingCard):
+class AutoCheckUpdateCard(BaseUpdateCard):
     """自动检查更新设置卡片"""
     
     def __init__(self, config_manager, current_version, parent=None):
@@ -36,24 +44,36 @@ class AutoCheckUpdateCard(SwitchSettingCard):
         title = get_text("auto_check_settings") or "Auto Check Update Settings"
         description = get_text("auto_check_update") or "Auto-check for updates on startup"
         
-        # 直接使用配置管理器的配置项，避免创建重复的ConfigItem
         super().__init__(
             FluentIcon.UPDATE,
             title,
             description,
-            config_manager.cfg.autoCheckUpdate,
             parent
         )
         
-        # 设置初始状态
-        self.setChecked(self.auto_check)
-        
-        # 连接信号
-        self.checkedChanged.connect(self._on_auto_check_changed)
+        self._setupContent()
         
         # 如果设置了自动检查，则启动时检查更新
         if self.auto_check:
             QTimer.singleShot(1000, self._trigger_auto_check)
+    
+    def _setupContent(self):
+        """设置内容"""
+        # 创建右侧内容容器 - 水平布局
+        content_widget = QWidget()
+        content_layout = QHBoxLayout(content_widget)
+        content_layout.setContentsMargins(0, 0, 20, 0)
+        content_layout.setSpacing(12)
+        
+        # 自动检查开关
+        self.auto_check_switch = SwitchButton()
+        self.auto_check_switch.setChecked(self.auto_check)
+        self.auto_check_switch.checkedChanged.connect(self._on_auto_check_changed)
+        
+        content_layout.addStretch()  # 添加伸缩空间，让开关靠右
+        content_layout.addWidget(self.auto_check_switch)
+        
+        self.hBoxLayout.addWidget(content_widget)
     
     def _on_auto_check_changed(self, checked: bool):
         """自动检查设置改变"""
@@ -62,21 +82,11 @@ class AutoCheckUpdateCard(SwitchSettingCard):
     
     def _trigger_auto_check(self):
         """触发自动检查更新"""
-        # 改进的父窗口查找逻辑，寻找手动检查卡片
         try:
-            # 从当前卡片开始，向上遍历寻找设置界面
-            parent_widget = self.parent()
-            while parent_widget:
-                # 检查是否是设置界面，并且有手动检查卡片
-                if hasattr(parent_widget, 'manualCheckUpdateCard') and parent_widget.manualCheckUpdateCard:
-                    # 调用正确的方法名
-                    parent_widget.manualCheckUpdateCard._check_for_updates()
-                    break
-                # 继续向上查找
-                parent_widget = parent_widget.parent()
-                
+            # 直接调用基类的更新检查方法
+            self._check_for_updates()
         except Exception as e:
-            # 如果找不到手动检查卡片或发生任何错误，记录但不中断程序
+            # 如果检查更新时发生错误，记录但不中断程序
             print(f"自动检查更新时出错: {e}")
             # 可以考虑在这里添加日志记录
             pass 

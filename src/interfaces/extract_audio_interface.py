@@ -846,13 +846,17 @@ class ExtractAudioInterface(QWidget):
         if self.config_manager:
             self.config_manager.set("convert_audio_enabled", checked)
             self.config_manager.set("convert_audio_format", self.convert_format_combo.currentText())
-            self.extractLogHandler.info(f"音频格式转换{'启用' if checked else '禁用'}") 
+            # 检查extractLogHandler是否已初始化
+            if hasattr(self, 'extractLogHandler'):
+                self.extractLogHandler.info(f"音频格式转换{'启用' if checked else '禁用'}") 
 
     def onConvertFormatChanged(self, text: str):
         """音频格式选择变化处理"""
         if self.config_manager:
             self.config_manager.set("convert_audio_format", text)
-            self.extractLogHandler.info(f"音频格式已设置为: {text}")
+            # 检查extractLogHandler是否已初始化
+            if hasattr(self, 'extractLogHandler'):
+                self.extractLogHandler.info(f"音频格式已设置为: {text}")
     
     def saveConvertSettings(self):
         """强制保存转换设置配置"""
@@ -861,6 +865,8 @@ class ExtractAudioInterface(QWidget):
             self.config_manager.set("convert_audio_format", self.convert_format_combo.currentText())
             # 调用配置管理器的保存方法
             self.config_manager.save_config()
-            self.extractLogHandler.info("音频转换设置已保存")
+            # 检查extractLogHandler是否已初始化
+            if hasattr(self, 'extractLogHandler'):
+                self.extractLogHandler.info("音频转换设置已保存")
             return True
         return False 

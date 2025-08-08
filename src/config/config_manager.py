@@ -198,12 +198,8 @@ class ConfigManager:
                 "always_on_top": self.cfg.alwaysOnTop,
                 "debug_mode": self.cfg.debugMode,
                 "auto_check_update": self.cfg.autoCheckUpdate,
-                "autoCheckUpdate": self.cfg.autoCheckUpdate,  # 添加直接映射
                 "greeting_enabled": self.cfg.greetingEnabled,
                 "disable_avatar_auto_update": self.cfg.disableAvatarAutoUpdate,
-                # 音频转换配置迁移
-                "convert_audio_enabled": self.cfg.convertAudioEnabled,
-                "convert_audio_format": self.cfg.convertAudioFormat,
             }
             
             for old_key, config_item in config_mapping.items():
@@ -297,8 +293,12 @@ class ConfigManager:
                 "debug_mode": self.cfg.debugMode,
                 "debug_mode_enabled": self.cfg.debugMode,  # 别名
                 "auto_check_update": self.cfg.autoCheckUpdate,
+                "autoCheckUpdate": self.cfg.autoCheckUpdate,  # 添加键名映射
                 "greeting_enabled": self.cfg.greetingEnabled,
                 "disable_avatar_auto_update": self.cfg.disableAvatarAutoUpdate,
+                # 音频转换配置
+                "convert_audio_enabled": self.cfg.convertAudioEnabled,
+                "convert_audio_format": self.cfg.convertAudioFormat,
             }
             
             if key in key_mapping:
@@ -357,7 +357,7 @@ class ConfigManager:
                 "debug_mode": self.cfg.debugMode,
                 "debug_mode_enabled": self.cfg.debugMode,  # 别名
                 "auto_check_update": self.cfg.autoCheckUpdate,
-                "autoCheckUpdate": self.cfg.autoCheckUpdate,  # 添加直接映射
+                "autoCheckUpdate": self.cfg.autoCheckUpdate,  # 添加键名映射
                 "greeting_enabled": self.cfg.greetingEnabled,
                 "disable_avatar_auto_update": self.cfg.disableAvatarAutoUpdate,
                 # 音频转换配置
@@ -395,6 +395,9 @@ class ConfigManager:
                 self.cfg.set(config_item, value)
                 logger.debug(f"设置配置: {key} = {value}")
                 
+                # 立即保存配置确保持久化
+                qconfig.save()
+                
             else:
                 logger.warning(f"未知配置键: {key}")
                 
@@ -404,17 +407,11 @@ class ConfigManager:
     def save_config(self):
         """保存配置到文件"""
         try:
-            # 明确指定配置文件路径进行保存
-            qconfig.save(self.config_file, self.cfg)
-            logger.debug(f"配置已保存到: {self.config_file}")
+            # qconfig会自动保存，这里主要是为了兼容性
+            qconfig.save()
+            logger.debug("配置已保存")
         except Exception as e:
             logger.error(f"保存配置失败: {e}")
-            # 尝试备用保存方法
-            try:
-                qconfig.save()
-                logger.debug("配置已保存（使用默认路径）")
-            except Exception as e2:
-                logger.error(f"备用保存方法也失败: {e2}")
         
     def get_qfluent_config(self):
         """获取QFluentWidgets配置文件内容"""
