@@ -629,9 +629,9 @@ class SettingsInterface(QWidget):
         # 显示成功消息
         if hasattr(self, 'settingsLogHandler'):
             if path:
-                self.settingsLogHandler.success(f"启动文件已更新: {path}")
+                self.settingsLogHandler.success(self.get_text("launch_file_updated").format(path))
             else:
-                self.settingsLogHandler.info("启动文件已清除")
+                self.settingsLogHandler.info(self.get_text("launch_file_cleared"))
         
         # qconfig系统会自动保存配置，无需手动调用save_config
         
@@ -644,7 +644,7 @@ class SettingsInterface(QWidget):
         
         # 显示成功消息
         if hasattr(self, 'settingsLogHandler'):
-            self.settingsLogHandler.info("启动文件已清除")
+            self.settingsLogHandler.info(self.get_text("launch_file_cleared"))
         
         # qconfig系统会自动保存配置，无需手动调用save_config
 

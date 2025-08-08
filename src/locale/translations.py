@@ -1471,6 +1471,16 @@ def get_translations():
                 CHINESE: "启动文件时出错：{}"
             },
             
+            # 启动文件状态更新
+            "launch_file_updated": {
+                ENGLISH: "Launch file updated: {}",
+                CHINESE: "启动文件已更新：{}"
+            },
+            "launch_file_cleared": {
+                ENGLISH: "Launch file cleared",
+                CHINESE: "启动文件已清除"
+            },
+            
             # 主题切换按钮
             "toggle_theme": {
                 ENGLISH: "Toggle Theme",
