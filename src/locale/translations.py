@@ -1514,4 +1514,46 @@ def get_translations():
                 ENGLISH: "Export logs to file or clear all log entries",
                 CHINESE: "将日志导出到文件或清除所有日志条目"
             },
+            
+            # 日志消息相关翻译
+            "using_custom_output_dir": {
+                ENGLISH: "Using custom output directory",
+                CHINESE: "使用自定义输出目录"
+            },
+            "using_default_output_dir": {
+                ENGLISH: "Using default output directory (based on input directory)",
+                CHINESE: "使用默认输出目录（基于输入目录）"
+            },
+            "audio_format_conversion_enabled": {
+                ENGLISH: "Audio format conversion enabled",
+                CHINESE: "音频格式转换启用"
+            },
+            "audio_format_conversion_disabled": {
+                ENGLISH: "Audio format conversion disabled",
+                CHINESE: "音频格式转换禁用"
+            },
+            "audio_format_set_to": {
+                ENGLISH: "Audio format set to",
+                CHINESE: "音频格式已设置为"
+            },
+            "global_input_path_synced": {
+                ENGLISH: "Global input path synchronized",
+                CHINESE: "全局输入路径已同步"
+            },
+            "global_input_path_updated": {
+                ENGLISH: "Global input path updated",
+                CHINESE: "全局输入路径已更新"
+            },
+            "avatar_auto_update_setting": {
+                ENGLISH: "Disable avatar auto-update",
+                CHINESE: "禁用头像自动更新"
+            },
+            "enabled": {
+                ENGLISH: "Enabled",
+                CHINESE: "启用"
+            },
+            "disabled": {
+                ENGLISH: "Disabled",
+                CHINESE: "禁用"
+            },
         }

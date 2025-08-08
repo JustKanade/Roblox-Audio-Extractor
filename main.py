@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-VERSION = "0.0.1"
+VERSION = "0.17.1"
 
 import warnings
 
@@ -1037,7 +1037,7 @@ class MainWindow(FluentWindow):
         if hasattr(self.config_manager, 'path_manager') and self.config_manager.path_manager:
             success = self.config_manager.path_manager.set_global_input_path(path)
             if success and hasattr(self, 'settingsInterface') and hasattr(self.settingsInterface, 'settingsLogHandler'):
-                self.settingsInterface.settingsLogHandler.success(f"全局输入路径已更新: {path}")
+                self.settingsInterface.settingsLogHandler.success(f"{self.lang.get('global_input_path_updated')}: {path}")
         else:
             # 备用方法：直接使用配置管理器
             self.config_manager.set("global_input_path", path)
@@ -1045,7 +1045,7 @@ class MainWindow(FluentWindow):
             
             # 显示成功消息
             if hasattr(self, 'settingsInterface') and hasattr(self.settingsInterface, 'settingsLogHandler'):
-                self.settingsInterface.settingsLogHandler.success(f"全局输入路径已更新: {path}")
+                self.settingsInterface.settingsLogHandler.success(f"{self.lang.get('global_input_path_updated')}: {path}")
 
     def restoreDefaultInputPath(self):
         """恢复默认输入路径"""

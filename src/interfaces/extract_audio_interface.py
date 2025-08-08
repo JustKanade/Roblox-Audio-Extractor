@@ -26,6 +26,13 @@ from src.utils.log_utils import LogHandler
 from src.utils.file_utils import open_directory
 from src.extractors.audio_extractor import ClassificationMethod, is_ffmpeg_available
 from src.workers.extraction_worker import ExtractionWorker
+from src.logging.central_log_handler import CentralLogHandler
+
+# 尝试导入LogControlCard
+try:
+    from src.components.cards.Settings.log_control_card import LogControlCard
+except ImportError:
+    LogControlCard = None
 
 
 class ExtractAudioInterface(QWidget):
@@ -235,6 +242,15 @@ class ExtractAudioInterface(QWidget):
         self.convert_audio_card.hBoxLayout.addWidget(convert_widget)
         settings_group.addSettingCard(self.convert_audio_card)
 
+        # 日志管理卡片
+        if LogControlCard:
+            self.log_management_card = LogControlCard(
+                parent=self,
+                lang=self.lang,
+                central_log_handler=CentralLogHandler.getInstance()
+            )
+            settings_group.addSettingCard(self.log_management_card)
+
         content_layout.addWidget(settings_group)
 
         # 操作控制卡片
@@ -420,9 +436,9 @@ class ExtractAudioInterface(QWidget):
             custom_dir = self.config_manager.get("custom_output_dir", "")
             if custom_dir and os.path.isdir(custom_dir):
                 custom_output_dir = custom_dir
-                self.extractLogHandler.info(f"使用自定义输出目录: {custom_output_dir}")
+                self.extractLogHandler.info(f"{self.get_text('using_custom_output_dir')}: {custom_output_dir}")
             else:
-                self.extractLogHandler.info("使用默认输出目录（基于输入目录）")
+                self.extractLogHandler.info(self.get_text("using_default_output_dir"))
         
         # 创建提取工作线程
         self.extraction_worker = ExtractionWorker(
@@ -838,7 +854,7 @@ class ExtractAudioInterface(QWidget):
                 self.path_edit.setText(new_path)
                 # 记录路径变更
                 if hasattr(self, 'extractLogHandler'):
-                    self.extractLogHandler.info(f"全局输入路径已同步: {new_path}") 
+                    self.extractLogHandler.info(f"{self.get_text('global_input_path_synced')}: {new_path}") 
 
     def onConvertEnabledChanged(self, checked: bool):
         """音频格式转换开关状态变化处理"""
@@ -848,7 +864,11 @@ class ExtractAudioInterface(QWidget):
             self.config_manager.set("convert_audio_format", self.convert_format_combo.currentText())
             # 检查extractLogHandler是否已初始化
             if hasattr(self, 'extractLogHandler'):
-                self.extractLogHandler.info(f"音频格式转换{'启用' if checked else '禁用'}") 
+                status_text = self.get_text('enabled') if checked else self.get_text('disabled')
+                if checked:
+                    self.extractLogHandler.info(self.get_text('audio_format_conversion_enabled'))
+                else:
+                    self.extractLogHandler.info(self.get_text('audio_format_conversion_disabled')) 
 
     def onConvertFormatChanged(self, text: str):
         """音频格式选择变化处理"""
@@ -856,7 +876,7 @@ class ExtractAudioInterface(QWidget):
             self.config_manager.set("convert_audio_format", text)
             # 检查extractLogHandler是否已初始化
             if hasattr(self, 'extractLogHandler'):
-                self.extractLogHandler.info(f"音频格式已设置为: {text}")
+                self.extractLogHandler.info(f"{self.get_text('audio_format_set_to')}: {text}")
     
     def saveConvertSettings(self):
         """强制保存转换设置配置"""

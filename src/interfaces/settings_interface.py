@@ -616,7 +616,8 @@ class SettingsInterface(QWidget):
         if self.config_manager:
             self.config_manager.set("disable_avatar_auto_update", isChecked)
             if hasattr(self, 'settingsLogHandler'):
-                self.settingsLogHandler.info(f"禁用头像自动更新: {'启用' if isChecked else '禁用'}")
+                status_text = self.get_text('enabled') if isChecked else self.get_text('disabled')
+                self.settingsLogHandler.info(f"{self.get_text('avatar_auto_update_setting')}: {status_text}")
 
     def updateLaunchFile(self, path):
         """更新启动文件路径"""
@@ -722,7 +723,7 @@ class SettingsInterface(QWidget):
             
         # 显示成功消息
         if hasattr(self, 'settingsLogHandler'):
-            self.settingsLogHandler.success(f"全局输入路径已更新: {path}")
+            self.settingsLogHandler.success(f"{self.get_text('global_input_path_updated')}: {path}")
             
         # 保存配置
         self.config_manager.save_config()
