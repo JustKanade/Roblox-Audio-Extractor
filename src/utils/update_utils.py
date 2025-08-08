@@ -16,12 +16,16 @@ import time
 from urllib.parse import urlparse
 from urllib.request import urlopen, urlretrieve
 
-from PyQt5.QtCore import QThread, pyqtSignal, QTimer, Qt
+from PyQt5.QtCore import QThread, pyqtSignal, QTimer, Qt, QSize, QUrl
 from PyQt5.QtWidgets import (QVBoxLayout, QHBoxLayout, QWidget, QTextEdit, 
-                             QLabel, QDialog, QDialogButtonBox)
+                             QLabel, QDialog, QDialogButtonBox, QSizePolicy)
+from PyQt5.QtGui import QColor, QDesktopServices
 from qfluentwidgets import (BodyLabel, CaptionLabel, StrongBodyLabel, TitleLabel,
                           PrimaryPushButton, InfoBar, InfoBarPosition, 
-                          FluentIcon, MaskDialogBase, setFont, SettingCard)
+                          FluentIcon, MaskDialogBase, setFont, SettingCard,
+                          IconWidget, SubtitleLabel, SimpleCardWidget, 
+                          TransparentToolButton, TextEdit, PushButton, 
+                          isDarkTheme)
 
 # 导入语言管理器
 try:
@@ -100,37 +104,62 @@ class UpdateWorker(QThread):
         try:
             # 尝试不同的可能仓库URL
             possible_urls = [
-                "https://api.github.com/repos/DiaoDaiaChan/Roblox-Audio-Extractor/releases/latest",
-                "https://api.github.com/repos/diodaiachan/Roblox-Audio-Extractor/releases/latest",
-                "https://api.github.com/repos/DiaoDaiaChan/roblox-audio-extractor/releases/latest"
+                "https://api.github.com/repos/JustKanade/Roblox-Audio-Extractor/releases/latest",
+                "https://api.github.com/repos/JustKanade/roblox-audio-extractor/releases/latest"
             ]
             
             response = None
+            last_error = None
+            
             for url in possible_urls:
                 try:
                     response = requests.get(url, timeout=10)
                     if response.status_code == 200:
                         break
-                except:
+                    elif response.status_code == 403:
+                        # GitHub API限制
+                        last_error = get_text("api_rate_limit") or "GitHub API rate limit exceeded. Please try again later."
+                    elif response.status_code == 404:
+                        # 仓库不存在
+                        last_error = get_text("repository_not_found") or "Repository not found."
+                    else:
+                        # 其他HTTP错误
+                        last_error = f"HTTP {response.status_code}"
+                except requests.exceptions.Timeout:
+                    last_error = get_text("connection_timeout") or "Connection timeout"
+                except requests.exceptions.ConnectionError:
+                    last_error = get_text("connection_error") or "Network connection error"
+                except Exception as e:
+                    last_error = str(e)
                     continue
             
+            # 检查API调用是否成功
             if response is None or response.status_code != 200:
-                # 如果所有URL都失败，创建模拟数据表示当前版本就是最新的
-                self.no_update.emit(self.current_version)
+                # API调用失败，发送错误信号
+                error_msg = last_error or (get_text("network_error") or "Network error occurred")
+                self.error_occurred.emit(error_msg)
                 return
             
-            release_data = response.json()
-            latest_version = release_data["tag_name"].lstrip("v")
+            # 解析响应数据
+            try:
+                release_data = response.json()
+                latest_version = release_data["tag_name"].lstrip("v")
+            except (KeyError, ValueError) as e:
+                # JSON解析失败
+                self.error_occurred.emit(get_text("invalid_response") or "Invalid response from server")
+                return
             
             # 版本比较
             if compare_versions(latest_version, self.current_version) > 0:
                 self.update_found.emit(release_data)
             else:
+                # 真正的"已是最新版本"
                 self.no_update.emit(latest_version)
                 
         except Exception as e:
-            # 如果检查失败，默认认为当前版本是最新的
-            self.no_update.emit(self.current_version)
+            # 捕获所有其他异常，发送错误信号
+            error_msg = get_text("unexpected_error") or f"Unexpected error: {str(e)}"
+            self.error_occurred.emit(error_msg)
 
 
 class BaseUpdateCard(SettingCard):
@@ -184,13 +213,15 @@ class BaseUpdateCard(SettingCard):
     
     def _on_error(self, error_message: str):
         """检查失败"""
+        # 使用格式化的错误标题
+        title = get_text("check_failed", error_message) or f"Check Failed: {error_message}"
         InfoBar.error(
-            title=get_text("check_failed") or "Check Failed",
+            title=title[:50] + "..." if len(title) > 50 else title,  # 限制标题长度
             content=error_message,
             orient=Qt.Horizontal,
             isClosable=True,
             position=InfoBarPosition.TOP,
-            duration=3000,
+            duration=5000,  # 增加显示时间，让用户有足够时间阅读错误信息
             parent=self.window()
         )
     
@@ -203,60 +234,231 @@ class UpdateDialog(MaskDialogBase):
     """更新对话框"""
     
     def __init__(self, release_info: dict, parent=None):
+        """初始化更新对话框
+        
+        Args:
+            release_info: GitHub发布信息字典
+            parent: 父窗口
+        """
         super().__init__(parent)
+        
+        # 保存必要的数据
         self.release_info = release_info
+        self.release_url = release_info.get('html_url', '')
+        self.release_notes = release_info.get('body', '')
+        self.version = release_info.get('tag_name', '').lstrip('v')
+        self.title = get_text("update_available") or "Update Available!"
+        
+        # 设置窗口属性
+        self.setWindowTitle(self.title)
+        self.setMaskColor(QColor(0, 0, 0, 120))  # 半透明黑色蒙版
+        
+        # 创建对话框内容
         self.setupUI()
+        
+        # 添加漂亮的阴影效果
+        self.setShadowEffect(blurRadius=40, offset=(0, 6), color=QColor(0, 0, 0, 60))
     
     def setupUI(self):
-        self.setFixedSize(600, 400)
+        """设置对话框UI"""
+        # 获取对话框的内容区域
+        self.widget.setFixedWidth(520)
+        self.widget.setMinimumHeight(480)
         
-        # 主布局
-        layout = QVBoxLayout()
+        # 设置边框圆角和样式
+        if isDarkTheme():
+            self.widget.setStyleSheet("""
+                background-color: #2b2b2b;
+                border-radius: 10px;
+                border: 1px solid rgba(255, 255, 255, 0.1);
+            """)
+            text_color = "#ffffff"
+            secondary_color = "rgba(255, 255, 255, 0.65)"
+            card_bg = "#363636"
+            separator_color = "rgba(255, 255, 255, 0.1)"
+        else:
+            self.widget.setStyleSheet("""
+                background-color: white;
+                border-radius: 10px;
+                border: 1px solid rgba(0, 0, 0, 0.1);
+            """)
+            text_color = "#202020"
+            secondary_color = "rgba(0, 0, 0, 0.65)"
+            card_bg = "#f5f5f5"
+            separator_color = "rgba(0, 0, 0, 0.08)"
         
-        # 标题
-        title_label = TitleLabel(get_text("latest_version") or "Latest Version")
-        layout.addWidget(title_label)
+        # 创建主布局
+        self.mainLayout = QVBoxLayout(self.widget)
+        self.mainLayout.setContentsMargins(24, 20, 24, 24)
+        self.mainLayout.setSpacing(16)
         
-        # 版本号
-        version_label = StrongBodyLabel(f"v{self.release_info['tag_name'].lstrip('v')}")
-        layout.addWidget(version_label)
+        # === 标题栏区域 ===
+        header = QHBoxLayout()
+        header.setContentsMargins(0, 0, 0, 0)
+        header.setSpacing(12)
         
-        # 更新说明标题
-        notes_title = BodyLabel(get_text("release_notes") or "Release Notes:")
-        setFont(notes_title, 13)
-        layout.addWidget(notes_title)
+        # 添加标题图标
+        icon = IconWidget(FluentIcon.UPDATE, self.widget)
+        icon.setFixedSize(28, 28)
         
-        # 更新内容
-        content_edit = QTextEdit()
-        content_edit.setReadOnly(True)
-        content_edit.setPlainText(self.release_info.get('body', ''))
-        content_edit.setMaximumHeight(200)
-        layout.addWidget(content_edit)
+        # 标题文本
+        titleLabel = TitleLabel(self.title, self.widget)
+        titleLabel.setStyleSheet(f"color: {text_color}; font-weight: bold; border: none;")
         
-        # 按钮
-        button_layout = QHBoxLayout()
+        # 关闭按钮
+        closeBtn = TransparentToolButton(FluentIcon.CLOSE, self.widget)
+        closeBtn.setFixedSize(32, 32)
+        closeBtn.setIconSize(QSize(16, 16))
+        closeBtn.clicked.connect(self.reject)
         
-        self.download_button = PrimaryPushButton(get_text("download_update") or "Download Update")
-        self.download_button.clicked.connect(self.download_update)
+        header.addWidget(icon)
+        header.addWidget(titleLabel, 1)
+        header.addWidget(closeBtn)
         
-        self.cancel_button = PrimaryPushButton(get_text("cancel") or "Cancel")
-        self.cancel_button.clicked.connect(self.close)
+        self.mainLayout.addLayout(header)
         
-        button_layout.addWidget(self.download_button)
-        button_layout.addWidget(self.cancel_button)
+        # === 版本信息区域 ===
+        versionInfo = QHBoxLayout()
+        versionInfo.setContentsMargins(0, 4, 0, 4)
         
-        layout.addLayout(button_layout)
+        # 获取主题色
+        themeColor = self._getThemeColor()
         
-        # 设置布局
-        widget = QWidget()
-        widget.setLayout(layout)
-        self.widget.setLayout(QVBoxLayout())
-        self.widget.layout().addWidget(widget)
+        # 最新版本标签
+        versionLabel = StrongBodyLabel(get_text("latest_version", self.version) or f"Latest Version: {self.version}")
+        versionLabel.setStyleSheet(f"color: {themeColor.name()}; border: none;")
+        
+        versionInfo.addWidget(versionLabel)
+        versionInfo.addStretch()
+        
+        self.mainLayout.addLayout(versionInfo)
+        
+        # === 更新内容标题区域 ===
+        notesHeader = QHBoxLayout()
+        notesHeader.setContentsMargins(0, 12, 0, 8)  # 增加上边距，替代分隔线的视觉效果
+        notesHeader.setSpacing(8)
+        
+        # 添加图标
+        noteIcon = IconWidget(FluentIcon.DOCUMENT, self.widget)
+        noteIcon.setFixedSize(16, 16)
+        
+        # 更新内容标题
+        notesTitle = SubtitleLabel(get_text("release_notes") or "Release Notes")
+        notesTitle.setStyleSheet(f"color: {text_color}; font-weight: bold; border: none;")
+
+        notesHeader.addWidget(noteIcon)
+        notesHeader.addWidget(notesTitle)
+        notesHeader.addStretch()
+        
+        self.mainLayout.addLayout(notesHeader)
+        
+        # === 更新内容卡片 ===
+        contentCard = SimpleCardWidget(self.widget)
+        contentCard.setBorderRadius(8)
+        contentCard.setStyleSheet(f"""
+            background-color: {card_bg};
+            border-radius: 8px;
+            border: none;
+        """)
+        
+        contentLayout = QVBoxLayout(contentCard)
+        contentLayout.setContentsMargins(16, 16, 16, 16)
+        
+        # 格式化并显示更新内容
+        self.notesEdit = TextEdit(contentCard)
+        self.notesEdit.setReadOnly(True)
+        self.notesEdit.setText(self._formatReleaseNotes(self.release_notes))
+        self.notesEdit.setStyleSheet(f"""
+            border: none;
+            background-color: transparent;
+            color: {text_color};
+            selection-background-color: {themeColor.name()};
+        """)
+        self.notesEdit.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
+        self.notesEdit.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
+        self.notesEdit.setMinimumHeight(200)
+        
+        # 设置文档边距为0
+        try:
+            document = self.notesEdit.document()
+            if document:
+                document.setDocumentMargin(0)
+        except:
+            pass
+        
+        contentLayout.addWidget(self.notesEdit)
+        
+        self.mainLayout.addWidget(contentCard, 1)  # 添加伸展因子，使内容区域可伸缩
+        
+        # === 按钮区域 ===
+        buttonLayout = QHBoxLayout()
+        buttonLayout.setContentsMargins(0, 8, 0, 0)
+        buttonLayout.setSpacing(12)
+        
+        # 取消按钮
+        self.cancelButton = PushButton(get_text("close") or "Close")
+        self.cancelButton.clicked.connect(self.reject)
+        
+        # 更新按钮
+        self.updateButton = PrimaryPushButton(get_text("download_update") or "Download Update")
+        self.updateButton.setIcon(FluentIcon.LINK)
+        self.updateButton.clicked.connect(self.download_update)
+        
+        # 调整按钮大小
+        self.cancelButton.setMinimumWidth(100)
+        self.updateButton.setMinimumWidth(140)
+        
+        buttonLayout.addStretch(1)
+        buttonLayout.addWidget(self.cancelButton)
+        buttonLayout.addWidget(self.updateButton)
+        
+        self.mainLayout.addLayout(buttonLayout)
+    
+    def _getThemeColor(self):
+        """获取主题颜色"""
+        try:
+            # 尝试使用qfluentwidgets的主题色
+            try:
+                from qfluentwidgets import themeColor
+                return themeColor()
+            except (ImportError, AttributeError):
+                pass
+                
+            # 默认蓝色
+            return QColor(0, 120, 212)
+        except:
+            return QColor(0, 120, 212)
+    
+    def _formatReleaseNotes(self, notes):
+        """格式化发布说明内容，使其更美观"""
+        if not notes:
+            return ""
+            
+        # 替换Markdown标题为大写粗体文本
+        formatted = notes
+        
+        # 确保每个项目符号前后有足够的空间
+        formatted = formatted.replace("\n- ", "\n\n- ")
+        
+        # 确保段落之间有足够的空间
+        formatted = formatted.replace("\n\n\n", "\n\n")
+        
+        # 处理Markdown标题
+        lines = formatted.split("\n")
+        result = []
+        
+        for line in lines:
+            if line.startswith("## "):
+                result.append("\n" + line.replace("## ", "").upper() + "\n")
+            elif line.startswith("# "):
+                result.append("\n" + line.replace("# ", "").upper() + "\n")
+            else:
+                result.append(line)
+                
+        return "\n".join(result)
     
     def download_update(self):
         """下载更新"""
-        download_url = self.release_info.get('html_url')
-
-        if download_url:
-            webbrowser.open(download_url)
-        self.close() 
+        if self.release_url:
+            QDesktopServices.openUrl(QUrl(self.release_url))
+        self.accept() 

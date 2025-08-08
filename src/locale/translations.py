@@ -1023,6 +1023,35 @@ def get_translations():
                 ENGLISH: "Version information not available",
                 CHINESE: "版本信息不可用"
             },
+            # API和网络相关翻译
+            "api_rate_limit": {
+                ENGLISH: "GitHub API rate limit exceeded. Please try again later.",
+                CHINESE: "GitHub API调用次数限制，请稍后再试。"
+            },
+            "repository_not_found": {
+                ENGLISH: "Repository not found",
+                CHINESE: "仓库未找到"
+            },
+            "connection_timeout": {
+                ENGLISH: "Connection timeout",
+                CHINESE: "连接超时"
+            },
+            "connection_error": {
+                ENGLISH: "Network connection error",
+                CHINESE: "网络连接错误"
+            },
+            "network_error": {
+                ENGLISH: "Network error occurred",
+                CHINESE: "网络错误"
+            },
+            "invalid_response": {
+                ENGLISH: "Invalid response from server",
+                CHINESE: "服务器响应无效"
+            },
+            "unexpected_error": {
+                ENGLISH: "Unexpected error occurred",
+                CHINESE: "发生意外错误"
+            },
             # 日志管理相关翻译
             "log_management": {
                 ENGLISH: "Log Management",
