@@ -8,12 +8,13 @@ from PyQt5.QtWidgets import (
 from PyQt5.QtCore import Qt, QTimer, QPoint
 
 from qfluentwidgets import (
-    CardWidget, BodyLabel, TitleLabel, StrongBodyLabel,
+    CardWidget, BodyLabel, StrongBodyLabel,
     ScrollArea, PushButton, PrimaryPushButton, 
     FluentIcon, CaptionLabel, ProgressBar, RadioButton,
     TextEdit, IconWidget, SpinBox, LineEdit, InfoBar,
     MessageBox, StateToolTip, InfoBarPosition, ComboBox, CheckBox,
-    RoundMenu, Action, DropDownPushButton, TransparentPushButton
+    RoundMenu, Action, DropDownPushButton, TransparentPushButton,
+    SettingCardGroup, SettingCard, SwitchSettingCard
 )
 
 import os
@@ -78,57 +79,59 @@ class ExtractAudioInterface(QWidget):
         content_layout.setContentsMargins(20, 20, 20, 20)
         content_layout.setSpacing(15)
         
-        # 创建设置卡片
-        settings_card = CardWidget()
-        settings_card.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
-        settings_layout = QVBoxLayout(settings_card)
-        settings_layout.setContentsMargins(20, 20, 20, 20)
-        settings_layout.setSpacing(15)
+        # 创建设置卡片组
+        settings_group = SettingCardGroup(self.get_text("extract_audio_title"))
         
-        # 添加标题到设置卡片内部
-        settings_label = TitleLabel(self.get_text("extract_audio_title"), self)
-        settings_label.setObjectName("extractAudioTitle")
-        settings_layout.addWidget(settings_label)
-
-        # 添加路径选择器
-        path_layout = QHBoxLayout()
-        path_layout.setSpacing(10)
-
-        path_label = BodyLabel(self.get_text("input_dir"))
-        path_layout.addWidget(path_label)
-
+        # 路径选择卡片
+        self.path_card = SettingCard(
+            FluentIcon.FOLDER,
+            self.get_text("input_dir"),
+            self.get_text("input_dir_placeholder")
+        )
+        
+        # 创建路径选择控件容器
+        path_widget = QWidget()
+        path_layout = QHBoxLayout(path_widget)
+        path_layout.setContentsMargins(0, 0, 20, 0)
+        path_layout.setSpacing(8)
+        
         self.path_edit = LineEdit()
         # 使用路径管理器获取有效路径
         effective_path = self._getEffectiveInputPath()
         self.path_edit.setText(effective_path)
         self.path_edit.setClearButtonEnabled(True)
         self.path_edit.setPlaceholderText(self.get_text("input_dir_placeholder"))
-        path_layout.addWidget(self.path_edit, 1)
-
+        path_layout.addWidget(self.path_edit)
+        
         self.browse_button = PushButton(self.get_text("browse"))
         self.browse_button.setIcon(FluentIcon.FOLDER_ADD)
+        self.browse_button.setFixedSize(100, 32)
         self.browse_button.clicked.connect(self.browseDirectory)
         path_layout.addWidget(self.browse_button)
-
-        settings_layout.addLayout(path_layout)
-
- 
-
-        # 添加分类方法选择
-        classification_layout = QVBoxLayout()  # 改为垂直布局
+        
+        # 将路径控件添加到卡片
+        self.path_card.hBoxLayout.addWidget(path_widget)
+        settings_group.addSettingCard(self.path_card)
+        
+        # 分类方法选择卡片
+        self.classification_card = SettingCard(
+            FluentIcon.MENU,
+            self.get_text("classification_method"),
+            self.get_text("info_duration_categories")  # 默认内容
+        )
+        
+        # 创建分类方法选择控件容器
+        classification_widget = QWidget()
+        classification_layout = QHBoxLayout(classification_widget)
+        classification_layout.setContentsMargins(0, 0, 20, 0)
         classification_layout.setSpacing(8)
         
-        selection_layout = QHBoxLayout()  # 创建水平子布局用于选择器
-        selection_layout.setSpacing(10)
-
-        classification_label = BodyLabel(self.get_text("classification_method"))
-        selection_layout.addWidget(classification_label)
-
         self.classification_combo = ComboBox()
         self.classification_combo.addItems([
             self.get_text("by_duration"),
             self.get_text("by_size")
         ])
+        
         # 设置默认选项
         saved_method = "duration"
         if self.config_manager:
@@ -137,27 +140,30 @@ class ExtractAudioInterface(QWidget):
             self.classification_combo.setCurrentIndex(1)
         else:
             self.classification_combo.setCurrentIndex(0)
-        self.classification_combo.currentIndexChanged.connect(self.updateClassificationInfo)
-        self.classification_combo.setFixedWidth(120)  # 固定宽度，确保不会占用过多空间
-        selection_layout.addWidget(self.classification_combo)
-        selection_layout.addStretch(1)  # 添加弹性空间
         
-        classification_layout.addLayout(selection_layout)
-
-        # 添加分类信息标签
-        self.classification_info = BodyLabel("")
-        self.classification_info.setWordWrap(True)  # 允许文本换行
-        classification_layout.addWidget(self.classification_info)
-
-        settings_layout.addLayout(classification_layout)
-
-        # 添加线程数选择
-        threads_layout = QHBoxLayout()
-        threads_layout.setSpacing(10)
-
-        threads_label = BodyLabel(self.get_text("threads"))
-        threads_layout.addWidget(threads_label)
-
+        self.classification_combo.setFixedSize(120, 32)
+        self.classification_combo.currentIndexChanged.connect(self.updateClassificationInfo)
+        
+        classification_layout.addStretch()
+        classification_layout.addWidget(self.classification_combo)
+        
+        # 将分类方法控件添加到卡片
+        self.classification_card.hBoxLayout.addWidget(classification_widget)
+        settings_group.addSettingCard(self.classification_card)
+        
+        # 线程数设置卡片
+        self.threads_card = SettingCard(
+            FluentIcon.SPEED_HIGH,
+            self.get_text("threads"),
+            self.get_text("threads_info")
+        )
+        
+        # 创建线程数控件容器
+        threads_widget = QWidget()
+        threads_layout = QHBoxLayout(threads_widget)
+        threads_layout.setContentsMargins(0, 0, 20, 0)
+        threads_layout.setSpacing(8)
+        
         self.threads_spin = SpinBox()
         self.threads_spin.setRange(1, 128)  # 设置范围从1到128
         # 设置默认值为CPU核心数的2倍，但不超过32
@@ -166,27 +172,25 @@ class ExtractAudioInterface(QWidget):
         if self.config_manager:
             saved_threads = self.config_manager.get("threads", default_threads)
         self.threads_spin.setValue(saved_threads)
+        self.threads_spin.setFixedSize(120, 32)
+        
+        threads_layout.addStretch()
         threads_layout.addWidget(self.threads_spin)
+        
+        # 将线程数控件添加到卡片
+        self.threads_card.hBoxLayout.addWidget(threads_widget)
+        settings_group.addSettingCard(self.threads_card)
+        
+        # 数据库扫描选项卡片
+        self.db_scan_card = SwitchSettingCard(
+            FluentIcon.COMMAND_PROMPT,
+            self.get_text("scan_database"),
+            self.get_text("scan_database_info")
+        )
+        self.db_scan_card.setChecked(True)  # 默认启用
+        settings_group.addSettingCard(self.db_scan_card)
 
-        threads_info = BodyLabel(self.get_text("threads_info"))
-        threads_layout.addWidget(threads_info, 1)
-
-        settings_layout.addLayout(threads_layout)
-        
-        # 添加数据库扫描选项
-        db_scan_layout = QHBoxLayout()
-        db_scan_layout.setSpacing(10)
-        
-        self.db_scan_checkbox = CheckBox(self.get_text("scan_database"))
-        self.db_scan_checkbox.setChecked(True)  # 默认启用
-        db_scan_layout.addWidget(self.db_scan_checkbox)
-        
-        db_scan_info = BodyLabel(self.get_text("scan_database_info"))
-        db_scan_layout.addWidget(db_scan_info, 1)
-        
-        settings_layout.addLayout(db_scan_layout)
-
-        content_layout.addWidget(settings_card)
+        content_layout.addWidget(settings_group)
 
         # 操作控制卡片
         control_card = CardWidget()
@@ -303,9 +307,9 @@ class ExtractAudioInterface(QWidget):
     def updateClassificationInfo(self):
         """更新分类信息标签"""
         if self.classification_combo.currentIndex() == 0: # by duration
-            self.classification_info.setText(self.get_text("info_duration_categories"))
+            self.classification_card.contentLabel.setText(self.get_text("info_duration_categories"))
         else: # by size
-            self.classification_info.setText(self.get_text("info_size_categories"))
+            self.classification_card.contentLabel.setText(self.get_text("info_size_categories"))
             
     def startExtraction(self):
         """开始提取音频"""
@@ -358,7 +362,7 @@ class ExtractAudioInterface(QWidget):
         num_threads = self.threads_spin.value()
         
         # 获取数据库扫描选项
-        scan_db = self.db_scan_checkbox.isChecked()
+        scan_db = self.db_scan_card.isChecked()
         
         # 获取自定义输出目录
         custom_output_dir = None
@@ -564,27 +568,8 @@ class ExtractAudioInterface(QWidget):
 
     def setExtractStyles(self):
         """设置音频提取界面样式"""
-        if not self.config_manager:
-            return
-            
-        theme = self.config_manager.get("theme", "dark")
-
-        if theme == "light":
-            self.setStyleSheet("""
-                #extractAudioTitle {
-                    color: rgb(0, 0, 0);
-                    font-size: 24px;
-                    font-weight: bold;
-                }
-            """)
-        else:
-            self.setStyleSheet("""
-                #extractAudioTitle {
-                    color: rgb(255, 255, 255);
-                    font-size: 24px;
-                    font-weight: bold;
-                }
-            """) 
+        # 使用PyQt-Fluent-Widgets原生组件，不需要自定义样式
+        pass 
             
     def updateProgressBar(self, value):
         """更新进度条"""
