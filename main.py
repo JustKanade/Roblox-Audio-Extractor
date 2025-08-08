@@ -186,9 +186,7 @@ class MainWindow(FluentWindow):
         # 应用窗口置顶设置
         always_on_top = self.config_manager.get("always_on_top", False)
         if always_on_top:
-            # 使用两段式延迟，先显示窗口，再设置置顶
-            QTimer.singleShot(500, lambda: self.show())
-            QTimer.singleShot(1500, lambda: apply_always_on_top(self, True))
+            apply_always_on_top(self, True)
             
             # 只有在debug模式开启时才输出调试信息
             if self.config_manager.get("debug_mode_enabled", False):
@@ -1075,6 +1073,10 @@ class MainWindow(FluentWindow):
     def applyAlwaysOnTop(self, is_top):
         """应用总是置顶设置"""
         apply_always_on_top(self, is_top)
+        
+        # 记录日志
+        if hasattr(self, 'settingsInterface') and hasattr(self.settingsInterface, 'settingsLogHandler'):
+            self.settingsInterface.settingsLogHandler.info(self.lang.get("always_on_top_toggled"))
 
     def copyPathToClipboard(self, path):
         """复制路径到剪贴板并显示提示"""

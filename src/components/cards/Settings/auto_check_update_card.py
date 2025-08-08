@@ -32,20 +32,16 @@ class AutoCheckUpdateCard(SwitchSettingCard):
         # 从配置中读取设置 - 统一使用autoCheckUpdate
         self.auto_check = self.config_manager.get("autoCheckUpdate", True)
         
-        # 创建配置项
-        self.autoCheckConfig = ConfigItem(
-            "AutoCheckUpdate", "autoCheckUpdate", True, BoolValidator()
-        )
-        
         # 获取翻译文本
         title = get_text("auto_check_settings") or "Auto Check Update Settings"
         description = get_text("auto_check_update") or "Auto-check for updates on startup"
         
+        # 直接使用配置管理器的配置项，避免创建重复的ConfigItem
         super().__init__(
             FluentIcon.UPDATE,
             title,
             description,
-            self.autoCheckConfig,
+            config_manager.cfg.autoCheckUpdate,
             parent
         )
         

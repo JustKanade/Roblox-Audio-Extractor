@@ -511,16 +511,10 @@ class SettingsInterface(QWidget):
         """总是置顶改变事件"""
         if self.config_manager:
             self.config_manager.set("always_on_top", isChecked)
-            if hasattr(self, 'settingsLogHandler'):
-                self.settingsLogHandler.info(f"总是置顶: {'启用' if isChecked else '禁用'}")
             
-            # 应用窗口置顶设置
-            if self._parent_window:
-                if isChecked:
-                    self._parent_window.setWindowFlag(Qt.WindowStaysOnTopHint, True)
-                else:
-                    self._parent_window.setWindowFlag(Qt.WindowStaysOnTopHint, False)
-                self._parent_window.show()
+            # 调用父窗口的方法来应用设置
+            if self._parent_window and hasattr(self._parent_window, 'applyAlwaysOnTop'):
+                self._parent_window.applyAlwaysOnTop(isChecked)
     
     def onGreetingChanged(self, isChecked):
         """问候语设置改变事件"""
