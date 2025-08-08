@@ -16,12 +16,16 @@ def get_translations():
     return {
             # 语言设置相关
             "follow_system_language": {
-                ENGLISH: "System Settings",
+                ENGLISH: "Follow System Settings",
                 CHINESE: "跟随系统设置"
             },
             "simplified_chinese": {
-                ENGLISH: "zn-cn",
+                ENGLISH: "Simplified Chinese",
                 CHINESE: "简体中文"
+            },
+            "english": {
+                ENGLISH: "English",
+                CHINESE: "English"
             },
             
             # 头像设置相关
@@ -118,8 +122,8 @@ def get_translations():
                 ENGLISH: "Roblox Audio Extractor"
             },
             "title": {
-                ENGLISH: f"Roblox Audio Extractor v{VERSION}",
-                CHINESE: f"Roblox Audio Extractor v{VERSION}"
+                ENGLISH: f"Roblox-Audio-Extractor v{VERSION}",
+                CHINESE: f"Roblox-Audio-Extractor v{VERSION}"
             },
             "welcome_message": {
                 ENGLISH: "Welcome to Roblox Audio Extractor!",
@@ -929,6 +933,10 @@ def get_translations():
                 ENGLISH: "Save logs to file",
                 CHINESE: "保存日志到文件"
             },
+            "save_logs_description": {
+                ENGLISH: "Save application logs to file for debugging purposes",
+                CHINESE: "将应用程序日志保存到文件以便调试"
+            },
             "log_save_option_toggled": {
                 ENGLISH: "Log save option toggled",
                 CHINESE: "日志保存选项已切换"
@@ -938,9 +946,21 @@ def get_translations():
                 ENGLISH: "Version Check Settings",
                 CHINESE: "版本检测设置"
             },
+            "auto_check_settings": {
+                ENGLISH: "Auto Check Update Settings",
+                CHINESE: "自动检查更新设置"
+            },
+            "manual_check_settings": {
+                ENGLISH: "Manual Check Update",
+                CHINESE: "手动检查更新"
+            },
             "auto_check_update": {
                 ENGLISH: "Auto-check for updates on startup",
                 CHINESE: "启动时自动检测更新"
+            },
+            "check_update_manually_desc": {
+                ENGLISH: "Manually check for application updates",
+                CHINESE: "手动检查应用程序更新"
             },
             "check_update_now": {
                 ENGLISH: "Check Now",
@@ -981,6 +1001,18 @@ def get_translations():
             "close": {
                 ENGLISH: "Close",
                 CHINESE: "关闭"
+            },
+            "download_update": {
+                ENGLISH: "Download Update",
+                CHINESE: "下载更新"
+            },
+            "cancel": {
+                ENGLISH: "Cancel", 
+                CHINESE: "取消"
+            },
+            "version_not_available": {
+                ENGLISH: "Version information not available",
+                CHINESE: "版本信息不可用"
             },
             # 日志管理相关翻译
             "log_management": {
@@ -1121,6 +1153,10 @@ def get_translations():
                 CHINESE: "FFmpeg 验证失败: {}"
             },
             "select_ffmpeg": {
+                ENGLISH: "Select FFmpeg Executable",
+                CHINESE: "选择 FFmpeg 可执行文件"
+            },
+            "select_ffmpeg_file": {
                 ENGLISH: "Select FFmpeg Executable",
                 CHINESE: "选择 FFmpeg 可执行文件"
             },
@@ -1352,6 +1388,10 @@ def get_translations():
             },
             
             # 启动文件相关
+            "launch": {
+                ENGLISH: "Launch",
+                CHINESE: "启动"
+            },
             "launch_file_title": {
                 ENGLISH: "Launch File",
                 CHINESE: "启动文件"
@@ -1391,5 +1431,49 @@ def get_translations():
             "launch_error": {
                 ENGLISH: "Error launching file: {}",
                 CHINESE: "启动文件时出错：{}"
+            },
+            
+            # 设置界面分组标题
+            "interface_settings": {
+                ENGLISH: "Interface Settings",
+                CHINESE: "界面设置"
+            },
+            "performance_settings": {
+                ENGLISH: "Performance Settings", 
+                CHINESE: "性能设置"
+            },
+            "system_info_settings": {
+                ENGLISH: "System Information",
+                CHINESE: "系统信息"
+            },
+            
+            # 设置项描述文本
+            "language_description": {
+                ENGLISH: "Select interface language",
+                CHINESE: "选择界面语言"
+            },
+            "theme_description": {
+                ENGLISH: "Select application theme",
+                CHINESE: "选择应用主题"
+            },
+            "auto_open_description": {
+                ENGLISH: "Automatically open output directory after extraction",
+                CHINESE: "提取完成后自动打开输出目录"
+            },
+            "threads_description": {
+                ENGLISH: "Set the default number of threads for extraction tasks",
+                CHINESE: "设置提取任务的默认线程数"
+            },
+            "theme_color_description": {
+                ENGLISH: "Change the theme color of the application", 
+                CHINESE: "更改应用程序的主题颜色"
+            },
+            "theme_color_settings": {
+                ENGLISH: "Theme Color Settings",
+                CHINESE: "主题颜色设置" 
+            },
+            "log_management_description": {
+                ENGLISH: "Export logs to file or clear all log entries",
+                CHINESE: "将日志导出到文件或清除所有日志条目"
             },
         }

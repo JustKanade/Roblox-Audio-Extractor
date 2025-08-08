@@ -26,8 +26,8 @@ class FFmpegStatusCard(SettingCard):
         self.ffmpeg_path = ""
         
         # 获取翻译文本
-        title = self.get_text("ffmpeg_status_title") or "FFmpeg Status"
-        description = "Detect and manage FFmpeg installation status"
+        title = self.get_text("ffmpeg_status_title")
+        description = self.get_text("ffmpeg_description")
         
         super().__init__(
             FluentIcon.MEDIA,
@@ -55,14 +55,13 @@ class FFmpegStatusCard(SettingCard):
         content_layout.setContentsMargins(0, 0, 20, 0)
         content_layout.setSpacing(8)
         
-        # 检测按钮
-        self.detect_button = PushButton(FluentIcon.SYNC, self.get_text("detect_ffmpeg") or "Detect FFmpeg")
-        self.detect_button.setFixedSize(100, 32)  # 增加宽度确保文字显示完整
+        # 创建按钮
+        self.detect_button = PushButton(FluentIcon.SYNC, self.get_text("detect_ffmpeg"))
+        self.detect_button.setFixedSize(100, 32)
         self.detect_button.clicked.connect(self.check_ffmpeg)
         
-        # 浏览按钮  
-        self.browse_button = PushButton(FluentIcon.FOLDER, self.get_text("browse_ffmpeg") or "Browse FFmpeg")
-        self.browse_button.setFixedSize(100, 32)  # 增加宽度确保文字显示完整
+        self.browse_button = PushButton(FluentIcon.FOLDER, self.get_text("browse_ffmpeg"))
+        self.browse_button.setFixedSize(100, 32)
         self.browse_button.clicked.connect(self.browse_ffmpeg)
         
         content_layout.addWidget(self.detect_button)
@@ -85,11 +84,11 @@ class FFmpegStatusCard(SettingCard):
             # 1. 尝试在系统PATH中查找
             if shutil.which("ffmpeg"):
                 self.ffmpeg_path = "ffmpeg"
-                self._update_status(True, self.get_text("ffmpeg_available") or "Available")
+                self._update_status(True, self.get_text("ffmpeg_available"))
                 if show_messages:
                     InfoBar.success(
-                        title=self.get_text("ffmpeg_available") or "FFmpeg Available",
-                        content=self.get_text("ffmpeg_ready") or "FFmpeg is ready, duration classification feature will work normally",
+                        title=self.get_text("ffmpeg_available"),
+                        content=self.get_text("ffmpeg_ready"),
                         orient=Qt.Horizontal,
                         isClosable=True,
                         position=InfoBarPosition.TOP,
@@ -105,11 +104,11 @@ class FFmpegStatusCard(SettingCard):
                 if custom_path and os.path.isfile(custom_path):
                     if self._test_ffmpeg_executable(custom_path):
                         self.ffmpeg_path = custom_path
-                        self._update_status(True, self.get_text("ffmpeg_available") or "Available")
+                        self._update_status(True, self.get_text("ffmpeg_available"))
                         if show_messages:
                             InfoBar.success(
-                                title=self.get_text("ffmpeg_available") or "FFmpeg Available",
-                                content=self.get_text("ffmpeg_ready") or "FFmpeg is ready, duration classification feature will work normally",
+                                title=self.get_text("ffmpeg_available"),
+                                content=self.get_text("ffmpeg_ready"),
                                 orient=Qt.Horizontal,
                                 isClosable=True,
                                 position=InfoBarPosition.TOP,
@@ -120,12 +119,12 @@ class FFmpegStatusCard(SettingCard):
             
             # 3. 未找到FFmpeg
             self.ffmpeg_path = ""
-            self._update_status(False, self.get_text("ffmpeg_not_found") or "Not Found")
+            self._update_status(False, self.get_text("ffmpeg_not_found"))
             
             if show_messages:
                 InfoBar.warning(
-                    title=self.get_text("ffmpeg_not_available") or "FFmpeg Not Available",
-                    content=self.get_text("ffmpeg_install_instruction") or "Please install FFmpeg to enable audio duration classification feature. You can manually specify FFmpeg path",
+                    title=self.get_text("ffmpeg_not_available"),
+                    content=self.get_text("ffmpeg_install_instruction"),
                     orient=Qt.Horizontal,
                     isClosable=True,
                     position=InfoBarPosition.TOP,
@@ -162,7 +161,7 @@ class FFmpegStatusCard(SettingCard):
         
         file_path, _ = QFileDialog.getOpenFileName(
             self,
-            self.get_text("select_ffmpeg_file") or "Select FFmpeg File",
+            self.get_text("select_ffmpeg_file"),
             "",
             file_filter
         )
@@ -172,8 +171,8 @@ class FFmpegStatusCard(SettingCard):
         
         if not self._test_ffmpeg_executable(file_path):
             InfoBar.error(
-                title=self.get_text("invalid_ffmpeg") or "Invalid FFmpeg File",
-                content=self.get_text("invalid_ffmpeg_hint") or "The selected file is not a valid FFmpeg executable",
+                title=self.get_text("invalid_ffmpeg"),
+                content=self.get_text("invalid_ffmpeg_hint"),
                 orient=Qt.Horizontal,
                 isClosable=True,
                 position=InfoBarPosition.TOP,
@@ -188,11 +187,11 @@ class FFmpegStatusCard(SettingCard):
             config_manager.set("ffmpeg_path", file_path)
         
         self.ffmpeg_path = file_path
-        self._update_status(True, self.get_text("ffmpeg_available") or "Available")
+        self._update_status(True, self.get_text("ffmpeg_available"))
         
         InfoBar.success(
-            title=self.get_text("ffmpeg_set_success") or "FFmpeg Setup Successful",
-            content=self.get_text("ffmpeg_path_updated") or "FFmpeg path has been updated",
+            title=self.get_text("ffmpeg_set_success"),
+            content=self.get_text("ffmpeg_path_updated"),
             orient=Qt.Horizontal,
             isClosable=True,
             position=InfoBarPosition.TOP,

@@ -171,20 +171,22 @@ def apply_theme_change(window, theme_name, config_manager, central_log_handler=N
                 theme_value = "dark"
             elif theme_name == lang.get("theme_light"):
                 theme_value = "light"
-            # 支持简短形式（"深色"、"浅色"、"跟随系统"）
-            elif theme_name == "深色":
+            # 支持简短形式和翻译后的文本（向后兼容性）
+            elif theme_name in ["深色", "Dark Theme"]:
                 theme_value = "dark"
-            elif theme_name == "浅色":
+            elif theme_name in ["浅色", "Light Theme"]:
                 theme_value = "light"
-            elif theme_name == "跟随系统":
+            elif theme_name in ["跟随系统", "Follow System"]:
                 theme_value = "auto"
             else:
                 theme_value = "auto"
         else:
             # 如果没有语言管理器，根据名称判断
-            if "dark" in theme_name.lower() or theme_name == "深色":
+            if ("dark" in theme_name.lower() or theme_name == "深色" or 
+                "Dark Theme" in theme_name):
                 theme_value = "dark"
-            elif "light" in theme_name.lower() or theme_name == "浅色":
+            elif ("light" in theme_name.lower() or theme_name == "浅色" or 
+                  "Light Theme" in theme_name):
                 theme_value = "light"
             else:
                 theme_value = "auto"

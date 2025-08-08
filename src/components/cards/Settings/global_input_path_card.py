@@ -77,8 +77,8 @@ class GlobalInputPathCard(SettingCard):
         self.inputPathEdit.setMinimumWidth(300)  # 增加最小宽度确保文字显示完整
         
         # 浏览按钮
-        self.browseButton = PushButton(FluentIcon.FOLDER_ADD, self._get_text("browse") or "Browse")
-        self.browseButton.setFixedSize(100, 32)  # 增加按钮宽度确保文字完整显示
+        self.browseButton = PushButton(FluentIcon.FOLDER_ADD, self._get_text("browse"))
+        self.browseButton.setFixedSize(100, 32)
         self.browseButton.clicked.connect(self._browseDirectory)
         
         content_layout.addWidget(self.inputPathEdit, 1)

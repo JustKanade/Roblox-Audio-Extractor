@@ -39,18 +39,16 @@ def apply_language(window, selected_language, current_language, lang, settings_l
             return False
             
         # 语言改变了，保存语言设置到配置文件
-        if selected_language == "English":
+        english_text = lang.get("english")
+        chinese_text = lang.get("simplified_chinese")
+        system_text = lang.get("follow_system_language")
+        
+        if selected_language == english_text or selected_language == "English":
             lang.save_language_setting("en")
-        elif selected_language == "简体中文":
+        elif selected_language == chinese_text or selected_language == "简体中文" or selected_language == "中文":
             lang.save_language_setting("zh")
-        elif selected_language == "跟随系统设置" or selected_language == "System Settings":
+        elif selected_language == system_text or selected_language == "跟随系统设置" or selected_language == "Follow System Settings":
             lang.save_language_setting("auto")
-        else:
-            # 如果是旧版本的"中文"选项，也保存为"zh"
-            if selected_language == "中文":
-                lang.save_language_setting("zh")
-            else:
-                lang.save_language_setting("auto")
 
         # 记录更改
         if settings_log_handler:
@@ -111,11 +109,16 @@ def get_language_code(language_name):
     Returns:
         str: 语言代码（如"zh"、"en"或"auto"）
     """
-    if language_name == "English":
+    # 获取翻译后的语言名称（需要使用某个语言管理器实例）
+    # 这里采用多种匹配方式以确保兼容性
+    if (language_name == "English" or 
+        language_name == "英语"):
         return "en"
-    elif language_name == "简体中文" or language_name == "中文":
+    elif (language_name in ["简体中文", "中文", "Simplified Chinese"] or
+          "简体中文" in language_name or "Chinese" in language_name):
         return "zh"
-    elif language_name == "跟随系统设置" or language_name == "Follow System Settings":
+    elif (language_name in ["跟随系统设置", "Follow System Settings", "System Settings"] or
+          "跟随系统" in language_name or "Follow System" in language_name):
         return "auto"
     else:
         return "en"  # 默认返回英语 

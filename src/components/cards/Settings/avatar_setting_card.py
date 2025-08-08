@@ -65,7 +65,7 @@ class AvatarSettingCard(CardWidget):
         title_icon.setFixedSize(16, 16)
         
         # 标题
-        title_label = StrongBodyLabel(self._get_text("avatar_settings") or "头像设置")
+        title_label = StrongBodyLabel(self._get_text("avatar_settings"))
         
         title_layout.addWidget(title_icon)
         title_layout.addWidget(title_label)
@@ -76,7 +76,7 @@ class AvatarSettingCard(CardWidget):
         # 禁用自动更新选项
         disable_auto_update_row = QHBoxLayout()
         
-        disable_auto_update_label = BodyLabel(self._get_text("disable_avatar_auto_update") or "禁用侧边栏头像自动更新")
+        disable_auto_update_label = BodyLabel(self._get_text("disable_avatar_auto_update"))
         self.disable_auto_update_switch = SwitchButton()
         self.disable_auto_update_switch.setChecked(self.disable_auto_update)
         self.disable_auto_update_switch.checkedChanged.connect(self.on_disable_auto_update_changed)

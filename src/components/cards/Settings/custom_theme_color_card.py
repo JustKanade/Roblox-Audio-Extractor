@@ -61,8 +61,8 @@ class CustomThemeColorCard(CustomColorSettingCard):
         super().__init__(
             configItem=config_manager.cfg.themeColor,  # 直接使用配置管理器的颜色配置项
             icon=FluentIcon.PALETTE,
-            title=get_text("theme_color_settings") or "主题颜色设置",
-            content=get_text("theme_color_description") or "更改应用程序的主题颜色",
+            title=get_text("theme_color_settings"),
+            content=get_text("theme_color_description"),
             parent=parent
         )
         

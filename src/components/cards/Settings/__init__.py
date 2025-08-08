@@ -11,10 +11,12 @@ from .global_input_path_card import GlobalInputPathCard
 from .greeting_setting_card import GreetingSettingCard
 from .log_control_card import LogControlCard
 from .thread_count_card import ThreadCountCard
-from .version_check_card import VersionCheckCard
+from .auto_check_update_card import AutoCheckUpdateCard
+from .manual_check_update_card import ManualCheckUpdateCard
 
 __all__ = [
     'AlwaysOnTopCard',
+    'AutoCheckUpdateCard',
     'AvatarSettingCard', 
     'CustomThemeColorCard',
     'DebugModeCard',
@@ -22,6 +24,6 @@ __all__ = [
     'GlobalInputPathCard',
     'GreetingSettingCard',
     'LogControlCard',
-    'ThreadCountCard',
-    'VersionCheckCard'
+    'ManualCheckUpdateCard',
+    'ThreadCountCard'
 ] 

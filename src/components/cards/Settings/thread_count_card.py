@@ -20,12 +20,13 @@ class ThreadCountCard(SettingCard):
     
     valueChanged = pyqtSignal(int)
     
-    def __init__(self, config_manager, parent=None):
+    def __init__(self, config_manager, lang=None, parent=None):
         self.config_manager = config_manager
+        self.lang = lang
         
         # 获取翻译文本
-        title = self._get_text("default_threads") or "Default thread count"
-        content = self._get_text("threads_description") or "Set the default number of threads for extraction tasks"
+        title = self._get_text("default_threads")
+        content = self._get_text("threads_description")
         
         super().__init__(
             FluentIcon.SPEED_OFF,
@@ -38,9 +39,9 @@ class ThreadCountCard(SettingCard):
     
     def _get_text(self, key):
         """获取翻译文本"""
-        if lang is None:
-            return ""
-        return lang.get(key)
+        if self.lang and hasattr(self.lang, 'get'):
+            return self.lang.get(key)
+        return key  # 返回键名作为后备
     
     def _setupContent(self):
         """设置内容"""

@@ -29,6 +29,9 @@ from src.utils.log_utils import LogHandler
 from src.logging.central_log_handler import CentralLogHandler
 from src.management.language_management.language_manager import apply_language
 
+
+
+        
 # 尝试导入可能的卡片组件
 try:
     from src.components.cards.Settings.custom_theme_color_card import CustomThemeColorCard
@@ -36,10 +39,14 @@ except ImportError:
     CustomThemeColorCard = None
 
 try:
-    from src.components.cards.Settings.version_check_card import VersionCheckCard, set_language_manager
+    from src.components.cards.Settings.auto_check_update_card import AutoCheckUpdateCard
 except ImportError:
-    VersionCheckCard = None
-    set_language_manager = None
+    AutoCheckUpdateCard = None
+
+try:
+    from src.components.cards.Settings.manual_check_update_card import ManualCheckUpdateCard
+except ImportError:
+    ManualCheckUpdateCard = None
 
 try:
     from src.components.cards.Settings.ffmpeg_status_card import FFmpegStatusCard
@@ -91,6 +98,22 @@ class SettingsInterface(QWidget):
         # 初始化界面
         self.initUI()
         
+    def _get_language_options(self):
+        """获取语言选项的翻译文本"""
+        return [
+            self.get_text("follow_system_language"),
+            self.get_text("simplified_chinese"),
+            self.get_text("english")
+        ]
+    
+    def _get_theme_options(self):
+        """获取主题选项的翻译文本"""
+        return [
+            self.get_text("theme_dark"),
+            self.get_text("theme_light"),
+            self.get_text("theme_system")
+        ]
+            
     def createConfigItems(self):
         """创建配置项"""
         # Debug模式配置项
@@ -109,15 +132,15 @@ class SettingsInterface(QWidget):
         )
         
         # 语言配置项
-        language_options = ["跟随系统设置", "简体中文", "English"]
+        language_options = self._get_language_options()
         self.languageConfig = OptionsConfigItem(
-            "Language", "language", "跟随系统设置", OptionsValidator(language_options)
+            "Language", "language", self.get_text("follow_system_language"), OptionsValidator(language_options)
         )
         
         # 主题配置项  
-        theme_options = ["深色", "浅色", "跟随系统"]
+        theme_options = self._get_theme_options()
         self.themeConfig = OptionsConfigItem(
-            "Theme", "theme", "深色", OptionsValidator(theme_options)
+            "Theme", "theme", self.get_text("theme_dark"), OptionsValidator(theme_options)
         )
         
         # 线程数配置项
@@ -165,17 +188,17 @@ class SettingsInterface(QWidget):
     def _get_language_display_name(self, language_code):
         """将语言代码转换为显示名称"""
         if language_code == "zh":
-            return "简体中文"
+            return self.get_text("simplified_chinese")
         elif language_code == "en":
-            return "English"
+            return self.get_text("english")
         else:  # "auto" or any other value
-            return "跟随系统设置"
+            return self.get_text("follow_system_language")
             
     def _get_current_language_name(self):
         """获取当前语言显示名称"""
         if self.lang:
             return self.lang.get_language_name()
-        return "跟随系统设置"
+        return self.get_text("follow_system_language")
             
     def initUI(self):
         """初始化设置界面"""
@@ -234,12 +257,12 @@ class SettingsInterface(QWidget):
         layout.addWidget(app_group)
         
         # 界面设置组
-        ui_group = SettingCardGroup(self.get_text("interface_settings") or "界面设置")
+        ui_group = SettingCardGroup(self.get_text("interface_settings"))
         self.createUISettingsCards(ui_group)
         layout.addWidget(ui_group)
         
         # 性能设置组
-        performance_group = SettingCardGroup(self.get_text("performance_settings") or "性能设置")
+        performance_group = SettingCardGroup(self.get_text("performance_settings"))
         self.createPerformanceSettingsCards(performance_group)
         layout.addWidget(performance_group)
         
@@ -249,7 +272,7 @@ class SettingsInterface(QWidget):
         layout.addWidget(output_group)
         
         # 系统信息组
-        system_group = SettingCardGroup(self.get_text("system_info") or "系统信息")
+        system_group = SettingCardGroup(self.get_text("system_info_settings"))
         self.createSystemInfoCards(system_group)
         layout.addWidget(system_group)
     
@@ -259,8 +282,8 @@ class SettingsInterface(QWidget):
         # Debug模式设置
         debug_card = SwitchSettingCard(
             FluentIcon.CODE,
-            self.get_text("debug_mode") or "调试模式",
-            self.get_text("debug_mode_description") or "启用调试模式以获取详细日志",
+            self.get_text("debug_mode"),
+            self.get_text("debug_mode_description"),
             self.debugModeConfig
         )
         debug_card.checkedChanged.connect(self.onDebugModeChanged)
@@ -269,8 +292,8 @@ class SettingsInterface(QWidget):
         # 浏览崩溃日志文件夹
         crash_logs_card = SettingCard(
             FluentIcon.FOLDER,
-            self.get_text("open_error_logs_folder") or "打开错误日志文件夹",
-            self.get_text("error_logs_folder_description") or "查看程序崩溃时生成的详细日志"
+            self.get_text("open_error_logs_folder"),
+            self.get_text("error_logs_folder_description")
         )
         
         # 创建右侧内容容器 - 水平布局（参考Launch File卡片的实现）
@@ -280,7 +303,7 @@ class SettingsInterface(QWidget):
         content_layout.setSpacing(8)
         
         # 添加浏览按钮
-        browse_button = PushButton(FluentIcon.FOLDER_ADD, self.get_text("browse") or "浏览")
+        browse_button = PushButton(FluentIcon.FOLDER_ADD, self.get_text("browse"))
         browse_button.setFixedSize(100, 32)
         browse_button.clicked.connect(self.openCrashLogsFolder)
         
@@ -295,8 +318,8 @@ class SettingsInterface(QWidget):
         # 总是置顶设置
         always_on_top_card = SwitchSettingCard(
             FluentIcon.PIN,
-            self.get_text("always_on_top") or "总是置顶",
-            self.get_text("always_on_top_description") or "窗口始终保持在其他窗口之上",
+            self.get_text("always_on_top"),
+            self.get_text("always_on_top_description"),
             self.alwaysOnTopConfig
         )
         always_on_top_card.checkedChanged.connect(self.onAlwaysOnTopChanged)
@@ -305,8 +328,8 @@ class SettingsInterface(QWidget):
         # 问候语设置
         greeting_card = SwitchSettingCard(
             FluentIcon.HEART,
-            self.get_text("greeting_setting") or "问候语",
-            self.get_text("greeting_setting_description") or "启用启动时的问候通知",
+            self.get_text("greeting_setting"),
+            self.get_text("greeting_setting_description"),
             self.greetingConfig
         )
         greeting_card.checkedChanged.connect(self.onGreetingChanged)
@@ -333,9 +356,9 @@ class SettingsInterface(QWidget):
         language_card = OptionsSettingCard(
             self.languageConfig,
             FluentIcon.LANGUAGE,
-            self.get_text("current_language") or "当前语言",
-            self.get_text("language_description") or "选择界面语言",
-            ["跟随系统设置", "简体中文", "English"]
+            self.get_text("current_language"),
+            self.get_text("language_description"),
+            self._get_language_options()
         )
         language_card.optionChanged.connect(self.onLanguageChanged)
         group.addSettingCard(language_card)
@@ -344,9 +367,9 @@ class SettingsInterface(QWidget):
         theme_card = OptionsSettingCard(
             self.themeConfig,
             FluentIcon.BRUSH,
-            self.get_text("theme_settings") or "主题设置",
-            self.get_text("theme_description") or "选择应用主题",
-            ["深色", "浅色", "跟随系统"]
+            self.get_text("theme_settings"),
+            self.get_text("theme_description"),
+            self._get_theme_options()
         )
         theme_card.optionChanged.connect(self.onThemeChanged)
         group.addSettingCard(theme_card)
@@ -359,8 +382,8 @@ class SettingsInterface(QWidget):
         # 亚克力效果设置 - 使用标准的 SwitchSettingCard
         acrylic_card = SwitchSettingCard(
             FluentIcon.TRANSPARENT,
-            self.get_text("acrylic_effect") or "亚克力效果",
-            self.get_text("acrylic_effect_desc") or "控制导航栏的半透明亚克力效果",
+            self.get_text("acrylic_effect"),
+            self.get_text("acrylic_effect_desc"),
             self.config_manager.cfg.acrylicEnabled if self.config_manager else None
         )
         acrylic_card.checkedChanged.connect(self.onAcrylicToggled)
@@ -372,7 +395,7 @@ class SettingsInterface(QWidget):
         
         # 默认线程数设置
         if ThreadCountCard is not None:
-            threads_card = ThreadCountCard(self.config_manager)
+            threads_card = ThreadCountCard(self.config_manager, self.lang)
             threads_card.valueChanged.connect(self.saveThreadsConfig)
             group.addSettingCard(threads_card)
         else:
@@ -380,8 +403,8 @@ class SettingsInterface(QWidget):
             threads_card = RangeSettingCard(
                 self.threadsConfig,
                 FluentIcon.SPEED_OFF,
-                self.get_text("default_threads") or "默认线程数",
-                self.get_text("threads_description") or "设置提取任务的默认线程数"
+                self.get_text("default_threads"),
+                self.get_text("threads_description")
             )
             threads_card.valueChanged.connect(self.saveThreadsConfig)
             group.addSettingCard(threads_card)
@@ -405,9 +428,9 @@ class SettingsInterface(QWidget):
         
         # 自定义输出目录设置
         output_dir_card = PushSettingCard(
-            self.get_text("browse") or "浏览",
+            self.get_text("browse"),
             FluentIcon.FOLDER_ADD,
-            self.get_text("custom_output_dir") or "自定义输出目录",
+            self.get_text("custom_output_dir"),
             self.config_manager.get("custom_output_dir", "") if self.config_manager else ""
         )
         output_dir_card.clicked.connect(self.browseOutputDirectory)
@@ -417,8 +440,8 @@ class SettingsInterface(QWidget):
         # 保存日志选项
         save_logs_card = SwitchSettingCard(
             FluentIcon.SAVE,
-            self.get_text("save_logs") or "保存日志",
-            self.get_text("save_logs_description") or "将日志保存到文件",
+            self.get_text("save_logs"),
+            self.get_text("save_logs_description"),
             self.saveLogsConfig
         )
         save_logs_card.checkedChanged.connect(self.toggleSaveLogs)
@@ -427,8 +450,8 @@ class SettingsInterface(QWidget):
         # 自动打开输出目录选项
         auto_open_card = SwitchSettingCard(
             FluentIcon.FOLDER,
-            self.get_text("auto_open_output_dir") or "自动打开输出目录",
-            self.get_text("auto_open_description") or "提取完成后自动打开输出目录",
+            self.get_text("auto_open_output_dir"),
+            self.get_text("auto_open_description"),
             self.autoOpenConfig
         )
         auto_open_card.checkedChanged.connect(self.toggleAutoOpenOutputDir)
@@ -437,11 +460,17 @@ class SettingsInterface(QWidget):
     def createSystemInfoCards(self, group):
         """创建系统信息卡片"""
         
-        # 版本检测卡片
-        if VersionCheckCard is not None:
+        # 自动检查更新卡片
+        if AutoCheckUpdateCard is not None:
             current_version = self.version or ""
-            self.versionCheckCard = VersionCheckCard(self.config_manager, current_version)
-            group.addSettingCard(self.versionCheckCard)
+            self.autoCheckUpdateCard = AutoCheckUpdateCard(self.config_manager, current_version)
+            group.addSettingCard(self.autoCheckUpdateCard)
+        
+        # 手动检查更新卡片
+        if ManualCheckUpdateCard is not None:
+            current_version = self.version or ""
+            self.manualCheckUpdateCard = ManualCheckUpdateCard(self.config_manager, current_version)
+            group.addSettingCard(self.manualCheckUpdateCard)
         
         # FFmpeg状态检测卡片
         if FFmpegStatusCard is not None:
@@ -451,8 +480,8 @@ class SettingsInterface(QWidget):
         # 头像设置 - 简化为开关
         avatar_card = SwitchSettingCard(
             FluentIcon.GLOBE,
-            self.get_text("avatar_settings") or "头像设置",
-            self.get_text("disable_avatar_auto_update") or "禁用侧边栏头像自动更新",
+            self.get_text("avatar_settings"),
+            self.get_text("disable_avatar_auto_update"),
             self.avatarConfig
         )
         avatar_card.checkedChanged.connect(self.onAvatarSettingChanged)
@@ -652,7 +681,7 @@ class SettingsInterface(QWidget):
     def browseOutputDirectory(self):
         """浏览输出目录对话框"""
         current_path = self.customOutputDirCard.contentLabel.text() if hasattr(self.customOutputDirCard, 'contentLabel') else ""
-        directory = QFileDialog.getExistingDirectory(self, self.get_text("directory") or "选择目录", current_path)
+        directory = QFileDialog.getExistingDirectory(self, self.get_text("directory"), current_path)
         if directory and self.config_manager:
             self.customOutputDirCard.setContent(directory)
             self.config_manager.set("custom_output_dir", directory)
@@ -661,7 +690,7 @@ class SettingsInterface(QWidget):
             # 显示成功消息
             if hasattr(self, 'settingsLogHandler'):
                 self.settingsLogHandler.success(f"自定义输出目录已设置: {directory}")
-            
+                
     def toggleSaveLogs(self, isChecked):
         """切换保存日志选项"""
         if self.config_manager:
@@ -729,41 +758,35 @@ class SettingsInterface(QWidget):
 
     def setModulesLang(self):
         """设置各个模块的语言变量"""
-        # 设置各个卡片模块的语言变量
-        try:
-            import src.components.cards.Settings.custom_theme_color_card as custom_theme_color_card_module
-            if self.lang:
-                custom_theme_color_card_module.lang = self.lang
-        except ImportError:
-            pass
+        if not self.lang:
+            return
             
-        try:
-            import src.components.cards.Settings.version_check_card as version_check_card_module
-            if self.lang:
-                version_check_card_module.lang = self.lang
-                # 使用新的set_language_manager函数设置语言
-                if hasattr(version_check_card_module, 'set_language_manager'):
-                    version_check_card_module.set_language_manager(self.lang)
-        except ImportError:
-            pass
-            
-        try:
-            import src.components.cards.Settings.ffmpeg_status_card as ffmpeg_status_card_module
-            if self.lang:
-                ffmpeg_status_card_module.lang = self.lang
-        except ImportError:
-            pass
-            
-        try:
-            import src.components.cards.Settings.global_input_path_card as global_input_path_card_module
-            if self.lang:
-                global_input_path_card_module.lang = self.lang
-        except ImportError:
-            pass
-            
-        try:
-            import src.components.cards.Settings.launch_file_card as launch_file_card_module
-            if self.lang:
-                launch_file_card_module.lang = self.lang
-        except ImportError:
-            pass 
+        # 定义需要设置语言的模块列表
+        modules_to_set = [
+            'src.components.cards.Settings.custom_theme_color_card',
+            'src.components.cards.Settings.auto_check_update_card', 
+            'src.components.cards.Settings.manual_check_update_card',
+            'src.components.cards.Settings.ffmpeg_status_card',
+            'src.components.cards.Settings.global_input_path_card',
+            'src.components.cards.Settings.launch_file_card'
+        ]
+        
+        # 统一设置语言管理器
+        for module_name in modules_to_set:
+            try:
+                module = __import__(module_name, fromlist=[''])
+                # 设置lang变量
+                if hasattr(module, '__dict__'):
+                    module.lang = self.lang
+                    
+                # 如果模块有set_language_manager函数，也调用它
+                if hasattr(module, 'set_language_manager'):
+                    module.set_language_manager(self.lang)
+                    
+            except ImportError:
+                # 模块不存在时忽略
+                continue
+            except Exception as e:
+                # 记录其他错误但不中断流程
+                if hasattr(self, 'settingsLogHandler'):
+                    self.settingsLogHandler.warning(f"设置模块语言时出错 {module_name}: {e}") 

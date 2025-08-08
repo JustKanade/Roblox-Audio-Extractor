@@ -76,8 +76,8 @@ class LaunchFileCard(SettingCard):
 
         
         # 浏览按钮
-        self.browseButton = PushButton(FluentIcon.FOLDER_ADD, self._get_text("browse") or "Browse")
-        self.browseButton.setFixedSize(100, 32)  # 增加按钮宽度确保文字完整显示
+        self.browseButton = PushButton(FluentIcon.FOLDER_ADD, self._get_text("browse"))
+        self.browseButton.setFixedSize(100, 32)
         self.browseButton.clicked.connect(self._browseFile)
         
         content_layout.addWidget(self.launchFileEdit, 1)

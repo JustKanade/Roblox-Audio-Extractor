@@ -50,8 +50,9 @@ from src.management.theme_management.theme_manager import apply_theme_from_confi
 from src.components.cards.Settings.custom_theme_color_card import CustomThemeColorCard
 # 导入中央日志处理系统
 from src.logging.central_log_handler import CentralLogHandler
-# 导入版本检测卡片
-from src.components.cards.Settings.version_check_card import VersionCheckCard
+# 导入更新检测卡片
+from src.components.cards.Settings.auto_check_update_card import AutoCheckUpdateCard
+from src.components.cards.Settings.manual_check_update_card import ManualCheckUpdateCard
 # 导入日志控制卡片
 from src.components.cards.Settings.log_control_card import LogControlCard
 # 导入FFmpeg状态卡片
@@ -122,6 +123,7 @@ class MainWindow(FluentWindow):
         # 初始化语言管理器
         global lang
         lang = initialize_lang(self.config_manager)
+        self.lang = lang  # 设置实例属性
 
         # 初始化中央日志处理器
         CentralLogHandler.getInstance().init_with_config(self.config_manager)
@@ -356,7 +358,7 @@ class MainWindow(FluentWindow):
         self.navigationInterface.addItem(
             routeKey="launch",
             icon=FluentIcon.PLAY,
-            text="Launch",
+            text=self.lang.get("launch"),
             onClick=self.onLaunchButtonClicked,
             selectable=False,
             position=NavigationItemPosition.BOTTOM
