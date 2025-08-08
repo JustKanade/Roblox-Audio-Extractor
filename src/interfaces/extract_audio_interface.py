@@ -636,6 +636,10 @@ class ExtractAudioInterface(QWidget):
         """更新历史记录大小显示"""
         if not self.download_history:
             return
+        
+        # 如果没有历史统计UI组件，直接返回
+        if not hasattr(self, 'historyCountLabel'):
+            return
             
         # 获取总历史记录数量
         history_size = self.download_history.get_history_size()

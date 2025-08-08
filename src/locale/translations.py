@@ -1,7 +1,7 @@
 from enum import Enum, auto
 
 # 统一的版本号常量
-VERSION = "0.16.1"
+VERSION = "0.17.1"
 
 class Language(Enum):
     """支持的语言枚举类"""

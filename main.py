@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-VERSION = "0.16.1"
+VERSION = "0.17.1"
 
 import warnings
 
@@ -160,10 +160,10 @@ class MainWindow(FluentWindow):
         """初始化窗口设置"""
         # 设置窗口标题和大小
         self.setWindowTitle(lang.get("title"))
-        self.resize(750, 570)
+        self.resize(750, 610)
 
         # 设置最小窗口大小
-        self.setMinimumSize(750, 570)
+        self.setMinimumSize(750, 610)
 
         # 设置自动主题
         setTheme(Theme.AUTO)
@@ -1197,7 +1197,7 @@ def main():
             splash_icon = resource_path(os.path.join("res", "icons", "logo.png"))
             if os.path.exists(splash_icon):
                 splash = SplashScreen(QIcon(splash_icon), main_window)
-                splash.setIconSize(QSize(150, 150))
+                splash.setIconSize(QSize(200, 200))
                 splash.raise_()
 
                 # 显示启动画面2秒后关闭
