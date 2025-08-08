@@ -165,7 +165,7 @@ class MainWindow(FluentWindow):
         self.resize(750, 550)
 
         # 设置最小窗口大小
-        self.setMinimumSize(750, 310)
+        self.setMinimumSize(750, 390)
 
         # 设置自动主题
         setTheme(Theme.AUTO)
@@ -358,6 +358,16 @@ class MainWindow(FluentWindow):
             icon=FluentIcon.PLAY,
             text=self.lang.get("launch"),
             onClick=self.onLaunchButtonClicked,
+            selectable=False,
+            position=NavigationItemPosition.BOTTOM
+        )
+        
+        # 添加主题切换按钮
+        self.navigationInterface.addItem(
+            routeKey="toggle_theme",
+            icon=FluentIcon.CONSTRACT,
+            text=self.lang.get("toggle_theme"),
+            onClick=self.onThemeToggleClicked,
             selectable=False,
             position=NavigationItemPosition.BOTTOM
         )
@@ -1159,6 +1169,38 @@ class MainWindow(FluentWindow):
                 duration=5000,
                 parent=self
             )
+
+    def onThemeToggleClicked(self):
+        """主题切换按钮点击处理"""
+        try:
+            # 获取当前主题
+            current_theme = self.config_manager.get("theme", "dark")
+            
+            # 切换到相反主题
+            if current_theme == "dark":
+                new_theme = "light"
+                theme_name = self.lang.get("theme_light") if self.lang else "浅色主题"
+            else:
+                new_theme = "dark"
+                theme_name = self.lang.get("theme_dark") if self.lang else "深色主题"
+            
+            # 导入主题管理器
+            from src.management.theme_management.theme_manager import apply_theme_change
+            
+            # 应用主题变更
+            apply_theme_change(
+                window=self,
+                theme_name=theme_name,
+                config_manager=self.config_manager,
+                central_log_handler=getattr(self, 'central_log_handler', None),
+                lang=self.lang
+            )
+            
+        except Exception as e:
+            # 静默处理异常，记录到日志
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.error(f"切换主题时出错: {e}")
 
 
 def main():

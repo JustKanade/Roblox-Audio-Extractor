@@ -1471,6 +1471,16 @@ def get_translations():
                 CHINESE: "启动文件时出错：{}"
             },
             
+            # 主题切换按钮
+            "toggle_theme": {
+                ENGLISH: "Toggle Theme",
+                CHINESE: "切换主题"
+            },
+            "toggle_theme_tooltip": {
+                ENGLISH: "Switch between light and dark theme",
+                CHINESE: "在深色和浅色主题间切换"
+            },
+            
             # 设置界面分组标题
             "interface_settings": {
                 ENGLISH: "Interface Settings",
