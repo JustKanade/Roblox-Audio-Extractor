@@ -77,11 +77,21 @@ class AppConfig(QConfig):
         OptionsValidator(["duration", "size", "name"]))
     saveLogs = ConfigItem("Features", "SaveLogs", False, BoolValidator())
     autoOpenOutputDir = ConfigItem("Features", "AutoOpenOutputDir", True, BoolValidator())
+    
+    # 音频转换配置
+    convertAudioEnabled = ConfigItem("Features", "ConvertAudioEnabled", False, BoolValidator())
+    convertAudioFormat = OptionsConfigItem(
+        "Features", "ConvertAudioFormat", "MP3", 
+        OptionsValidator(["MP3", "WAV", "FLAC", "AAC", "M4A"]))
+    
+    # 窗口配置
     alwaysOnTop = ConfigItem("Window", "AlwaysOnTop", False, BoolValidator())
     debugMode = ConfigItem("Debug", "Enabled", False, BoolValidator())
     autoCheckUpdate = ConfigItem("Update", "AutoCheck", True, BoolValidator())
-    greetingEnabled = ConfigItem("UI", "GreetingEnabled", True, BoolValidator())
+
+    # UI配置
     disableAvatarAutoUpdate = ConfigItem("UI", "DisableAvatarAutoUpdate", False, BoolValidator())
+    greetingEnabled = ConfigItem("UI", "GreetingEnabled", True, BoolValidator())
 
 class ConfigManager:
     """配置文件管理器 - 结合官方qconfig和传统配置管理"""
@@ -345,6 +355,9 @@ class ConfigManager:
                 "auto_check_update": self.cfg.autoCheckUpdate,
                 "greeting_enabled": self.cfg.greetingEnabled,
                 "disable_avatar_auto_update": self.cfg.disableAvatarAutoUpdate,
+                # 音频转换配置
+                "convert_audio_enabled": self.cfg.convertAudioEnabled,
+                "convert_audio_format": self.cfg.convertAudioFormat,
             }
             
             if key in key_mapping:

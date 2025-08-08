@@ -22,7 +22,7 @@ class ExtractionWorker(QThread):
     finished = pyqtSignal(dict)  # 完成信号(结果字典)
     logMessage = pyqtSignal(str, str)  # 日志消息信号(消息, 类型)
 
-    def __init__(self, base_dir, num_threads, download_history, classification_method, custom_output_dir=None, scan_db=True):
+    def __init__(self, base_dir, num_threads, download_history, classification_method, custom_output_dir=None, scan_db=True, convert_enabled=False, convert_format="MP3"):
         super().__init__()
         self.base_dir = base_dir
         self.num_threads = num_threads
@@ -30,6 +30,8 @@ class ExtractionWorker(QThread):
         self.classification_method = classification_method
         self.custom_output_dir = custom_output_dir
         self.scan_db = scan_db
+        self.convert_enabled = convert_enabled
+        self.convert_format = convert_format
         self.is_cancelled = False
         self.total_files = 0
         self.processed_count = 0
@@ -114,6 +116,22 @@ class ExtractionWorker(QThread):
             # 使用实际提取的文件数量更新结果
             extraction_result["processed"] = self.actual_extracted_count
 
+            # 如果启用了音频转换且提取了文件，进行格式转换
+            if self.convert_enabled and self.actual_extracted_count > 0:
+                self.logMessage.emit(f'Converting audio files to {self.convert_format}...', 'info')
+                try:
+                    conversion_result = self._convert_audio_files(extraction_result.get("output_dir", ""))
+                    extraction_result["conversion_result"] = conversion_result
+                    # 添加转换输出目录信息
+                    conversion_result["converted_dir"] = os.path.join(extraction_result.get("output_dir", ""), f"Audio_{self.convert_format.upper()}")
+                    if conversion_result["converted"] > 0:
+                        self.logMessage.emit(f'Successfully converted {conversion_result["converted"]} files to {self.convert_format}', 'success')
+                    else:
+                        self.logMessage.emit('No files were converted', 'warning')
+                except Exception as e:
+                    self.logMessage.emit(f'Audio conversion failed: {str(e)}', 'error')
+                    extraction_result["conversion_error"] = str(e)
+
             # 确保历史记录被保存 - 修复：强制保存历史记录
             if self.download_history:
                 try:
@@ -155,4 +173,109 @@ class ExtractionWorker(QThread):
                 return english_strings[key].format(*args)
             except:
                 return english_strings[key]
-        return key  # 如果找不到键，返回键本身 
+        return key  # 如果找不到键，返回键本身
+    
+    def _convert_audio_files(self, output_dir):
+        """转换音频文件格式"""
+        import subprocess
+        import glob
+        
+        result = {
+            "converted": 0,
+            "failed": 0,
+            "errors": []
+        }
+        
+        if not output_dir or not os.path.exists(output_dir):
+            raise Exception("Output directory not found")
+        
+        # 查找所有OGG文件
+        audio_dir = os.path.join(output_dir, "Audio")
+        if not os.path.exists(audio_dir):
+            raise Exception("Audio directory not found")
+        
+        # 为转换后的格式创建专门的文件夹
+        convert_format_upper = self.convert_format.upper()
+        converted_dir = os.path.join(output_dir, f"Audio_{convert_format_upper}")
+        
+        # 递归查找所有.ogg文件
+        ogg_files = []
+        for root, dirs, files in os.walk(audio_dir):
+            for file in files:
+                if file.lower().endswith('.ogg'):
+                    ogg_files.append(os.path.join(root, file))
+        
+        if not ogg_files:
+            return result
+        
+        # 检查ffmpeg是否可用
+        try:
+            subprocess.run(['ffmpeg', '-version'], capture_output=True, check=True)
+        except (subprocess.CalledProcessError, FileNotFoundError):
+            raise Exception("FFmpeg is not installed or not found in PATH")
+        
+        self.logMessage.emit(f'Found {len(ogg_files)} OGG files to convert', 'info')
+        self.logMessage.emit(f'Converting to format: {convert_format_upper}', 'info')
+        self.logMessage.emit(f'Output directory: {converted_dir}', 'info')
+        
+        for i, ogg_file in enumerate(ogg_files):
+            if self.is_cancelled:
+                break
+                
+            try:
+                # 获取OGG文件相对于Audio目录的路径
+                rel_path = os.path.relpath(ogg_file, audio_dir)
+                
+                # 生成对应的转换后文件路径，保持相同的文件夹结构
+                output_file_name = os.path.splitext(os.path.basename(rel_path))[0] + f'.{self.convert_format.lower()}'
+                output_file_dir = os.path.join(converted_dir, os.path.dirname(rel_path))
+                output_file = os.path.join(output_file_dir, output_file_name)
+                
+                # 确保输出目录存在
+                os.makedirs(output_file_dir, exist_ok=True)
+                
+                # 构建ffmpeg命令
+                cmd = [
+                    'ffmpeg', '-i', ogg_file, 
+                    '-y',  # 覆盖输出文件
+                    '-loglevel', 'error',  # 只显示错误
+                ]
+                
+                # 根据格式添加特定参数
+                if self.convert_format.upper() == 'MP3':
+                    cmd.extend(['-codec:a', 'libmp3lame', '-b:a', '192k'])
+                elif self.convert_format.upper() == 'WAV':
+                    cmd.extend(['-codec:a', 'pcm_s16le'])
+                elif self.convert_format.upper() == 'FLAC':
+                    cmd.extend(['-codec:a', 'flac'])
+                elif self.convert_format.upper() == 'AAC':
+                    cmd.extend(['-codec:a', 'aac', '-b:a', '128k'])
+                elif self.convert_format.upper() == 'M4A':
+                    cmd.extend(['-codec:a', 'aac', '-b:a', '128k'])
+                    
+                cmd.append(output_file)
+                
+                # 执行转换
+                process = subprocess.run(cmd, capture_output=True, text=True)
+                
+                if process.returncode == 0:
+                    result["converted"] += 1
+                    # 转换成功后可以选择删除原文件
+                    # os.remove(ogg_file)  # 取消注释以删除原OGG文件
+                else:
+                    result["failed"] += 1
+                    error_msg = f"Failed to convert {os.path.basename(ogg_file)}: {process.stderr}"
+                    result["errors"].append(error_msg)
+                    self.logMessage.emit(error_msg, 'warning')
+                    
+            except Exception as e:
+                result["failed"] += 1
+                error_msg = f"Error converting {os.path.basename(ogg_file)}: {str(e)}"
+                result["errors"].append(error_msg)
+                self.logMessage.emit(error_msg, 'warning')
+            
+            # 更新进度 (可选)
+            if i % 10 == 0:  # 每转换10个文件更新一次进度
+                self.logMessage.emit(f'Converted {i+1}/{len(ogg_files)} files...', 'info')
+        
+        return result 

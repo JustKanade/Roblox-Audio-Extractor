@@ -300,8 +300,17 @@ def get_translations():
                 CHINESE: "扫描Roblox数据库"
             },
             "scan_database_info": {
-                ENGLISH: "",
-                CHINESE: ""
+                ENGLISH: "Enable to scan Roblox client database for audio metadata and enhanced file information",
+                CHINESE: "启用后将扫描Roblox客户端数据库以获取音频元数据和增强文件信息"
+            },
+            # 音频格式转换相关翻译
+            "convert_audio_format": {
+                ENGLISH: "Convert Audio Format",
+                CHINESE: "转换音频格式"
+            },
+            "convert_audio_format_info": {
+                ENGLISH: "Convert extracted OGG files to other audio formats after extraction",
+                CHINESE: "提取完成后将OGG文件转换为其他音频格式"
             },
             "extract_audio_title": {
                 ENGLISH: "Extract Audio Files",
@@ -332,8 +341,8 @@ def get_translations():
                 CHINESE: "线程数:"
             },
             "threads_info": {
-                ENGLISH: "",
-                CHINESE: " "
+                ENGLISH: "Number of parallel processing threads",
+                CHINESE: "并行处理线程数量设置"
             },
             "log_title": {
                 ENGLISH: "Extraction Log",

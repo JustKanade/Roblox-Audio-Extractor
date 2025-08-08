@@ -14,7 +14,7 @@ from qfluentwidgets import (
     TextEdit, IconWidget, SpinBox, LineEdit, InfoBar,
     MessageBox, StateToolTip, InfoBarPosition, ComboBox, CheckBox,
     RoundMenu, Action, DropDownPushButton, TransparentPushButton,
-    SettingCardGroup, SettingCard, SwitchSettingCard
+    SettingCardGroup, SettingCard, SwitchSettingCard, SwitchButton
 )
 
 import os
@@ -101,6 +101,7 @@ class ExtractAudioInterface(QWidget):
         self.path_edit.setText(effective_path)
         self.path_edit.setClearButtonEnabled(True)
         self.path_edit.setPlaceholderText(self.get_text("input_dir_placeholder"))
+        self.path_edit.setFixedWidth(350)  # 延长路径选择控件长度
         path_layout.addWidget(self.path_edit)
         
         self.browse_button = PushButton(self.get_text("browse"))
@@ -189,6 +190,50 @@ class ExtractAudioInterface(QWidget):
         )
         self.db_scan_card.setChecked(True)  # 默认启用
         settings_group.addSettingCard(self.db_scan_card)
+        
+        # 音频格式转换设置卡片
+        self.convert_audio_card = SettingCard(
+            FluentIcon.MEDIA,
+            self.get_text("convert_audio_format"),
+            self.get_text("convert_audio_format_info")
+        )
+        
+        # 创建转换格式控件容器
+        convert_widget = QWidget()
+        convert_layout = QHBoxLayout(convert_widget)
+        convert_layout.setContentsMargins(0, 0, 20, 0)
+        convert_layout.setSpacing(8)
+        
+        # 转换开关
+        self.convert_enabled_switch = SwitchButton()
+        self.convert_enabled_switch.setChecked(False)  # 默认关闭
+        self.convert_enabled_switch.checkedChanged.connect(self.onConvertEnabledChanged)
+        
+        # 格式选择下拉菜单
+        self.convert_format_combo = ComboBox()
+        self.convert_format_combo.addItems(['MP3', 'WAV', 'FLAC', 'AAC', 'M4A'])
+        self.convert_format_combo.setCurrentText('MP3')  # 默认选择MP3
+        self.convert_format_combo.setFixedSize(80, 32)
+        self.convert_format_combo.setEnabled(False)  # 初始禁用
+        
+        # 保存/读取转换设置
+        if self.config_manager:
+            convert_enabled = self.config_manager.get("convert_audio_enabled", False)
+            convert_format = self.config_manager.get("convert_audio_format", "MP3")
+            self.convert_enabled_switch.setChecked(convert_enabled)
+            self.convert_format_combo.setCurrentText(convert_format)
+            self.convert_format_combo.setEnabled(convert_enabled)
+        
+        # 连接格式变化信号，实现实时保存
+        self.convert_format_combo.currentTextChanged.connect(self.onConvertFormatChanged)
+        
+        convert_layout.addStretch()
+        convert_layout.addWidget(self.convert_enabled_switch)
+        convert_layout.addWidget(self.convert_format_combo)
+        
+        # 将转换控件添加到卡片
+        self.convert_audio_card.hBoxLayout.addWidget(convert_widget)
+        settings_group.addSettingCard(self.convert_audio_card)
 
         content_layout.addWidget(settings_group)
 
@@ -216,10 +261,8 @@ class ExtractAudioInterface(QWidget):
         button_layout = QHBoxLayout()
         button_layout.setSpacing(15)
 
-        self.extractButton = PrimaryPushButton(FluentIcon.DOWNLOAD, self.get_text("extract"))
-        self.extractButton.setFixedHeight(40)
-        self.extractButton.clicked.connect(self.startExtraction)
-        button_layout.addWidget(self.extractButton)
+        # 添加弹性空间，将按钮推至右侧
+        button_layout.addStretch()
 
         self.cancelButton = PushButton(FluentIcon.CANCEL, self.get_text("cancel"))
         self.cancelButton.setFixedHeight(40)
@@ -227,7 +270,10 @@ class ExtractAudioInterface(QWidget):
         self.cancelButton.hide()  # 初始隐藏取消按钮
         button_layout.addWidget(self.cancelButton)
 
-        button_layout.addStretch()
+        self.extractButton = PrimaryPushButton(FluentIcon.DOWNLOAD, self.get_text("extract"))
+        self.extractButton.setFixedHeight(40)
+        self.extractButton.clicked.connect(self.startExtraction)
+        button_layout.addWidget(self.extractButton)
 
         control_layout.addLayout(button_layout)
 
@@ -345,6 +391,10 @@ class ExtractAudioInterface(QWidget):
             
             # 保存输入路径
             self.config_manager.set("last_input_dir", input_dir)
+            
+            # 保存音频格式转换设置
+            self.config_manager.set("convert_audio_enabled", self.convert_enabled_switch.isChecked())
+            self.config_manager.set("convert_audio_format", self.convert_format_combo.currentText())
 
         # 更新UI状态
         self.showExtractButton(False)
@@ -381,7 +431,9 @@ class ExtractAudioInterface(QWidget):
             self.download_history, 
             classification_method,
             custom_output_dir,  # 使用配置的自定义输出目录
-            scan_db  # 传递数据库扫描选项
+            scan_db,  # 传递数据库扫描选项
+            self.convert_enabled_switch.isChecked(),  # 是否启用音频转换
+            self.convert_format_combo.currentText()   # 音频转换格式
         )
 
         # 连接信号
@@ -480,22 +532,48 @@ class ExtractAudioInterface(QWidget):
                 self.handleExtractionLog(self.get_text("files_per_sec", result.get('files_per_second', 0)), "info")
                 self.handleExtractionLog(self.get_text("output_dir", result.get('output_dir', '')), "info")
 
+                # 显示音频转换结果
+                if "conversion_result" in result:
+                    conversion_result = result["conversion_result"]
+                    if conversion_result["converted"] > 0:
+                        self.handleExtractionLog(f"Audio Conversion: {conversion_result['converted']} files converted to {self.convert_format_combo.currentText()}", "success")
+                        # 显示转换文件夹路径
+                        if "converted_dir" in conversion_result:
+                            self.handleExtractionLog(f"Converted files saved to: {conversion_result['converted_dir']}", "info")
+                        if conversion_result["failed"] > 0:
+                            self.handleExtractionLog(f"Conversion failures: {conversion_result['failed']} files", "warning")
+                    elif conversion_result["failed"] > 0:
+                        self.handleExtractionLog(f"Audio conversion failed: {conversion_result['failed']} files", "error")
+                elif "conversion_error" in result:
+                    self.handleExtractionLog(f"Audio conversion error: {result['conversion_error']}", "error")
+
                 # 输出目录
                 final_dir = result.get("output_dir", "")
                 # 音频输出文件夹路径
                 audio_dir = os.path.join(final_dir, "Audio")
+                
+                # 确定要打开的目录（优先转换后的文件夹）
+                dir_to_open = audio_dir
+                dir_description = self.get_text("audio_folder")
+                
+                # 如果有转换结果且转换成功，优先打开转换后的文件夹
+                if "conversion_result" in result and result["conversion_result"]["converted"] > 0:
+                    converted_dir = result["conversion_result"].get("converted_dir", "")
+                    if converted_dir and os.path.exists(converted_dir):
+                        dir_to_open = converted_dir
+                        dir_description = f"{self.convert_format_combo.currentText()} files"
 
                 # 根据设置决定是否自动打开目录
                 if final_dir and os.path.exists(final_dir) and self.config_manager and self.config_manager.get("auto_open_output_dir", True):
-                    # 优先打开Audio文件夹，如果存在
-                    if os.path.exists(audio_dir):
-                        open_success = open_directory(audio_dir)
+                    # 优先打开确定的目录（原Audio文件夹或转换后文件夹）
+                    if os.path.exists(dir_to_open):
+                        open_success = open_directory(dir_to_open)
                         if open_success:
-                            self.extractLogHandler.info(self.get_text("opening_output_dir", self.get_text("audio_folder")))
+                            self.extractLogHandler.info(self.get_text("opening_output_dir", dir_description))
                         else:
-                            self.extractLogHandler.info(self.get_text("manual_navigate", audio_dir))
+                            self.extractLogHandler.info(self.get_text("manual_navigate", dir_to_open))
                     else:
-                        # 如果Audio文件夹不存在，打开根输出目录
+                        # 如果确定的目录不存在，打开根输出目录
                         open_success = open_directory(final_dir)
                         if open_success:
                             self.extractLogHandler.info(self.get_text("opening_output_dir", self.get_text("ogg_category")))
@@ -761,3 +839,28 @@ class ExtractAudioInterface(QWidget):
                 # 记录路径变更
                 if hasattr(self, 'extractLogHandler'):
                     self.extractLogHandler.info(f"全局输入路径已同步: {new_path}") 
+
+    def onConvertEnabledChanged(self, checked: bool):
+        """音频格式转换开关状态变化处理"""
+        self.convert_format_combo.setEnabled(checked)
+        if self.config_manager:
+            self.config_manager.set("convert_audio_enabled", checked)
+            self.config_manager.set("convert_audio_format", self.convert_format_combo.currentText())
+            self.extractLogHandler.info(f"音频格式转换{'启用' if checked else '禁用'}") 
+
+    def onConvertFormatChanged(self, text: str):
+        """音频格式选择变化处理"""
+        if self.config_manager:
+            self.config_manager.set("convert_audio_format", text)
+            self.extractLogHandler.info(f"音频格式已设置为: {text}")
+    
+    def saveConvertSettings(self):
+        """强制保存转换设置配置"""
+        if self.config_manager:
+            self.config_manager.set("convert_audio_enabled", self.convert_enabled_switch.isChecked())
+            self.config_manager.set("convert_audio_format", self.convert_format_combo.currentText())
+            # 调用配置管理器的保存方法
+            self.config_manager.save_config()
+            self.extractLogHandler.info("音频转换设置已保存")
+            return True
+        return False 
