@@ -185,33 +185,21 @@ class CentralLogHandler:
         if not self._config_manager or not self._config_manager.get("debug_mode_enabled", True):
             return None
             
-        # 获取输出路径
-        custom_output_dir = self._config_manager.get("custom_output_dir", "")
-        if custom_output_dir and os.path.isdir(custom_output_dir):
-            # 使用自定义路径
-            crash_log_dir = os.path.join(custom_output_dir, "logs", "crash_logs")
-        else:
-            # 使用默认路径
-            crash_log_dir = os.path.join(os.path.expanduser("~"), ".roblox_audio_extractor", "logs", "crash_logs")
-            
-        # 确保目录存在
-        os.makedirs(crash_log_dir, exist_ok=True)
-        
-        # 生成崩溃日志文件名（包含时间戳）
-        timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-        crash_log_path = os.path.join(crash_log_dir, f"crash_log_{timestamp}.txt")
+        # 使用统一的崩溃日志路径工具
+        from src.utils.log_utils import get_crash_log_path
+        crash_log_path = get_crash_log_path()
         
         try:
             with open(crash_log_path, 'w', encoding='utf-8') as f:
                 # 写入错误信息
                 f.write("Roblox Audio Extractor\n")
-                f.write(f"时间: {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
-                f.write(f"错误: {error_info}\n\n")
-                f.write("堆栈跟踪：\n")
+                f.write(f"Time: {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
+                f.write(f"Error: {error_info}\n\n")
+                f.write("Stack Trace:\n")
                 f.write(f"{traceback_info}\n\n")
                 
                 # 写入所有日志记录
-                f.write("日志记录：\n")
+                f.write("Log Records:\n")
                 for entry in self._log_entries:
                     f.write(f"{entry}\n")
                     

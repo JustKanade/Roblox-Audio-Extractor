@@ -11,7 +11,7 @@ from qfluentwidgets import (
     ScrollArea, PushButton, PrimaryPushButton, 
     FluentIcon, CaptionLabel, TextEdit, IconWidget,
     ComboBox, SpinBox, LineEdit, SwitchButton,
-    SettingCardGroup, SwitchSettingCard, ComboBoxSettingCard,
+    SettingCardGroup, SettingCard, SwitchSettingCard, ComboBoxSettingCard,
     RangeSettingCard, PushSettingCard, HyperlinkCard,
     OptionsSettingCard, ExpandSettingCard, ConfigItem,
     BoolValidator, OptionsConfigItem, OptionsValidator,
@@ -19,6 +19,8 @@ from qfluentwidgets import (
 )
 
 import os
+import sys
+import subprocess
 import multiprocessing
 from functools import partial
 
@@ -264,6 +266,32 @@ class SettingsInterface(QWidget):
         debug_card.checkedChanged.connect(self.onDebugModeChanged)
         group.addSettingCard(debug_card)
         
+        # 浏览崩溃日志文件夹
+        crash_logs_card = SettingCard(
+            FluentIcon.FOLDER,
+            self.get_text("open_error_logs_folder") or "打开错误日志文件夹",
+            self.get_text("error_logs_folder_description") or "查看程序崩溃时生成的详细日志"
+        )
+        
+        # 创建右侧内容容器 - 水平布局（参考Launch File卡片的实现）
+        content_widget = QWidget()
+        content_layout = QHBoxLayout(content_widget)
+        content_layout.setContentsMargins(0, 0, 20, 0)  # 添加右边距避免超出边框
+        content_layout.setSpacing(8)
+        
+        # 添加浏览按钮
+        browse_button = PushButton(FluentIcon.FOLDER_ADD, self.get_text("browse") or "浏览")
+        browse_button.setFixedSize(100, 32)
+        browse_button.clicked.connect(self.openCrashLogsFolder)
+        
+        content_layout.addStretch()  # 添加伸缩空间，让按钮靠右
+        content_layout.addWidget(browse_button)
+        
+        # 将内容容器添加到SettingCard的hBoxLayout
+        crash_logs_card.hBoxLayout.addWidget(content_widget)
+        
+        group.addSettingCard(crash_logs_card)
+        
         # 总是置顶设置
         always_on_top_card = SwitchSettingCard(
             FluentIcon.PIN,
@@ -286,9 +314,17 @@ class SettingsInterface(QWidget):
         
         # 启动文件设置
         if LaunchFileCard is not None:
-            self.launchFileCard = LaunchFileCard(self)
-            self.launchFileCard.launchFileChanged.connect(self.onLaunchFileChanged)
-            group.addSettingCard(self.launchFileCard)
+            try:
+                self.launchFileCard = LaunchFileCard(self.config_manager)
+                # 连接启动文件改变信号
+                self.launchFileCard.launchFileChanged.connect(self.updateLaunchFile)
+                # 连接清除启动文件信号
+                self.launchFileCard.clearLaunchFile.connect(self.clearLaunchFile)
+                group.addSettingCard(self.launchFileCard)
+            except Exception as e:
+                print(f"添加启动文件卡片时出错: {e}")
+                if hasattr(self, 'settingsLogHandler'):
+                    self.settingsLogHandler.error(f"添加启动文件卡片时出错: {e}")
     
     def createUISettingsCards(self, group):
         """创建界面设置卡片"""
@@ -470,18 +506,60 @@ class SettingsInterface(QWidget):
             if hasattr(self, 'settingsLogHandler'):
                 self.settingsLogHandler.info(f"问候语: {'启用' if isChecked else '禁用'}")
     
-    def onLaunchFileChanged(self, file_path):
-        """启动文件改变事件"""
-        if hasattr(self, 'settingsLogHandler'):
-            if file_path:
-                filename = os.path.basename(file_path)
-                self.settingsLogHandler.info(f"启动文件已设置: {filename}")
-            else:
-                self.settingsLogHandler.info("启动文件设置已清除")
-        
-        # 通知主窗口更新Launch按钮显示
-        if self._parent_window and hasattr(self._parent_window, 'updateLaunchButton'):
-            self._parent_window.updateLaunchButton()
+    def openCrashLogsFolder(self):
+        """打开崩溃日志文件夹"""
+        try:
+            # 使用统一的崩溃日志路径工具
+            from src.utils.log_utils import get_crash_log_dir
+            crash_log_dir = get_crash_log_dir()
+            
+            # 根据操作系统打开文件夹
+            if sys.platform == 'win32':
+                os.startfile(crash_log_dir)
+            elif sys.platform == 'darwin':  # macOS
+                subprocess.Popen(['open', crash_log_dir])
+            else:  # Linux
+                subprocess.Popen(['xdg-open', crash_log_dir])
+            
+            # 获取成功消息
+            title = "打开文件夹成功"
+            content = "已打开错误日志文件夹"
+            
+            if self.lang and hasattr(self.lang, 'get'):
+                title = self.lang.get("open_folder_success") or title
+                content = self.lang.get("error_logs_folder_opened") or content
+                
+            # 显示成功消息
+            from qfluentwidgets import InfoBar, InfoBarPosition
+            InfoBar.success(
+                title=title,
+                content=content,
+                orient=Qt.Horizontal,
+                isClosable=True,
+                position=InfoBarPosition.TOP,
+                duration=3000,
+                parent=self
+            )
+        except Exception as e:
+            # 获取错误消息
+            title = "打开文件夹失败"
+            content = f"打开文件夹时出错: {str(e)}"
+            
+            if self.lang and hasattr(self.lang, 'get'):
+                title = self.lang.get("open_folder_failed") or title
+                content = self.lang.get("error_opening_folder", str(e)) or content
+            
+            # 显示错误消息
+            from qfluentwidgets import InfoBar, InfoBarPosition
+            InfoBar.error(
+                title=title,
+                content=content,
+                orient=Qt.Horizontal,
+                isClosable=True,
+                position=InfoBarPosition.TOP,
+                duration=3000,
+                parent=self
+            )
     
     def onLanguageChanged(self, config_item):
         """语言改变事件"""
@@ -522,6 +600,35 @@ class SettingsInterface(QWidget):
             self.config_manager.set("disable_avatar_auto_update", isChecked)
             if hasattr(self, 'settingsLogHandler'):
                 self.settingsLogHandler.info(f"禁用头像自动更新: {'启用' if isChecked else '禁用'}")
+
+    def updateLaunchFile(self, path):
+        """更新启动文件路径"""
+        if not self.config_manager:
+            return
+            
+        self.config_manager.set("launch_file", path)
+        
+        # 显示成功消息
+        if hasattr(self, 'settingsLogHandler'):
+            if path:
+                self.settingsLogHandler.success(f"启动文件已更新: {path}")
+            else:
+                self.settingsLogHandler.info("启动文件已清除")
+        
+        # qconfig系统会自动保存配置，无需手动调用save_config
+        
+    def clearLaunchFile(self):
+        """清除启动文件路径"""
+        if not self.config_manager:
+            return
+            
+        self.config_manager.set("launch_file", "")
+        
+        # 显示成功消息
+        if hasattr(self, 'settingsLogHandler'):
+            self.settingsLogHandler.info("启动文件已清除")
+        
+        # qconfig系统会自动保存配置，无需手动调用save_config
 
     def onAcrylicToggled(self, isChecked):
         """亚克力效果设置改变事件"""
@@ -655,5 +762,12 @@ class SettingsInterface(QWidget):
             import src.components.cards.Settings.global_input_path_card as global_input_path_card_module
             if self.lang:
                 global_input_path_card_module.lang = self.lang
+        except ImportError:
+            pass
+            
+        try:
+            import src.components.cards.Settings.launch_file_card as launch_file_card_module
+            if self.lang:
+                launch_file_card_module.lang = self.lang
         except ImportError:
             pass 

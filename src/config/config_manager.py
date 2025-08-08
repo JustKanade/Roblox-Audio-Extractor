@@ -64,7 +64,7 @@ class AppConfig(QConfig):
     customOutputDir = ConfigItem("Paths", "CustomOutputDir", "", FolderValidator())
     globalInputPath = ConfigItem("Paths", "GlobalInputPath", "", FolderValidator())
     lastInputDir = ConfigItem("Paths", "LastInputDir", "", FolderValidator())
-    launchFilePath = ConfigItem("Paths", "LaunchFilePath", "")
+    launchFile = ConfigItem("Paths", "LaunchFile", "")
     
     # 性能配置
     threads = RangeConfigItem(
@@ -157,6 +157,7 @@ class ConfigManager:
                 "custom_output_dir": self.cfg.customOutputDir,
                 "global_input_path": self.cfg.globalInputPath,
                 "last_input_dir": self.cfg.lastInputDir,
+                "launch_file": self.cfg.launchFile, # 新增迁移
                 "threads": self.cfg.threads,
                 "classification_method": self.cfg.classificationMethod,
                 "save_logs": self.cfg.saveLogs,
@@ -250,6 +251,7 @@ class ConfigManager:
                 "custom_output_dir": self.cfg.customOutputDir,
                 "global_input_path": self.cfg.globalInputPath,
                 "last_input_dir": self.cfg.lastInputDir,
+                "launch_file": self.cfg.launchFile,
                 "threads": self.cfg.threads,
                 "classification_method": self.cfg.classificationMethod,
                 "save_logs": self.cfg.saveLogs,
@@ -309,6 +311,7 @@ class ConfigManager:
                 "custom_output_dir": self.cfg.customOutputDir,
                 "global_input_path": self.cfg.globalInputPath,
                 "last_input_dir": self.cfg.lastInputDir,
+                "launch_file": self.cfg.launchFile,
                 "threads": self.cfg.threads,
                 "classification_method": self.cfg.classificationMethod,
                 "save_logs": self.cfg.saveLogs,

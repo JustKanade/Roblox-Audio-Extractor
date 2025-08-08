@@ -144,4 +144,44 @@ def save_log_to_file(log_content: str, filename: Optional[str] = None) -> str:
     with open(filepath, 'w', encoding='utf-8') as f:
         f.write(log_content)
     
-    return filepath 
+    return filepath
+
+
+def get_crash_log_dir() -> str:
+    """
+    获取崩溃日志目录路径
+    Get crash log directory path
+    
+    返回:
+    str: 崩溃日志目录的完整路径
+    """
+    import os
+    
+    # 强制使用用户目录，不受自定义输出目录影响
+    crash_log_dir = os.path.join(os.path.expanduser("~"), ".roblox_audio_extractor", "logs", "crash_logs")
+    
+    # 确保目录存在
+    os.makedirs(crash_log_dir, exist_ok=True)
+    
+    return crash_log_dir
+
+
+def get_crash_log_path(timestamp: Optional[str] = None) -> str:
+    """
+    获取崩溃日志文件的完整路径
+    Get complete path for crash log file
+    
+    参数:
+    timestamp: 时间戳，如果为None则使用当前时间生成
+    
+    返回:
+    str: 崩溃日志文件的完整路径
+    """
+    import os
+    import datetime
+    
+    if timestamp is None:
+        timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+    
+    crash_log_dir = get_crash_log_dir()
+    return os.path.join(crash_log_dir, f"crash_log_{timestamp}.txt") 

@@ -755,26 +755,6 @@ def get_translations():
                 ENGLISH: "Quick Start",
                 CHINESE: "快速开始"
             },
-            "launch": {
-                ENGLISH: "Launch",
-                CHINESE: "启动"
-            },
-            "launch_file_settings": {
-                ENGLISH: "Launch File Settings",
-                CHINESE: "启动文件设置"
-            },
-            "select_launch_file": {
-                ENGLISH: "Select Launch File",
-                CHINESE: "选择启动文件"
-            },
-            "launch_file_description": {
-                ENGLISH: "Configure the file to launch when clicking the Launch button.",
-                CHINESE: "配置点击启动按钮时要启动的文件。"
-            },
-            "no_launch_file": {
-                ENGLISH: "No file selected",
-                CHINESE: "未选择文件"
-            },
             "recent_activity": {
                 ENGLISH: "Recent Activity",
                 CHINESE: "最近活动"
@@ -1195,6 +1175,10 @@ def get_translations():
                 ENGLISH: "Open Error Logs",
                 CHINESE: "打开崩溃日志"
             },
+            "error_logs_folder_description": {
+                ENGLISH: "View detailed logs generated when the program crashes",
+                CHINESE: "查看程序崩溃时生成的详细日志"
+            },
             "open_folder_success": {
                 ENGLISH: "Open Folder Success",
                 CHINESE: "打开文件夹成功"
@@ -1365,5 +1349,47 @@ def get_translations():
             "path_hint": {
                 ENGLISH: "Tip: Leave empty to use default Roblox cache path",
                 CHINESE: "提示：留空将使用默认的Roblox缓存路径"
+            },
+            
+            # 启动文件相关
+            "launch_file_title": {
+                ENGLISH: "Launch File",
+                CHINESE: "启动文件"
+            },
+            "launch_file_description": {
+                ENGLISH: "Select a file to be executed when clicking the Launch button",
+                CHINESE: "选择一个文件，当点击启动按钮时执行"
+            },
+            "select_executable": {
+                ENGLISH: "Select Executable File",
+                CHINESE: "选择可执行文件"
+            },
+            "launch_file_placeholder": {
+                ENGLISH: "Select an executable file to launch",
+                CHINESE: "选择要启动的可执行文件"
+            },
+            "launch_success": {
+                ENGLISH: "Launch Successful",
+                CHINESE: "启动成功"
+            },
+            "launch_failed": {
+                ENGLISH: "Launch Failed",
+                CHINESE: "启动失败"
+            },
+            "file_launched": {
+                ENGLISH: "File launched: {}",
+                CHINESE: "文件已启动：{}"
+            },
+            "file_not_found": {
+                ENGLISH: "Launch file not found: {}",
+                CHINESE: "启动文件未找到：{}"
+            },
+            "no_launch_file_set": {
+                ENGLISH: "No launch file configured. Please set one in Settings.",
+                CHINESE: "未配置启动文件。请在设置中配置。"
+            },
+            "launch_error": {
+                ENGLISH: "Error launching file: {}",
+                CHINESE: "启动文件时出错：{}"
             },
         }

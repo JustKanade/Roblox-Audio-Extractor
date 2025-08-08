@@ -134,17 +134,9 @@ class DebugModeCard(CardWidget):
     def open_error_logs_folder(self):
         """打开错误日志文件夹"""
         try:
-            # 获取日志文件夹路径
-            custom_output_dir = self.config_manager.get("custom_output_dir", "") if self.config_manager else ""
-            if custom_output_dir and os.path.isdir(custom_output_dir):
-                # 使用自定义路径
-                crash_log_dir = os.path.join(custom_output_dir, "logs", "crash_logs")
-            else:
-                # 使用默认路径
-                crash_log_dir = os.path.join(os.path.expanduser("~"), ".roblox_audio_extractor", "logs", "crash_logs")
-            
-            # 确保目录存在
-            os.makedirs(crash_log_dir, exist_ok=True)
+            # 使用统一的崩溃日志路径工具
+            from src.utils.log_utils import get_crash_log_dir
+            crash_log_dir = get_crash_log_dir()
             
             # 根据操作系统打开文件夹
             if sys.platform == 'win32':
