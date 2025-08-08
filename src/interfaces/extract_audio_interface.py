@@ -39,6 +39,9 @@ class ExtractAudioInterface(QWidget):
         self.download_history = download_history
         self._parent_window = parent
         
+        # 获取路径管理器
+        self.path_manager = getattr(config_manager, 'path_manager', None) if config_manager else None
+        
         # 设置大小策略，防止界面拉伸
         self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
         
@@ -57,6 +60,10 @@ class ExtractAudioInterface(QWidget):
         self.initUI()
         # 应用样式
         self.setExtractStyles()
+        
+        # 连接路径管理器信号实现实时同步
+        if self.path_manager:
+            self.path_manager.globalInputPathChanged.connect(self.onGlobalInputPathChanged)
         
     def initUI(self):
         """初始化界面"""
@@ -91,7 +98,9 @@ class ExtractAudioInterface(QWidget):
         path_layout.addWidget(path_label)
 
         self.path_edit = LineEdit()
-        self.path_edit.setText(self.default_dir)
+        # 使用路径管理器获取有效路径
+        effective_path = self._getEffectiveInputPath()
+        self.path_edit.setText(effective_path)
         self.path_edit.setClearButtonEnabled(True)
         self.path_edit.setPlaceholderText(self.get_text("input_dir_placeholder"))
         path_layout.addWidget(self.path_edit, 1)
@@ -300,8 +309,14 @@ class ExtractAudioInterface(QWidget):
             
     def startExtraction(self):
         """开始提取音频"""
-        # 获取输入路径
-        input_dir = self.path_edit.text().strip()
+        # 获取有效输入路径（优先使用全局输入路径）
+        input_dir = self._getEffectiveInputPath()
+        
+        # 更新界面显示的路径
+        if self.path_edit.text().strip() != input_dir:
+            self.path_edit.setText(input_dir)
+            self.extractLogHandler.info(self.get_text("using_global_input_path", "使用全局输入路径") + f": {input_dir}")
+        
         if not input_dir or not os.path.isdir(input_dir):
             InfoBar.error(
                 title=self.get_text("error"),
@@ -345,13 +360,23 @@ class ExtractAudioInterface(QWidget):
         # 获取数据库扫描选项
         scan_db = self.db_scan_checkbox.isChecked()
         
+        # 获取自定义输出目录
+        custom_output_dir = None
+        if self.config_manager:
+            custom_dir = self.config_manager.get("custom_output_dir", "")
+            if custom_dir and os.path.isdir(custom_dir):
+                custom_output_dir = custom_dir
+                self.extractLogHandler.info(f"使用自定义输出目录: {custom_output_dir}")
+            else:
+                self.extractLogHandler.info("使用默认输出目录（基于输入目录）")
+        
         # 创建提取工作线程
         self.extraction_worker = ExtractionWorker(
             input_dir, 
             num_threads, 
             self.download_history, 
             classification_method,
-            None,  # 使用默认输出目录
+            custom_output_dir,  # 使用配置的自定义输出目录
             scan_db  # 传递数据库扫描选项
         )
 
@@ -723,4 +748,31 @@ class ExtractAudioInterface(QWidget):
         """切换到历史界面"""
         if self._parent_window and hasattr(self._parent_window, 'historyInterface') and \
            hasattr(self._parent_window, 'switchTo'):
-            self._parent_window.switchTo(self._parent_window.historyInterface) 
+            self._parent_window.switchTo(self._parent_window.historyInterface)
+    
+    def _getEffectiveInputPath(self) -> str:
+        """获取有效的输入路径"""
+        # 优先使用路径管理器的有效路径
+        if self.path_manager:
+            effective_path = self.path_manager.get_effective_input_path()
+            if effective_path:
+                return effective_path
+        
+        # 备用方案：使用界面输入框的路径
+        path_edit_text = self.path_edit.text().strip() if hasattr(self, 'path_edit') else ""
+        if path_edit_text:
+            return path_edit_text
+        
+        # 最后使用默认目录
+        return self.default_dir or ""
+    
+    def onGlobalInputPathChanged(self, new_path: str):
+        """全局输入路径变更处理"""
+        if hasattr(self, 'path_edit'):
+            # 更新界面显示
+            current_text = self.path_edit.text().strip()
+            if current_text != new_path:
+                self.path_edit.setText(new_path)
+                # 记录路径变更
+                if hasattr(self, 'extractLogHandler'):
+                    self.extractLogHandler.info(f"全局输入路径已同步: {new_path}") 

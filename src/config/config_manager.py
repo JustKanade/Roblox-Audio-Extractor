@@ -62,7 +62,7 @@ class AppConfig(QConfig):
     # 路径配置
     lastDirectory = ConfigItem("Paths", "LastDirectory", "", FolderValidator())
     customOutputDir = ConfigItem("Paths", "CustomOutputDir", "", FolderValidator())
-    globalInputPath = ConfigItem("Paths", "GlobalInputPath", "", FolderValidator())
+    globalInputPath = ConfigItem("Paths", "GlobalInputPath", "", FolderValidator())  # 将在运行时设置为Roblox默认路径
     lastInputDir = ConfigItem("Paths", "LastInputDir", "", FolderValidator())
     launchFile = ConfigItem("Paths", "LaunchFile", "")
     
@@ -105,8 +105,31 @@ class ConfigManager:
         # 使用qconfig加载配置
         qconfig.load(self.config_file, self.cfg)
         
+        # 初始化路径管理器
+        self.path_manager = None
+        self._init_path_manager()
+        
         # 连接配置变更信号
         self._connect_config_signals()
+        
+    def _init_path_manager(self):
+        """初始化路径管理器"""
+        try:
+            from src.management.path_management import PathManager
+            self.path_manager = PathManager(self)
+            
+            # 如果全局输入路径为空，自动设置为Roblox默认路径
+            current_path = self.get("global_input_path", "")
+            if not current_path:
+                default_roblox_path = self.path_manager.get_roblox_default_dir()
+                if default_roblox_path:
+                    self.set("global_input_path", default_roblox_path)
+                    self.save_config()
+                    logger.info(f"自动设置全局输入路径为Roblox默认路径: {default_roblox_path}")
+                    
+        except Exception as e:
+            logger.error(f"初始化路径管理器失败: {e}")
+            self.path_manager = None
 
     def load_existing_config(self):
         """加载现有配置文件以保持向后兼容"""
@@ -359,6 +382,15 @@ class ConfigManager:
                 
         except Exception as e:
             logger.error(f"设置配置值失败 {key}={value}: {e}")
+    
+    def save_config(self):
+        """保存配置到文件"""
+        try:
+            # qconfig会自动保存，这里主要是为了兼容性
+            qconfig.save()
+            logger.debug("配置已保存")
+        except Exception as e:
+            logger.error(f"保存配置失败: {e}")
         
     def get_qfluent_config(self):
         """获取QFluentWidgets配置文件内容"""

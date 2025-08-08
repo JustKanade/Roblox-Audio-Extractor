@@ -34,6 +34,7 @@ class GlobalInputPathCard(SettingCard):
     
     def __init__(self, config_manager, parent=None):
         self.config_manager = config_manager
+        self.path_manager = getattr(config_manager, 'path_manager', None)
         
         # 获取翻译文本
         title = self._get_text("global_input_path_title") or "Global Input Path"
@@ -46,6 +47,10 @@ class GlobalInputPathCard(SettingCard):
         )
         
         self._setupContent()
+        
+        # 连接路径管理器信号
+        if self.path_manager:
+            self.path_manager.globalInputPathChanged.connect(self.updatePath)
     
     def _get_text(self, key):
         """获取翻译文本"""
@@ -85,14 +90,30 @@ class GlobalInputPathCard(SettingCard):
     def _saveGlobalInputPath(self):
         """保存全局输入路径"""
         path = self.inputPathEdit.text().strip()
-        self.config_manager.set("global_input_path", path)
-        self.inputPathChanged.emit(path)
+        
+        if self.path_manager:
+            # 使用路径管理器设置路径
+            success = self.path_manager.set_global_input_path(path)
+            if success:
+                self.inputPathChanged.emit(path)
+        else:
+            # 备用方法：直接使用配置管理器
+            self.config_manager.set("global_input_path", path)
+            self.inputPathChanged.emit(path)
     
     def _restoreDefaultPath(self):
         """恢复默认路径"""
-        self.inputPathEdit.clear()
-        self.config_manager.set("global_input_path", "")
-        self.restoreDefaultPath.emit()
+        if self.path_manager:
+            # 使用路径管理器恢复默认路径
+            default_path = self.path_manager.restore_default_path()
+            if default_path:
+                self.inputPathEdit.setText(default_path)
+                self.restoreDefaultPath.emit()
+        else:
+            # 备用方法：清空路径
+            self.inputPathEdit.clear()
+            self.config_manager.set("global_input_path", "")
+            self.restoreDefaultPath.emit()
     
     def _browseDirectory(self):
         """浏览目录"""

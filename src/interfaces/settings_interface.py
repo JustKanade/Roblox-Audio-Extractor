@@ -25,7 +25,7 @@ import multiprocessing
 from functools import partial
 
 from src.utils.log_utils import LogHandler
-from src.utils.file_utils import get_roblox_default_dir
+
 from src.logging.central_log_handler import CentralLogHandler
 from src.management.language_management.language_manager import apply_language
 
@@ -392,15 +392,6 @@ class SettingsInterface(QWidget):
         # 全局输入路径设置
         if GlobalInputPathCard is not None:
             try:
-                # 如果没有设置全局输入路径，则使用默认的Roblox路径
-                if self.config_manager and not self.config_manager.get("global_input_path", ""):
-                    default_roblox_dir = get_roblox_default_dir()
-                    if default_roblox_dir:
-                        self.config_manager.set("global_input_path", default_roblox_dir)
-                        self.config_manager.save_config()
-                        if hasattr(self, 'settingsLogHandler'):
-                            self.settingsLogHandler.info((self.get_text("default_roblox_path_set") or "已设置默认Roblox路径") + f": {default_roblox_dir}")
-                
                 self.globalInputPathCard = GlobalInputPathCard(self.config_manager)
                 # 连接输入路径改变信号到更新路径函数
                 self.globalInputPathCard.inputPathChanged.connect(self.updateGlobalInputPath)
@@ -665,6 +656,11 @@ class SettingsInterface(QWidget):
         if directory and self.config_manager:
             self.customOutputDirCard.setContent(directory)
             self.config_manager.set("custom_output_dir", directory)
+            self.config_manager.save_config()
+            
+            # 显示成功消息
+            if hasattr(self, 'settingsLogHandler'):
+                self.settingsLogHandler.success(f"自定义输出目录已设置: {directory}")
             
     def toggleSaveLogs(self, isChecked):
         """切换保存日志选项"""

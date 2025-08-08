@@ -25,7 +25,7 @@ from enum import Enum, auto
 from src.extractors.audio_extractor import RobloxAudioExtractor, ExtractedHistory, ContentHashCache, ProcessingStats, ClassificationMethod, is_ffmpeg_available
 
 # 导入工具函数
-from src.utils.file_utils import resource_path, get_roblox_default_dir, open_directory
+from src.utils.file_utils import resource_path, open_directory
 from src.utils.log_utils import LogHandler, setup_basic_logging, save_log_to_file
 from src.utils.import_utils import import_libs
 
@@ -129,8 +129,8 @@ class MainWindow(FluentWindow):
         # 初始化窗口
         self.initWindow()
 
-        # 初始化数据
-        self.default_dir = get_roblox_default_dir()
+        # 初始化数据（使用路径管理器）
+        self.default_dir = self.config_manager.path_manager.get_roblox_default_dir() if self.config_manager.path_manager else ""
         
         # 创建应用数据目录
         app_data_dir = os.path.join(os.path.expanduser("~"), ".roblox_audio_extractor")
@@ -1032,41 +1032,43 @@ class MainWindow(FluentWindow):
                 self.settingsInterface.settingsLogHandler.info(lang.get("auto_open_toggled"))
 
     def updateGlobalInputPath(self, path):
-        """更新全局输入路径"""
-        self.config_manager.set("global_input_path", path)
-        
-        # 更新所有需要使用这个路径的地方
-        
-        # 更新提取界面的输入路径框
-        if hasattr(self, 'extractInterface') and hasattr(self.extractInterface, 'dirInput'):
-            self.extractInterface.dirInput.setText(path)
-            
-        # 显示成功消息
-        if hasattr(self, 'settingsInterface') and hasattr(self.settingsInterface, 'settingsLogHandler'):
-            self.settingsInterface.settingsLogHandler.success(f"全局输入路径已更新: {path}")
-            
-        # 保存配置
-        self.config_manager.save_config()
-
-    def restoreDefaultInputPath(self):
-        """恢复默认输入路径"""
-        # 获取默认的Roblox路径
-        default_roblox_dir = get_roblox_default_dir()
-        if default_roblox_dir:
-            # 更新全局输入路径
-            self.config_manager.set("global_input_path", default_roblox_dir)
+        """更新全局输入路径（保持向后兼容）"""
+        # 使用路径管理器更新路径
+        if hasattr(self.config_manager, 'path_manager') and self.config_manager.path_manager:
+            success = self.config_manager.path_manager.set_global_input_path(path)
+            if success and hasattr(self, 'settingsInterface') and hasattr(self.settingsInterface, 'settingsLogHandler'):
+                self.settingsInterface.settingsLogHandler.success(f"全局输入路径已更新: {path}")
+        else:
+            # 备用方法：直接使用配置管理器
+            self.config_manager.set("global_input_path", path)
             self.config_manager.save_config()
-            
-            # 更新输入框显示
-            if hasattr(self, 'settingsInterface') and hasattr(self.settingsInterface, 'globalInputPathCard') and hasattr(self.settingsInterface.globalInputPathCard, 'inputPathEdit'):
-                self.settingsInterface.globalInputPathCard.inputPathEdit.setText(default_roblox_dir)
-            
-            # 调用更新路径函数
-            self.updateGlobalInputPath(default_roblox_dir)
             
             # 显示成功消息
             if hasattr(self, 'settingsInterface') and hasattr(self.settingsInterface, 'settingsLogHandler'):
-                self.settingsInterface.settingsLogHandler.success(lang.get("default_path_restored") + f": {default_roblox_dir}")
+                self.settingsInterface.settingsLogHandler.success(f"全局输入路径已更新: {path}")
+
+    def restoreDefaultInputPath(self):
+        """恢复默认输入路径"""
+        # 使用路径管理器恢复默认路径
+        if hasattr(self.config_manager, 'path_manager') and self.config_manager.path_manager:
+            default_roblox_dir = self.config_manager.path_manager.restore_default_path()
+            if default_roblox_dir and hasattr(self, 'settingsInterface') and hasattr(self.settingsInterface, 'settingsLogHandler'):
+                self.settingsInterface.settingsLogHandler.success(lang.get("default_path_restored", "默认路径已恢复") + f": {default_roblox_dir}")
+        else:
+            # 备用方法：使用旧的逻辑
+            from src.utils.file_utils import get_roblox_default_dir
+            default_roblox_dir = get_roblox_default_dir()
+            if default_roblox_dir:
+                self.config_manager.set("global_input_path", default_roblox_dir)
+                self.config_manager.save_config()
+                
+                # 更新输入框显示
+                if hasattr(self, 'settingsInterface') and hasattr(self.settingsInterface, 'globalInputPathCard') and hasattr(self.settingsInterface.globalInputPathCard, 'inputPathEdit'):
+                    self.settingsInterface.globalInputPathCard.inputPathEdit.setText(default_roblox_dir)
+                
+                # 显示成功消息
+                if hasattr(self, 'settingsInterface') and hasattr(self.settingsInterface, 'settingsLogHandler'):
+                    self.settingsInterface.settingsLogHandler.success(lang.get("default_path_restored", "默认路径已恢复") + f": {default_roblox_dir}")
 
     def applyAlwaysOnTop(self, is_top):
         """应用总是置顶设置"""
