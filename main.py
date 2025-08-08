@@ -160,10 +160,10 @@ class MainWindow(FluentWindow):
         """初始化窗口设置"""
         # 设置窗口标题和大小
         self.setWindowTitle(lang.get("title"))
-        self.resize(750, 610)
+        self.resize(750, 550)
 
         # 设置最小窗口大小
-        self.setMinimumSize(750, 610)
+        self.setMinimumSize(750, 310)
 
         # 设置自动主题
         setTheme(Theme.AUTO)
@@ -277,6 +277,9 @@ class MainWindow(FluentWindow):
         # 设置导航 - 
         self.addSubInterface(self.homeInterface, FluentIcon.HOME, lang.get("home"))
         
+        # 在顶部和滚动区域之间添加分隔线
+        self.navigationInterface.addSeparator()
+
         # 添加Extract树形菜单
         extract_tree = self.navigationInterface.addItem(
             routeKey="extract",
@@ -284,7 +287,7 @@ class MainWindow(FluentWindow):
             text=lang.get("extract"),
             onClick=None,
             selectable=False,
-            position=NavigationItemPosition.TOP
+            position=NavigationItemPosition.SCROLL
         )
         
         # 先确保接口被添加到堆叠窗口小部件
@@ -297,7 +300,7 @@ class MainWindow(FluentWindow):
             text=lang.get("extract_audio"),
             onClick=lambda: self.switchTo(self.extractInterface),
             selectable=True,
-            position=NavigationItemPosition.TOP,
+            position=NavigationItemPosition.SCROLL,
             parentRouteKey="extract"
         )
         
@@ -311,7 +314,7 @@ class MainWindow(FluentWindow):
             text=lang.get("extract_images"),
             onClick=lambda: self.switchTo(self.extractImagesInterface),
             selectable=True,
-            position=NavigationItemPosition.TOP,
+            position=NavigationItemPosition.SCROLL,
             parentRouteKey="extract"
         )
         
@@ -321,18 +324,15 @@ class MainWindow(FluentWindow):
             text=lang.get("extract_textures"),
             onClick=lambda: self.switchTo(self.extractTexturesInterface),
             selectable=True,
-            position=NavigationItemPosition.TOP,
+            position=NavigationItemPosition.SCROLL,
             parentRouteKey="extract"
         )
         
         # 默认收起Extract树形菜单
         extract_tree.setExpanded(False)
         
-        self.addSubInterface(self.clearCacheInterface, FluentIcon.DELETE, lang.get("clear_cache"))
-        self.addSubInterface(self.historyInterface, FluentIcon.HISTORY, lang.get("view_history"))
-
-        # 在提取历史导航下方添加分隔线
-        self.navigationInterface.addSeparator()
+        self.addSubInterface(self.clearCacheInterface, FluentIcon.DELETE, lang.get("clear_cache"), position=NavigationItemPosition.SCROLL)
+        self.addSubInterface(self.historyInterface, FluentIcon.HISTORY, lang.get("view_history"), position=NavigationItemPosition.SCROLL)
 
         # 添加底部导航项 - 顺序很重要
         # 先添加JustKanade头像按钮，确保它在设置按钮上方
