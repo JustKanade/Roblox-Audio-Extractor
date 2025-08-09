@@ -88,6 +88,9 @@ class AppConfig(QConfig):
         "Features", "ConvertAudioFormat", "MP3", 
         OptionsValidator(["MP3", "WAV", "FLAC", "AAC", "M4A"]))
     
+    # 缓存管理配置
+    autoClearCacheEnabled = ConfigItem("Features", "AutoClearCacheEnabled", False, BoolValidator())
+    
     # 窗口配置
     alwaysOnTop = ConfigItem("Window", "AlwaysOnTop", False, BoolValidator())
     debugMode = ConfigItem("Debug", "Enabled", False, BoolValidator())

@@ -644,6 +644,17 @@ class ExtractAudioInterface(QWidget):
                 if self._parent_window and hasattr(self._parent_window, 'historyInterface') and \
                    hasattr(self._parent_window.historyInterface, 'refreshHistoryInterface'):
                     self._parent_window.historyInterface.refreshHistoryInterface()
+
+                # 检查是否启用自动清除缓存
+                if self._parent_window and hasattr(self._parent_window, 'clearCacheInterface'):
+                    if self._parent_window.clearCacheInterface.isAutoClearCacheEnabled():
+                        self.extractLogHandler.info(self.get_text("auto_clear_cache_triggered", "触发自动清除缓存"))
+                        # 执行自动清除缓存
+                        try:
+                            self._parent_window.clearAudioCache()
+                            self.extractLogHandler.success(self.get_text("auto_clear_cache_completed", "自动清除缓存完成"))
+                        except Exception as e:
+                            self.extractLogHandler.error(f"{self.get_text('auto_clear_cache_failed', '自动清除缓存失败')}: {str(e)}")
             else:
                 self.extractLogHandler.warning(self.get_text("no_files_processed"))
 

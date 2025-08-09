@@ -11,7 +11,7 @@ from qfluentwidgets import (
     CardWidget, BodyLabel, TitleLabel, StrongBodyLabel,
     ScrollArea, PushButton, TransparentPushButton, 
     FluentIcon, CaptionLabel, ProgressBar, PrimaryPushButton,
-    TextEdit, IconWidget
+    TextEdit, IconWidget, SettingCardGroup, SettingCard, LineEdit, SwitchSettingCard
 )
 
 import os
@@ -19,6 +19,15 @@ import sys
 
 from src.utils.file_utils import open_directory
 from src.utils.log_utils import LogHandler
+
+# 尝试导入LogControlCard
+try:
+    from src.components.cards.Settings.log_control_card import LogControlCard
+except ImportError:
+    LogControlCard = None
+
+# 导入中央日志处理器
+from src.logging.central_log_handler import CentralLogHandler
 
 
 class ClearCacheInterface(QWidget):
@@ -32,6 +41,9 @@ class ClearCacheInterface(QWidget):
         self.default_dir = default_dir
         self._parent_window = parent  # 使用不同的名字避免混淆
         
+        # 获取路径管理器
+        self.path_manager = getattr(config_manager, 'path_manager', None) if config_manager else None
+        
         # 确保语言对象存在，否则创建空的语言处理函数
         if self.lang is None:
             self.get_text = lambda key, default="": default
@@ -42,6 +54,10 @@ class ClearCacheInterface(QWidget):
         self.initUI()
         # 应用样式
         self.setCacheStyles()
+        
+        # 连接路径管理器信号实现实时同步
+        if self.path_manager:
+            self.path_manager.globalInputPathChanged.connect(self.onGlobalInputPathChanged)
         
     def initUI(self):
         """初始化界面"""
@@ -57,77 +73,114 @@ class ClearCacheInterface(QWidget):
         content_layout.setContentsMargins(20, 20, 20, 20)
         content_layout.setSpacing(15)
 
-        # 缓存信息卡片
-        info_card = CardWidget()
-        info_card.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Maximum)
-        info_layout = QVBoxLayout(info_card)
-        info_layout.setContentsMargins(20, 15, 20, 15)
-        info_layout.setSpacing(12)
-        content_layout.addWidget(info_card)
-
-        # 标题
-        info_title = TitleLabel(self.get_text("clear_cache", "清除缓存"))
-        info_title.setObjectName("cacheTitle")
-        info_layout.addWidget(info_title)
-
-        # 描述
-        desc_label = BodyLabel(self.get_text("cache_description", "清除Roblox数据库和存储缓存，释放磁盘空间。提取的文件将被保留。"))
-        desc_label.setWordWrap(True)
-        info_layout.addWidget(desc_label)
+        # 创建缓存信息设置卡片组
+        cache_info_group = SettingCardGroup(self.get_text("cache_info", "缓存信息"))
         
-        # 详细说明
-        details_label = BodyLabel(self.get_text("cache_details", "此操作将清除以下内容：\n1. rbx-storage.db 数据库文件\n2. rbx-storage 文件夹中的内容（除了extracted文件夹）"))
-        details_label.setWordWrap(True)
-        info_layout.addWidget(details_label)
-
-        # 缓存位置信息
-        location_row = QHBoxLayout()
-        location_icon = IconWidget(FluentIcon.FOLDER)
-        location_icon.setFixedSize(20, 20)
-        location_label = StrongBodyLabel(self.get_text("cache_location", "缓存位置"))
+        # 缓存位置信息卡片
+        self.cache_location_card = SettingCard(
+            FluentIcon.FOLDER,
+            self.get_text("cache_location", "缓存位置"),
+            self.get_text("cache_description", "清除Roblox数据库和存储缓存，释放磁盘空间。提取的文件将被保留。")
+        )
         
-        location_row.addWidget(location_icon)
-        location_row.addWidget(location_label)
-        location_row.addStretch()
-
-        info_layout.addLayout(location_row)
-
-        # 获取Roblox本地数据目录
-        if sys.platform == 'win32':  # Windows
-            roblox_local_dir = os.path.join(os.environ.get('LOCALAPPDATA', ''), 'Roblox')
-        elif sys.platform == 'darwin':  # macOS
-            roblox_local_dir = os.path.expanduser('~/Library/Application Support/Roblox')
-        else:  # Linux或其他系统
-            roblox_local_dir = os.path.expanduser('~/.local/share/Roblox')
+        # 获取有效的缓存路径
+        effective_cache_path = self._getEffectiveCachePath()
         
-        # 缓存路径
-        cache_path_label = CaptionLabel(roblox_local_dir if os.path.exists(roblox_local_dir) else self.get_text("path_not_found", "未找到Roblox目录"))
-        cache_path_label.setWordWrap(True)
-        cache_path_label.setStyleSheet(
-            "QLabel { background-color: rgba(255, 255, 255, 0.05); padding: 8px; border-radius: 4px; }")
-        info_layout.addWidget(cache_path_label)
+        # 创建路径显示控件容器
+        path_widget = QWidget()
+        path_layout = QVBoxLayout(path_widget)
+        path_layout.setContentsMargins(0, 0, 20, 0)
+        path_layout.setSpacing(8)
         
-        # 保存Roblox本地目录以供后续使用
-        self.roblox_local_dir = roblox_local_dir
+        # 缓存路径显示
+        self.cache_path_edit = LineEdit()
+        self.cache_path_edit.setText(effective_cache_path)
+        self.cache_path_edit.setReadOnly(True)  # 设置为只读
+        self.cache_path_edit.setClearButtonEnabled(False)  # 禁用清除按钮
+        self.cache_path_edit.setPlaceholderText(self.get_text("cache_path_placeholder", "Roblox缓存目录路径"))
+        self.cache_path_edit.setMinimumWidth(370)  # 延长缓存路径显示
+        self.cache_path_edit.setMaximumWidth(400)  # 可根据界面自适应调整
+        path_layout.addWidget(self.cache_path_edit)
 
-        # 快速操作按钮
-        quick_actions = QHBoxLayout()
-        quick_actions.setSpacing(10)
+        # 将路径控件添加到卡片
+        self.cache_location_card.hBoxLayout.addWidget(path_widget)
+        cache_info_group.addSettingCard(self.cache_location_card)
 
+        # 清理详情1：数据库文件卡片
+        self.db_file_card = SettingCard(
+            FluentIcon.DOCUMENT,
+            self.get_text("cache_db_file", "rbx-storage.db 数据库文件"),
+            self.get_text("cache_db_file_desc", "Roblox客户端的数据库文件，包含缓存索引信息")
+        )
+        cache_info_group.addSettingCard(self.db_file_card)
+
+        # 清理详情2：文件夹内容卡片  
+        self.folder_content_card = SettingCard(
+            FluentIcon.FOLDER,
+            self.get_text("cache_folder_content", "rbx-storage 文件夹中的内容（除了extracted文件夹）"),
+            self.get_text("cache_folder_content_desc", "Roblox缓存文件夹中的临时文件和资源缓存")
+        )
+        cache_info_group.addSettingCard(self.folder_content_card)
+        
+        # 快速操作卡片
+        self.quick_actions_card = SettingCard(
+            FluentIcon.COMMAND_PROMPT,
+            self.get_text("quick_actions", "快速操作"),
+            self.get_text("quick_actions_info", "快速访问和管理缓存目录")
+        )
+        
+        # 创建快速操作控件容器
+        actions_widget = QWidget()
+        actions_layout = QHBoxLayout(actions_widget)
+        actions_layout.setContentsMargins(0, 0, 20, 0)
+        actions_layout.setSpacing(10)
+        
         open_cache_btn = PushButton(FluentIcon.FOLDER, self.get_text("open_directory", "打开目录"))
+        open_cache_btn.setFixedSize(120, 32)
         # 使用安全的方法连接事件
         open_cache_btn.clicked.connect(lambda: self._openDirectory())
 
         copy_cache_btn = TransparentPushButton(FluentIcon.COPY, self.get_text("copy_path", "复制路径"))
+        copy_cache_btn.setFixedSize(120, 32)
         # 使用安全的方法连接事件
         copy_cache_btn.clicked.connect(lambda: self._copyPathToClipboard())
 
-        quick_actions.addWidget(open_cache_btn)
-        quick_actions.addWidget(copy_cache_btn)
-        quick_actions.addStretch()
-
-        info_layout.addLayout(quick_actions)
-        content_layout.addWidget(info_card)
+        actions_layout.addStretch()
+        actions_layout.addWidget(open_cache_btn)
+        actions_layout.addWidget(copy_cache_btn)
+        
+        # 将快速操作控件添加到卡片
+        self.quick_actions_card.hBoxLayout.addWidget(actions_widget)
+        cache_info_group.addSettingCard(self.quick_actions_card)
+        
+        # 自动清除缓存设置卡片
+        self.auto_clear_cache_card = SwitchSettingCard(
+            FluentIcon.BROOM,
+            self.get_text("auto_clear_cache", "自动清除缓存"),
+            self.get_text("auto_clear_cache_desc", "在音频提取完成后自动清除Roblox缓存，节省磁盘空间")
+        )
+        
+        # 设置默认值和状态
+        if self.config_manager:
+            auto_clear_enabled = self.config_manager.cfg.get(self.config_manager.cfg.autoClearCacheEnabled)
+            self.auto_clear_cache_card.setChecked(auto_clear_enabled)
+        else:
+            self.auto_clear_cache_card.setChecked(False)
+        
+        # 连接开关变化信号
+        self.auto_clear_cache_card.checkedChanged.connect(self.onAutoClearCacheChanged)
+        cache_info_group.addSettingCard(self.auto_clear_cache_card)
+        
+        # 日志管理卡片
+        if LogControlCard:
+            self.log_management_card = LogControlCard(
+                parent=self,
+                lang=self.lang,
+                central_log_handler=CentralLogHandler.getInstance()
+            )
+            cache_info_group.addSettingCard(self.log_management_card)
+        
+        content_layout.addWidget(cache_info_group)
 
         # 操作控制卡片
         control_card = CardWidget()
@@ -153,23 +206,23 @@ class ClearCacheInterface(QWidget):
         button_layout = QHBoxLayout()
         button_layout.setSpacing(15)
 
-        self.clearCacheButton = PrimaryPushButton(FluentIcon.DELETE, self.get_text("clear_cache", "清除缓存"))
-        self.clearCacheButton.setFixedHeight(40)
-        # 使用安全的方法连接事件
-        self.clearCacheButton.clicked.connect(lambda: self._clearCache())
+        # 添加弹性空间，将按钮推至右侧
+        button_layout.addStretch()
 
         self.cancelClearButton = PushButton(FluentIcon.CLOSE, self.get_text("cancel", "取消"))
         self.cancelClearButton.setFixedHeight(40)
         # 使用安全的方法连接事件
         self.cancelClearButton.clicked.connect(lambda: self._cancelClearCache())
         self.cancelClearButton.hide()
-
-        button_layout.addWidget(self.clearCacheButton)
         button_layout.addWidget(self.cancelClearButton)
-        button_layout.addStretch()
+
+        self.clearCacheButton = PrimaryPushButton(FluentIcon.DELETE, self.get_text("clear_cache", "清除缓存"))
+        self.clearCacheButton.setFixedHeight(40)
+        # 使用安全的方法连接事件
+        self.clearCacheButton.clicked.connect(lambda: self._clearCache())
+        button_layout.addWidget(self.clearCacheButton)
 
         control_layout.addLayout(button_layout)
-        content_layout.addWidget(control_card)
 
         # 日志区域
         log_card = CardWidget()
@@ -187,6 +240,9 @@ class ClearCacheInterface(QWidget):
         log_layout.addWidget(self.logText)
 
         content_layout.addWidget(log_card)
+        
+        # 确保布局末尾有伸缩项，防止界面被拉伸
+        content_layout.addStretch(1)
 
         # 设置滚动区域
         scroll.setWidget(content_widget)
@@ -199,15 +255,80 @@ class ClearCacheInterface(QWidget):
         # 创建日志处理器
         self.logHandler = LogHandler(self.logText)
     
+    def _getEffectiveCachePath(self) -> str:
+        """获取有效的缓存路径"""
+        # 优先使用路径管理器的有效路径
+        if self.path_manager:
+            effective_path = self.path_manager.get_effective_input_path()
+            if effective_path and os.path.exists(effective_path):
+                return effective_path
+        
+        # 备用方案：使用路径管理器的默认Roblox路径
+        if self.path_manager:
+            roblox_path = self.path_manager.get_roblox_default_dir()
+            if roblox_path and os.path.exists(roblox_path):
+                return roblox_path
+        
+        # 最后备用方案：手动获取Roblox本地数据目录
+        if sys.platform == 'win32':  # Windows
+            roblox_local_dir = os.path.join(os.environ.get('LOCALAPPDATA', ''), 'Roblox')
+        elif sys.platform == 'darwin':  # macOS
+            roblox_local_dir = os.path.expanduser('~/Library/Application Support/Roblox')
+        else:  # Linux或其他系统
+            roblox_local_dir = os.path.expanduser('~/.local/share/Roblox')
+        
+        return roblox_local_dir if os.path.exists(roblox_local_dir) else self.get_text("path_not_found", "未找到缓存目录")
+    
     def _openDirectory(self):
         """安全地打开缓存目录"""
-        if hasattr(self, 'roblox_local_dir') and os.path.exists(self.roblox_local_dir):
-            open_directory(self.roblox_local_dir)
+        effective_path = self._getEffectiveCachePath()
+        if effective_path and os.path.exists(effective_path):
+            open_directory(effective_path)
+            if hasattr(self, 'logHandler'):
+                self.logHandler.info(f"{self.get_text('opened_directory', '已打开目录')}: {effective_path}")
+        else:
+            if hasattr(self, 'logHandler'):
+                self.logHandler.warning(self.get_text("directory_not_found", "目录不存在"))
             
     def _copyPathToClipboard(self):
         """安全地复制路径到剪贴板"""
-        if self._parent_window and hasattr(self._parent_window, 'copyPathToClipboard') and hasattr(self, 'roblox_local_dir'):
-            self._parent_window.copyPathToClipboard(self.roblox_local_dir)
+        effective_path = self._getEffectiveCachePath()
+        if self._parent_window and hasattr(self._parent_window, 'copyPathToClipboard'):
+            self._parent_window.copyPathToClipboard(effective_path)
+            if hasattr(self, 'logHandler'):
+                self.logHandler.info(f"{self.get_text('copied_path', '已复制路径')}: {effective_path}")
+    
+    def onGlobalInputPathChanged(self, new_path: str):
+        """全局输入路径变更处理"""
+        if hasattr(self, 'cache_path_edit'):
+            # 获取新的有效缓存路径
+            effective_path = self._getEffectiveCachePath()
+            
+            # 更新界面显示
+            current_text = self.cache_path_edit.text().strip()
+            if current_text != effective_path:
+                self.cache_path_edit.setText(effective_path)
+                # 记录路径变更
+                if hasattr(self, 'logHandler'):
+                    self.logHandler.info(f"{self.get_text('cache_path_synced', '缓存路径已同步')}: {effective_path}")
+    
+    def onAutoClearCacheChanged(self, checked: bool):
+        """自动清除缓存开关状态变化处理"""
+        if self.config_manager:
+            # 保存开关状态到配置
+            self.config_manager.cfg.set(self.config_manager.cfg.autoClearCacheEnabled, checked)
+            # 记录开关状态变更
+            if hasattr(self, 'logHandler'):
+                status_text = self.get_text('enabled') if checked else self.get_text('disabled')
+                self.logHandler.info(f"{self.get_text('auto_clear_cache_status_changed', '自动清除缓存状态已更改')}: {status_text}")
+    
+    def isAutoClearCacheEnabled(self) -> bool:
+        """获取自动清除缓存开关状态"""
+        if hasattr(self, 'auto_clear_cache_card'):
+            return self.auto_clear_cache_card.isChecked()
+        elif self.config_manager:
+            return self.config_manager.cfg.get(self.config_manager.cfg.autoClearCacheEnabled)
+        return False
             
     def _clearCache(self):
         """安全地调用清除缓存方法"""
@@ -227,20 +348,19 @@ class ClearCacheInterface(QWidget):
         theme = self.config_manager.get("theme", "dark")
 
         if theme == "light":
-            self.setStyleSheet("""
-                #cacheTitle {
-                    color: rgb(0, 0, 0);
-                    font-size: 24px;
-                    font-weight: bold;
-                }
-            """)
+            # 浅色模式样式
+            text_color = "rgb(0, 0, 0)"
         else:
-            self.setStyleSheet("""
-                #cacheTitle {
-                    color: rgb(255, 255, 255);
-                    font-size: 24px;
-                    font-weight: bold;
-                }
+            # 深色模式样式
+            text_color = "rgb(255, 255, 255)"
+        
+        # 设置日志文本编辑器样式
+        if hasattr(self, 'logText'):
+            self.logText.setStyleSheet(f"""
+                TextEdit {{
+                    font-family: Consolas, Courier, monospace;
+                    color: {text_color};
+                }}
             """)
             
     def updateProgressBar(self, value):

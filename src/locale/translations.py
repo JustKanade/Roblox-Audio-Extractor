@@ -166,12 +166,32 @@ def get_translations():
                 CHINESE: "清除缓存"
             },
             'cache_description': {
-                ENGLISH: "Clear Roblox database and storage cache to free up disk space. Extracted files will be preserved.",
-                CHINESE: "清除Roblox数据库和存储缓存，释放磁盘空间。提取的文件将被保留。"
+                ENGLISH: "Clear Roblox database and storage cache to free up disk space.",
+                CHINESE: "清除Roblox数据库和存储缓存"
             },
             'cache_details': {
                 ENGLISH: "This operation will clear:\n1. rbx-storage.db database file\n2. Contents of rbx-storage folder (except the extracted folder)",
                 CHINESE: "此操作将清除以下内容：\n1. rbx-storage.db 数据库文件\n2. rbx-storage 文件夹中的内容（除了extracted文件夹）"
+            },
+            'cache_details_title': {
+                ENGLISH: "This operation will clear the following:",
+                CHINESE: "此操作将清除以下内容："
+            },
+            'cache_db_file': {
+                ENGLISH: "rbx-storage.db database file",
+                CHINESE: "rbx-storage.db 数据库文件"
+            },
+            'cache_folder_content': {
+                ENGLISH: "Contents of rbx-storage folder",
+                CHINESE: "rbx-storage 文件夹中的内容"
+            },
+            'cache_db_file_desc': {
+                ENGLISH: "Roblox client database file containing cache index information",
+                CHINESE: "Roblox客户端的数据库文件，包含缓存索引信息"
+            },
+            'cache_folder_content_desc': {
+                ENGLISH: "Temporary files and resource cache in Roblox cache folder",
+                CHINESE: "Roblox缓存文件夹中的临时文件和资源缓存"
             },
             'confirm_clear_cache': {
                 ENGLISH: "Are you sure you want to clear Roblox database and storage cache?\n\nThis operation cannot be undone.",
@@ -193,9 +213,65 @@ def get_translations():
                 ENGLISH: "Cache Location",
                 CHINESE: "缓存位置"
             },
+            'cache_info': {
+                ENGLISH: "Cache Information",
+                CHINESE: "缓存信息"
+            },
+            'quick_actions': {
+                ENGLISH: "Quick Actions",
+                CHINESE: "快速操作"
+            },
+            'quick_actions_info': {
+                ENGLISH: "Quick access and management of cache directory",
+                CHINESE: "快速访问和管理缓存目录"
+            },
             'path_not_found': {
                 ENGLISH: "Roblox directory not found",
                 CHINESE: "未找到Roblox目录"
+            },
+            'cache_path_placeholder': {
+                ENGLISH: "Roblox cache directory path",
+                CHINESE: "Roblox缓存目录路径"
+            },
+            'opened_directory': {
+                ENGLISH: "Opened directory",
+                CHINESE: "已打开目录"
+            },
+            'copied_path': {
+                ENGLISH: "Copied path",
+                CHINESE: "已复制路径"
+            },
+            'directory_not_found': {
+                ENGLISH: "Directory not found",
+                CHINESE: "目录不存在"
+            },
+            'cache_path_synced': {
+                ENGLISH: "Cache path synchronized",
+                CHINESE: "缓存路径已同步"
+            },
+            'auto_clear_cache': {
+                ENGLISH: "Auto Clear Cache",
+                CHINESE: "自动清除缓存"
+            },
+            'auto_clear_cache_desc': {
+                ENGLISH: "Automatically clear Roblox cache after resource extraction to save disk space",
+                CHINESE: "在资源提取完成后自动清除Roblox缓存"
+            },
+            'auto_clear_cache_status_changed': {
+                ENGLISH: "Auto clear cache status changed",
+                CHINESE: "自动清除缓存状态已更改"
+            },
+            'auto_clear_cache_triggered': {
+                ENGLISH: "Auto clear cache triggered",
+                CHINESE: "触发自动清除缓存"
+            },
+            'auto_clear_cache_completed': {
+                ENGLISH: "Auto clear cache completed",
+                CHINESE: "自动清除缓存完成"
+            },
+            'auto_clear_cache_failed': {
+                ENGLISH: "Auto clear cache failed",
+                CHINESE: "自动清除缓存失败"
             },
             "error_occurred": {
                 ENGLISH: "An error occurred: {}",
