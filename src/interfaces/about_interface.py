@@ -170,7 +170,7 @@ class AboutInterface(QWidget):
             self.get_text("links_and_support", "Links & Support"), 
             content_widget
         )
-        
+
         # GitHub链接卡片
         self.githubCard = GitHubLinkCard(parent=self.linksGroup, lang=self.lang)
         self.linksGroup.addSettingCard(self.githubCard)
@@ -186,7 +186,7 @@ class AboutInterface(QWidget):
             self.get_text("system_info", "System Information"),
             content_widget
         )
-        
+
         # 系统信息卡片
         self.systemInfoCard = SystemInfoCard(parent=self.systemGroup, lang=self.lang)
         self.systemGroup.addSettingCard(self.systemInfoCard)

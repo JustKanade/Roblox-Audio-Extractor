@@ -31,7 +31,7 @@ class GitHubLinkCard(SettingCard):
             self.get_text = lambda key, default="": default
         else:
             self.get_text = lang.get
-            
+        
         super().__init__(
             FluentIcon.GITHUB,
             self.get_text("github_repository", "GitHub Repository"),

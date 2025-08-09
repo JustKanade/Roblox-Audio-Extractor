@@ -920,6 +920,38 @@ def get_translations():
                 ENGLISH: "Help us improve project by providing feedback",
                 CHINESE: "通过提供反馈帮助我们改进项目"
             },
+            "quick_actions": {
+                ENGLISH: "Quick Actions",
+                CHINESE: "快速操作"
+            },
+            "quick_actions_description": {
+                ENGLISH: "Commonly used functions for faster access",
+                CHINESE: "常用功能的快速访问"
+            },
+            "extract_audio_description": {
+                ENGLISH: "Extract audio files from Roblox cache for playback",
+                CHINESE: "从 Roblox 缓存中提取音频文件用于播放"
+            },
+            "clear_cache_description": {
+                ENGLISH: "Clean up temporary files and cached data to free up disk space",
+                CHINESE: "清理临时文件和缓存数据以释放磁盘空间"
+            },
+            "settings_description": {
+                ENGLISH: "Configure application preferences and customize your experience",
+                CHINESE: "配置应用程序首选项并自定义您的体验"
+            },
+            "start_extraction": {
+                ENGLISH: "Start Extraction",
+                CHINESE: "开始提取"
+            },
+            "start_cleaning": {
+                ENGLISH: "Start Cleaning",
+                CHINESE: "开始清理"
+            },
+            "open_settings": {
+                ENGLISH: "Open Settings",
+                CHINESE: "打开设置"
+            },
             "mp3_conversion_info": {
                 ENGLISH: "Starting MP3 conversion...",
                 CHINESE: "开始 MP3 转换..."
