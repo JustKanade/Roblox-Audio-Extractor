@@ -65,6 +65,20 @@ def get_translations():
                 CHINESE: "注意：亚克力效果在 Windows 上效果最佳",
                 ENGLISH: "Note: Acrylic effect works best on Windows"
             },
+            
+            # 云母修效果设置相关
+            "mica_effect": {
+                CHINESE: "云母修效果",
+                ENGLISH: "Mica Effect"
+            },
+            "mica_effect_desc": {
+                CHINESE: "为窗口背景应用半透明云母修材质效果",
+                ENGLISH: "Apply semi-transparent mica material effect to window background"
+            },
+            "mica_effect_windows11_only": {
+                CHINESE: "注意：云母修效果仅在 Windows 11 上可用",
+                ENGLISH: "Note: Mica effect is only available on Windows 11"
+            },
             "enabled": {
                 CHINESE: "已启用",
                 ENGLISH: "Enabled"

@@ -162,7 +162,7 @@ class MainWindow(FluentWindow):
         """初始化窗口设置"""
         # 设置窗口标题和大小
         self.setWindowTitle(lang.get("title"))
-        self.resize(750, 550)
+        self.resize(750, 630)
 
         # 设置最小窗口大小
         self.setMinimumSize(750, 390)

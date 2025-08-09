@@ -28,6 +28,7 @@ from src.utils.log_utils import LogHandler
 
 from src.logging.central_log_handler import CentralLogHandler
 from src.management.language_management.language_manager import apply_language
+from src.config.config_manager import isWin11
 
 
 
@@ -434,6 +435,22 @@ class SettingsInterface(QWidget):
         acrylic_card.checkedChanged.connect(self.onAcrylicToggled)
         group.addSettingCard(acrylic_card)
         self.acrylicCard = acrylic_card
+        
+        # 云母修效果设置 - 仅在 Windows 11 上启用
+        mica_card = SwitchSettingCard(
+            FluentIcon.BACKGROUND_FILL,
+            self.get_text("mica_effect"),
+            self.get_text("mica_effect_desc"),
+            self.config_manager.cfg.micaEnabled if self.config_manager else None
+        )
+        mica_card.setEnabled(isWin11())  # 仅在 Windows 11 上启用
+        mica_card.checkedChanged.connect(self.onMicaToggled)
+        group.addSettingCard(mica_card)
+        self.micaCard = mica_card
+        
+        # 如果不是 Windows 11，显示提示信息
+        if not isWin11():
+            mica_card.setToolTip(self.get_text("mica_effect_windows11_only"))
     
     def createPerformanceSettingsCards(self, group):
         """创建性能设置卡片"""
@@ -759,6 +776,21 @@ class SettingsInterface(QWidget):
             if hasattr(self, 'settingsLogHandler'):
                 status = self.get_text("enabled") if isChecked else self.get_text("disabled")
                 self.settingsLogHandler.info(f"{self.get_text('acrylic_effect')}: {status}")
+
+    def onMicaToggled(self, isChecked):
+        """云母修效果设置改变事件"""
+        if self.config_manager:
+            # 保存到配置
+            self.config_manager.cfg.set(self.config_manager.cfg.micaEnabled, isChecked)
+            
+            # 立即应用到主窗口
+            if self._parent_window and hasattr(self._parent_window, 'setMicaEffectEnabled'):
+                self._parent_window.setMicaEffectEnabled(isChecked)
+            
+            # 记录日志
+            if hasattr(self, 'settingsLogHandler'):
+                status = self.get_text("enabled") if isChecked else self.get_text("disabled")
+                self.settingsLogHandler.info(f"{self.get_text('mica_effect')}: {status}")
 
     def saveThreadsConfig(self, value):
         """保存线程数配置"""
