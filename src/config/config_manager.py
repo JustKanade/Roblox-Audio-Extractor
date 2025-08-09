@@ -52,6 +52,10 @@ class AppConfig(QConfig):
     theme = OptionsConfigItem(
         "General", "Theme", Theme.AUTO, OptionsValidator([Theme.LIGHT, Theme.DARK, Theme.AUTO]), ThemeSerializer())
     
+    # 界面缩放配置
+    dpiScale = OptionsConfigItem(
+        "MainWindow", "DpiScale", "Auto", OptionsValidator([1, 1.25, 1.5, 1.75, 2, "Auto"]), restart=True)
+    
     # 主题色配置 - 使用官方ColorConfigItem
     themeColor = ColorConfigItem("Appearance", "ThemeColor", QColor(DEFAULT_THEME_COLOR))
     
@@ -171,6 +175,10 @@ class ConfigManager:
                 else:
                     self.cfg.set(self.cfg.theme, Theme.AUTO)
             
+            # 界面缩放配置
+            if "dpi_scale" in old_config:
+                self.cfg.set(self.cfg.dpiScale, old_config["dpi_scale"])
+            
             # 主题色配置 - 关键迁移！
             if "theme_color" in old_config and "use_custom_theme_color" in old_config:
                 if old_config.get("use_custom_theme_color", False):
@@ -191,6 +199,7 @@ class ConfigManager:
                 "global_input_path": self.cfg.globalInputPath,
                 "last_input_dir": self.cfg.lastInputDir,
                 "launch_file": self.cfg.launchFile, # 新增迁移
+                "dpi_scale": self.cfg.dpiScale,  # 添加DPI缩放配置迁移
                 "threads": self.cfg.threads,
                 "classification_method": self.cfg.classificationMethod,
                 "save_logs": self.cfg.saveLogs,
@@ -280,6 +289,7 @@ class ConfigManager:
                 "theme": self.cfg.theme,
                 "theme_color": self.cfg.themeColor,
                 "use_custom_theme_color": None,  # 新系统中不需要这个标志
+                "dpi_scale": self.cfg.dpiScale,  # 添加DPI缩放配置映射
                 "last_directory": self.cfg.lastDirectory,
                 "custom_output_dir": self.cfg.customOutputDir,
                 "global_input_path": self.cfg.globalInputPath,
@@ -325,6 +335,8 @@ class ConfigManager:
                         return "light"
                     else:
                         return "auto"
+                elif key == "dpi_scale":
+                    return value
                         
                 return value
             else:
@@ -344,6 +356,7 @@ class ConfigManager:
                 "theme": self.cfg.theme,
                 "theme_color": self.cfg.themeColor,
                 "use_custom_theme_color": None,  # 新系统中不需要这个标志
+                "dpi_scale": self.cfg.dpiScale,  # 添加DPI缩放配置映射
                 "last_directory": self.cfg.lastDirectory,
                 "custom_output_dir": self.cfg.customOutputDir,
                 "global_input_path": self.cfg.globalInputPath,
@@ -391,6 +404,27 @@ class ConfigManager:
                             value = Theme.LIGHT
                         else:
                             value = Theme.AUTO
+                elif key == "dpi_scale":
+                    if isinstance(value, str):
+                        if value == "Auto":
+                            value = "Auto"
+                        else:
+                            try:
+                                float_value = float(value)
+                                if float_value in [1, 1.25, 1.5, 1.75, 2]:
+                                    value = float_value
+                                else:
+                                    logger.error(f"无效的DPI缩放值: {value}")
+                                    return
+                            except ValueError:
+                                logger.error(f"无效的DPI缩放值: {value}")
+                                return
+                    elif isinstance(value, (int, float)):
+                        if value in [1, 1.25, 1.5, 1.75, 2]:
+                            value = float(value)
+                        else:
+                            logger.error(f"无效的DPI缩放值: {value}")
+                            return
                             
                 self.cfg.set(config_item, value)
                 logger.debug(f"设置配置: {key} = {value}")

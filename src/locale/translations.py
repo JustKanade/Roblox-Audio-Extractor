@@ -732,6 +732,26 @@ def get_translations():
                 ENGLISH: "View on GitHub",
                 CHINESE: "在 GitHub 上查看"
             },
+            "github_repository": {
+                ENGLISH: "GitHub Repository",
+                CHINESE: "GitHub 仓库"
+            },
+            "github_description": {
+                ENGLISH: "View source code, report issues, and contribute to the project",
+                CHINESE: "查看源代码、报告问题并为项目贡献"
+            },
+            "visit_fluent_widgets": {
+                ENGLISH: "QFluentWidgets",
+                CHINESE: "QFluentWidgets"
+            },
+            "provide_feedback": {
+                ENGLISH: "Feedback",
+                CHINESE: "提供反馈"
+            },
+            "feedback_description": {
+                ENGLISH: "Help us improve project by providing feedback",
+                CHINESE: "通过提供反馈帮助我们改进项目"
+            },
             "mp3_conversion_info": {
                 ENGLISH: "Starting MP3 conversion...",
                 CHINESE: "开始 MP3 转换..."
@@ -823,6 +843,10 @@ def get_translations():
             "about_section": {
                 ENGLISH: "About",
                 CHINESE: "关于"
+            },
+            "about_application": {
+                ENGLISH: "About Application",
+                CHINESE: "关于应用"
             },
             "view_history_file": {
                 ENGLISH: "View History File",
@@ -1481,16 +1505,6 @@ def get_translations():
                 CHINESE: "启动文件已清除"
             },
             
-            # 主题切换按钮
-            "toggle_theme": {
-                ENGLISH: "Toggle Theme",
-                CHINESE: "切换主题"
-            },
-            "toggle_theme_tooltip": {
-                ENGLISH: "Switch between light and dark theme",
-                CHINESE: "在深色和浅色主题间切换"
-            },
-            
             # 设置界面分组标题
             "interface_settings": {
                 ENGLISH: "Interface Settings",
@@ -1526,6 +1540,37 @@ def get_translations():
                 ENGLISH: "Change the theme color of the application", 
                 CHINESE: "更改应用程序的主题颜色"
             },
+            
+            # 界面缩放相关翻译
+            "interface_zoom": {
+                ENGLISH: "Interface zoom",
+                CHINESE: "界面缩放"
+            },
+            "interface_zoom_description": {
+                ENGLISH: "Change the size of widgets and fonts",
+                CHINESE: "调整小部件和字体的大小"
+            },
+            "use_system_setting": {
+                ENGLISH: "Use system setting",
+                CHINESE: "使用系统设置"
+            },
+            "zoom_changed": {
+                ENGLISH: "Interface zoom changed to: {}",
+                CHINESE: "界面缩放已更改为：{}"
+            },
+            "zoom_restart_required": {
+                ENGLISH: "Restart Required",
+                CHINESE: "需要重启"
+            },
+            "zoom_restart_message": {
+                ENGLISH: "The interface zoom change will take effect after restarting the application.\n\nWould you like to close the application now?",
+                CHINESE: "界面缩放更改将在重启应用程序后生效。\n\n您想要现在关闭应用程序吗？"
+            },
+            "zoom_setting_saved": {
+                ENGLISH: "Interface zoom setting saved. Please restart the application.",
+                CHINESE: "界面缩放设置已保存。请重启应用程序。"
+            },
+            
             "theme_color_settings": {
                 ENGLISH: "Theme Color Settings",
                 CHINESE: "主题颜色设置" 

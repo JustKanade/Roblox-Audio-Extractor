@@ -306,7 +306,7 @@ class ExtractAudioInterface(QWidget):
         self.logTextEdit = TextEdit()
         self.logTextEdit.setReadOnly(True)
         self.logTextEdit.setFixedHeight(220)
-        self.logTextEdit.setStyleSheet("font-family: Consolas, Courier, monospace;")
+        # 样式将在setExtractStyles方法中动态设置
         log_layout.addWidget(self.logTextEdit)
 
         content_layout.addWidget(log_card)
@@ -327,6 +327,32 @@ class ExtractAudioInterface(QWidget):
 
         # 更新分类信息
         self.updateClassificationInfo()
+        
+        # 设置样式
+        self.setExtractStyles()
+        
+    def setExtractStyles(self):
+        """设置音频提取界面样式"""
+        if not self.config_manager:
+            return
+            
+        theme = self.config_manager.get("theme", "dark")
+        
+        if theme == "light":
+            # 浅色模式样式
+            text_color = "rgb(0, 0, 0)"
+        else:
+            # 深色模式样式
+            text_color = "rgb(255, 255, 255)"
+        
+        # 设置日志文本编辑器样式
+        if hasattr(self, 'logTextEdit'):
+            self.logTextEdit.setStyleSheet(f"""
+                TextEdit {{
+                    font-family: Consolas, Courier, monospace;
+                    color: {text_color};
+                }}
+            """)
         
     def setResponsiveContentWidget(self, scroll_area):
         """为滚动区域内的内容容器应用响应式布局设置，防止卡片间距异常"""
@@ -660,11 +686,6 @@ class ExtractAudioInterface(QWidget):
         elif msg_type == "error":
             self.extractLogHandler.error(message) 
 
-    def setExtractStyles(self):
-        """设置音频提取界面样式"""
-        # 使用PyQt-Fluent-Widgets原生组件，不需要自定义样式
-        pass 
-            
     def updateProgressBar(self, value):
         """更新进度条"""
         if hasattr(self, 'progressBar'):

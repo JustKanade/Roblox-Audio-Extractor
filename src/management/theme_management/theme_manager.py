@@ -318,8 +318,12 @@ def update_all_styles(window):
             window.setHomeStyles()
 
         # 提取音频界面样式
-        if hasattr(window, 'setExtractStyles'):
-            window.setExtractStyles()
+        if hasattr(window, 'extractInterface') and hasattr(window.extractInterface, 'setExtractStyles'):
+            window.extractInterface.setExtractStyles()
+            
+        # 关于界面样式
+        if hasattr(window, 'aboutInterface') and hasattr(window.aboutInterface, 'setAboutStyles'):
+            window.aboutInterface.setAboutStyles()
 
         # 清除缓存界面样式
         if hasattr(window, 'setCacheStyles'):
@@ -329,10 +333,6 @@ def update_all_styles(window):
         if hasattr(window, 'setHistoryStyles'):
             window.setHistoryStyles()
 
-        # 关于界面样式
-        if hasattr(window, 'setAboutStyles'):
-            window.setAboutStyles()
-            
         # 记录缓存状态
         logger.debug(f"当前主题:{current_theme}，两种主题样式都已缓存")
 

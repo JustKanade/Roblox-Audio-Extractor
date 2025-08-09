@@ -361,16 +361,6 @@ class MainWindow(FluentWindow):
             selectable=False,
             position=NavigationItemPosition.BOTTOM
         )
-        
-        # 添加主题切换按钮
-        self.navigationInterface.addItem(
-            routeKey="toggle_theme",
-            icon=FluentIcon.CONSTRACT,
-            text=self.lang.get("toggle_theme"),
-            onClick=self.onThemeToggleClicked,
-            selectable=False,
-            position=NavigationItemPosition.BOTTOM
-        )
      
         self.addSubInterface(self.settingsInterface, FluentIcon.SETTING, lang.get("settings"),
                              position=NavigationItemPosition.BOTTOM)
@@ -1170,45 +1160,25 @@ class MainWindow(FluentWindow):
                 parent=self
             )
 
-    def onThemeToggleClicked(self):
-        """主题切换按钮点击处理"""
-        try:
-            # 获取当前主题
-            current_theme = self.config_manager.get("theme", "dark")
-            
-            # 切换到相反主题
-            if current_theme == "dark":
-                new_theme = "light"
-                theme_name = self.lang.get("theme_light") if self.lang else "浅色主题"
-            else:
-                new_theme = "dark"
-                theme_name = self.lang.get("theme_dark") if self.lang else "深色主题"
-            
-            # 导入主题管理器
-            from src.management.theme_management.theme_manager import apply_theme_change
-            
-            # 应用主题变更
-            apply_theme_change(
-                window=self,
-                theme_name=theme_name,
-                config_manager=self.config_manager,
-                central_log_handler=getattr(self, 'central_log_handler', None),
-                lang=self.lang
-            )
-            
-        except Exception as e:
-            # 静默处理异常，记录到日志
-            import logging
-            logger = logging.getLogger(__name__)
-            logger.error(f"切换主题时出错: {e}")
-
 
 def main():
     """主函数 - 程序入口点，使用 GUI 界面"""
     try:
-        # 设置高DPI缩放
-        QApplication.setHighDpiScaleFactorRoundingPolicy(Qt.HighDpiScaleFactorRoundingPolicy.PassThrough)
-        QApplication.setAttribute(Qt.AA_EnableHighDpiScaling)
+        # 创建配置管理器以获取DPI缩放设置
+        from src.config.config_manager import ConfigManager
+        temp_config = ConfigManager()
+        dpi_scale = temp_config.get("dpi_scale", "Auto")
+        
+        # 根据配置应用DPI缩放设置
+        if dpi_scale == "Auto":
+            # 使用系统自动缩放
+            QApplication.setHighDpiScaleFactorRoundingPolicy(Qt.HighDpiScaleFactorRoundingPolicy.PassThrough)
+            QApplication.setAttribute(Qt.AA_EnableHighDpiScaling)
+        else:
+            # 使用固定缩放比例
+            os.environ["QT_ENABLE_HIGHDPI_SCALING"] = "0"
+            os.environ["QT_SCALE_FACTOR"] = str(dpi_scale)
+        
         QApplication.setAttribute(Qt.AA_UseHighDpiPixmaps)
 
         # 确保应用中的目录和资源存在

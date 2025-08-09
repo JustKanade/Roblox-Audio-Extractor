@@ -12,10 +12,15 @@ from qfluentwidgets import (
     CardWidget, TitleLabel, SubtitleLabel,
     StrongBodyLabel, BodyLabel, CaptionLabel, 
     HyperlinkButton, FluentIcon, IconWidget,
-    DisplayLabel, ScrollArea, isDarkTheme, setTheme, Theme
+    DisplayLabel, ScrollArea, isDarkTheme, setTheme, Theme,
+    SettingCardGroup, ExpandLayout
 )
 
 from src.utils.file_utils import resource_path
+from src.components.cards.about_cards import (
+    GitHubLinkCard, SystemInfoCard, TechStackCard, VersionInfoCard, FeedbackCard
+)
+from src.components.cards.Settings.ffmpeg_status_card import FFmpegStatusCard
 import os
 import sys
 
@@ -59,7 +64,7 @@ class BannerWidget(CardWidget):
         self.app_title = DisplayLabel("Roblox Audio Extractor")
         self.app_title.setObjectName("aboutTitle")
         
-        self.version_label = SubtitleLabel(self.get_text("about_version", "Version: 0.16.1"))
+        self.version_label = SubtitleLabel(self.get_text("about_version"))
         self.version_label.setObjectName("aboutVersion")
         
         # 作者和许可证信息
@@ -147,81 +152,66 @@ class AboutInterface(QWidget):
         scroll = ScrollArea(self)
         scroll.setWidgetResizable(True)
         scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        scroll.setObjectName('aboutScrollArea')
 
         # 主内容容器
         content_widget = QWidget()
-        content_layout = QVBoxLayout(content_widget)
-        content_layout.setContentsMargins(20, 20, 20, 20)
-        content_layout.setSpacing(15)
+        content_widget.setObjectName('aboutScrollWidget')
+        self.expandLayout = ExpandLayout(content_widget)
+        self.expandLayout.setContentsMargins(36, 20, 36, 20)
+        self.expandLayout.setSpacing(28)
 
-        # 关于应用横幅
-        about_banner = BannerWidget(parent=self, config_manager=self.config_manager, lang=self.lang)
-        content_layout.addWidget(about_banner)
+        # 关于应用横幅 - 跟随滚动
+        self.about_banner = BannerWidget(parent=content_widget, config_manager=self.config_manager, lang=self.lang)
+        self.expandLayout.addWidget(self.about_banner)
 
-        # 链接和支持卡片
-        links_card = CardWidget()
-        links_card.setMaximumHeight(180)  
-        links_layout = QVBoxLayout(links_card)
-        links_layout.setContentsMargins(20, 15, 20, 15)
-        links_layout.setSpacing(15)
-
-        links_title = StrongBodyLabel(self.get_text("links_and_support", "Links & Support"))
-        links_layout.addWidget(links_title)
-
-        # GitHub链接
-        github_layout = QHBoxLayout()
-        github_btn = HyperlinkButton(
-            "https://github.com/JustKanade/Roblox-Audio-Extractor",
-            self.get_text("github_link", "GitHub Repository")
+        # 链接和支持卡片组
+        self.linksGroup = SettingCardGroup(
+            self.get_text("links_and_support", "Links & Support"), 
+            content_widget
         )
-        github_btn.setIcon(FluentIcon.GITHUB)
-        github_layout.addWidget(github_btn)
-        github_layout.addStretch()
+        
+        # GitHub链接卡片
+        self.githubCard = GitHubLinkCard(parent=self.linksGroup, lang=self.lang)
+        self.linksGroup.addSettingCard(self.githubCard)
+        
+        # 提供反馈卡片
+        self.feedbackCard = FeedbackCard(parent=self.linksGroup, lang=self.lang)
+        self.linksGroup.addSettingCard(self.feedbackCard)
+        
+        self.expandLayout.addWidget(self.linksGroup)
 
-        links_layout.addLayout(github_layout)
-
-        # 技术信息
-        tech_info = f"""
-{self.get_text('tech_stack', 'Tech Stack')}: Python 3.x + PyQt5 + PyQt-Fluent-Widgets
-{self.get_text('purpose', 'Purpose')}: Roblox {self.get_text('extract_audio', 'Audio Extraction')}
-{self.get_text('license', 'License')}: GNU AGPLv3
-        """.strip()
-
-        tech_label = CaptionLabel(tech_info)
-        links_layout.addWidget(tech_label)
-
-        content_layout.addWidget(links_card)
-
+        # 系统信息卡片组  
+        self.systemGroup = SettingCardGroup(
+            self.get_text("system_info", "System Information"),
+            content_widget
+        )
+        
         # 系统信息卡片
-        system_card = CardWidget()
-        system_card.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Maximum)  # 关键：防止高度异常拉伸
-
-        system_layout = QVBoxLayout(system_card)
-        system_layout.setContentsMargins(20, 15, 20, 15)
-        system_layout.setSpacing(10)
-
-        system_title = StrongBodyLabel(self.get_text("system_info", "System Information"))
-        system_layout.addWidget(system_title)
-
-        # 导入必要的模块
-        import multiprocessing
-        from src.extractors.audio_extractor import is_ffmpeg_available
+        self.systemInfoCard = SystemInfoCard(parent=self.systemGroup, lang=self.lang)
+        self.systemGroup.addSettingCard(self.systemInfoCard)
         
-        # 收集系统信息
-        system_info = f"""
-{self.get_text('operating_system', 'OS')}: {os.name} ({sys.platform})
-{self.get_text('python_version', 'Python')}: {sys.version.split()[0]}
-{self.get_text('cpu_cores', 'CPU Cores')}: {multiprocessing.cpu_count()}
-{self.get_text('ffmpeg_status', 'FFmpeg')}: {self.get_text('available', 'Available') if is_ffmpeg_available() else self.get_text('not_available', 'Not Available')}
-        """.strip()
-
-        system_info_label = CaptionLabel(system_info)
-        system_layout.addWidget(system_info_label)
-
-        content_layout.addWidget(system_card)
+        # FFmpeg状态卡片
+        self.ffmpegCard = FFmpegStatusCard(parent=self.systemGroup)
+        self.systemGroup.addSettingCard(self.ffmpegCard)
         
-        # 添加伸缩空间，确保内容顶部对齐
-        content_layout.addStretch()
+        self.expandLayout.addWidget(self.systemGroup)
+
+        # 关于应用卡片组
+        self.aboutGroup = SettingCardGroup(
+            self.get_text("about_application", "About Application"),
+            content_widget
+        )
+        
+        # 技术栈卡片
+        self.techStackCard = TechStackCard(parent=self.aboutGroup, lang=self.lang)
+        self.aboutGroup.addSettingCard(self.techStackCard)
+        
+        # 版本信息卡片
+        self.versionInfoCard = VersionInfoCard(parent=self.aboutGroup, lang=self.lang)
+        self.aboutGroup.addSettingCard(self.versionInfoCard)
+        
+        self.expandLayout.addWidget(self.aboutGroup)
 
         # 设置滚动区域
         scroll.setWidget(content_widget)
@@ -240,6 +230,16 @@ class AboutInterface(QWidget):
 
         if theme == "light":
             self.setStyleSheet("""
+                #aboutInterface {
+                    background-color: transparent;
+                }
+                #aboutScrollArea {
+                    background-color: transparent;
+                    border: none;
+                }
+                #aboutScrollWidget {
+                    background-color: transparent;
+                }
                 #aboutTitle {
                     color: rgb(0, 0, 0);
                     font-size: 32px;
@@ -253,6 +253,16 @@ class AboutInterface(QWidget):
             """)
         else:
             self.setStyleSheet("""
+                #aboutInterface {
+                    background-color: transparent;
+                }
+                #aboutScrollArea {
+                    background-color: transparent;
+                    border: none;
+                }
+                #aboutScrollWidget {
+                    background-color: transparent;
+                }
                 #aboutTitle {
                     color: rgb(255, 255, 255);
                     font-size: 32px;

@@ -113,6 +113,13 @@ class SettingsInterface(QWidget):
             self.get_text("theme_light"),
             self.get_text("theme_system")
         ]
+        
+    def _get_zoom_options(self):
+        """获取界面缩放选项的翻译文本"""
+        return [
+            "100%", "125%", "150%", "175%", "200%",
+            self.get_text("use_system_setting")
+        ]
             
     def createConfigItems(self):
         """创建配置项"""
@@ -143,6 +150,12 @@ class SettingsInterface(QWidget):
             "Theme", "theme", self.get_text("theme_dark"), OptionsValidator(theme_options)
         )
         
+        # 界面缩放配置项
+        zoom_options = self._get_zoom_options()
+        self.zoomConfig = OptionsConfigItem(
+            "DpiScale", "dpi_scale", self.get_text("use_system_setting"), OptionsValidator(zoom_options)
+        )
+        
         # 线程数配置项
         default_threads = min(32, multiprocessing.cpu_count() * 2)
         self.threadsConfig = RangeConfigItem(
@@ -167,7 +180,7 @@ class SettingsInterface(QWidget):
         # 将配置项添加到qconfig
         self.config_items = [
             self.debugModeConfig, self.alwaysOnTopConfig, self.greetingConfig,
-            self.languageConfig, self.themeConfig, self.threadsConfig,
+            self.languageConfig, self.themeConfig, self.zoomConfig, self.threadsConfig,
             self.saveLogsConfig, self.autoOpenConfig, self.avatarConfig
         ]
         
@@ -185,6 +198,10 @@ class SettingsInterface(QWidget):
             current_language_display = self._get_language_display_name(self.config_manager.get("language", "auto"))
             qconfig.set(self.languageConfig, current_language_display)
             
+            # 加载界面缩放配置项
+            current_zoom_display = self._get_zoom_display_name(self.config_manager.get("dpi_scale", "Auto"))
+            qconfig.set(self.zoomConfig, current_zoom_display)
+            
     def _get_language_display_name(self, language_code):
         """将语言代码转换为显示名称"""
         if language_code == "zh":
@@ -193,6 +210,23 @@ class SettingsInterface(QWidget):
             return self.get_text("english")
         else:  # "auto" or any other value
             return self.get_text("follow_system_language")
+            
+    def _get_zoom_display_name(self, zoom_value):
+        """将界面缩放值转换为显示名称"""
+        if zoom_value == "Auto":
+            return self.get_text("use_system_setting")
+        elif zoom_value == 1:
+            return "100%"
+        elif zoom_value == 1.25:
+            return "125%"
+        elif zoom_value == 1.5:
+            return "150%"
+        elif zoom_value == 1.75:
+            return "175%"
+        elif zoom_value == 2:
+            return "200%"
+        else:
+            return self.get_text("use_system_setting")
             
     def _get_current_language_name(self):
         """获取当前语言显示名称"""
@@ -373,6 +407,17 @@ class SettingsInterface(QWidget):
         )
         theme_card.optionChanged.connect(self.onThemeChanged)
         group.addSettingCard(theme_card)
+        
+        # 界面缩放设置
+        zoom_card = OptionsSettingCard(
+            self.zoomConfig,
+            FluentIcon.ZOOM,
+            self.get_text("interface_zoom"),
+            self.get_text("interface_zoom_description"),
+            self._get_zoom_options()
+        )
+        zoom_card.optionChanged.connect(self.onZoomChanged)
+        group.addSettingCard(zoom_card)
         
         # 自定义主题颜色卡片
         if CustomThemeColorCard is not None:
@@ -610,6 +655,58 @@ class SettingsInterface(QWidget):
         # 调用父窗口的onThemeChanged方法
         if self._parent_window and hasattr(self._parent_window, 'onThemeChanged'):
             self._parent_window.onThemeChanged(theme_value)
+    
+    def onZoomChanged(self, config_item):
+        """界面缩放改变事件"""
+        selected_zoom = qconfig.get(config_item)
+        
+        # 将显示名称转换为配置值
+        zoom_value = self._get_zoom_value_from_display(selected_zoom)
+        
+        if self.config_manager:
+            # 保存配置
+            self.config_manager.set("dpi_scale", zoom_value)
+            
+            # 记录日志
+            if hasattr(self, 'settingsLogHandler'):
+                self.settingsLogHandler.info(self.get_text("zoom_changed", selected_zoom))
+            
+            # 显示重启提示对话框
+            self._show_zoom_restart_dialog()
+    
+    def _get_zoom_value_from_display(self, display_name):
+        """将显示名称转换为配置值"""
+        if display_name == "100%":
+            return 1
+        elif display_name == "125%":
+            return 1.25
+        elif display_name == "150%":
+            return 1.5
+        elif display_name == "175%":
+            return 1.75
+        elif display_name == "200%":
+            return 2
+        else:  # "使用系统设置" or "Use system setting"
+            return "Auto"
+    
+    def _show_zoom_restart_dialog(self):
+        """显示界面缩放重启对话框"""
+        from qfluentwidgets import MessageBox
+        
+        title = self.get_text("zoom_restart_required")
+        content = self.get_text("zoom_restart_message")
+        
+        dialog = MessageBox(title, content, self)
+        dialog.yesButton.setText(self.get_text("yes"))
+        dialog.cancelButton.setText(self.get_text("no"))
+        
+        if dialog.exec():
+            # 用户选择关闭应用程序
+            if self._parent_window:
+                self._parent_window.close()
+            else:
+                import sys
+                sys.exit(0)
     
     def onAvatarSettingChanged(self, isChecked):
         """头像设置改变事件"""
