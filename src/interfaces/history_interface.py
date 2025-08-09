@@ -12,13 +12,23 @@ from qfluentwidgets import (
     ScrollArea, PushButton, TransparentPushButton, 
     FluentIcon, CaptionLabel, ProgressBar, PrimaryPushButton,
     TextEdit, IconWidget, SubtitleLabel, RoundMenu, Action,
-    DropDownPushButton, PrimaryDropDownPushButton, ComboBox
+    DropDownPushButton, PrimaryDropDownPushButton, ComboBox,
+    SettingCardGroup, SettingCard, SwitchSettingCard, LineEdit, PushSettingCard
 )
 
 import os
 from src.utils.file_utils import open_directory
 from src.utils.log_utils import LogHandler
 from src.extractors.audio_extractor import ExtractedHistory
+
+# 尝试导入LogControlCard
+try:
+    from src.components.cards.Settings.log_control_card import LogControlCard
+except ImportError:
+    LogControlCard = None
+
+# 导入中央日志处理器
+from src.logging.central_log_handler import CentralLogHandler
 
 
 class HistoryInterface(QWidget):
@@ -58,65 +68,78 @@ class HistoryInterface(QWidget):
         content_layout.setContentsMargins(20, 20, 20, 20)
         content_layout.setSpacing(15)
 
-        # 历史统计卡片
-        stats_card = CardWidget()
-        stats_card.setMaximumHeight(220)  # 限制最大高度，防止异常放大
-        stats_layout = QVBoxLayout(stats_card)
-        stats_layout.setContentsMargins(25, 20, 25, 20)
-        stats_layout.setSpacing(15)
-
-        # 标题和筛选器行
-        title_filter_layout = QHBoxLayout()
-        title_filter_layout.setSpacing(10)
+        # 创建历史信息设置卡片组
+        history_info_group = SettingCardGroup(self.get_text("history_info", "历史信息"))
         
-        # 标题
-        stats_title = TitleLabel(self.get_text("history_stats") or "历史统计")
-        stats_title.setObjectName("historyTitle")
-        title_filter_layout.addWidget(stats_title)
+        # 历史统计信息卡片
+        self.history_stats_card = PushSettingCard(
+            self.get_text("refresh_statistics", "刷新统计"),
+            FluentIcon.PIE_SINGLE,
+            self.get_text("history_statistics", "历史统计"),
+            self.get_text("history_statistics_desc", "显示提取历史记录的统计信息")
+        )
         
-        title_filter_layout.addStretch(1)
-        
-
-
-        
-        stats_layout.addLayout(title_filter_layout)
-
-        # 统计信息
+        # 获取历史记录数量并更新卡片内容
         history_size = self.download_history.get_history_size() if self.download_history else 0
-
-        # 文件数量显示
-        count_row = QHBoxLayout()
-        count_icon = IconWidget(FluentIcon.DOCUMENT)
-        count_icon.setFixedSize(24, 24)
-        self.historyCountLabel = SubtitleLabel(self.get_text("files_recorded", history_size) or f"已记录文件数: {history_size}")
-        self.historyCountLabel.setObjectName("historyCount")
-
-        count_row.addWidget(count_icon)
-        count_row.addWidget(self.historyCountLabel)
-        count_row.addStretch()
-
-        stats_layout.addLayout(count_row)
-
-        # 历史文件位置标签（固定显示）
-        self.historyLocationLabel = CaptionLabel("")
-        self.historyLocationLabel.setWordWrap(True)
-        self.historyLocationLabel.setStyleSheet(
-            "QLabel { background-color: rgba(255, 255, 255, 0.05); padding: 8px; border-radius: 4px; }")
-        stats_layout.addWidget(self.historyLocationLabel)
-
-        # 根据是否有历史记录来更新位置标签
+        self._updateHistoryStatsCard(history_size)
+        
+        # 连接点击信号到刷新方法
+        self.history_stats_card.clicked.connect(self._refreshHistoryStats)
+        
+        history_info_group.addSettingCard(self.history_stats_card)
+        
+        # 历史文件位置卡片
+        self.history_location_card = SettingCard(
+            FluentIcon.FOLDER,
+            self.get_text("history_file_location_title", "历史文件位置"),
+            self.get_text("history_file_location_desc", "历史记录文件的存储位置")
+        )
+        
+        # 创建位置显示控件容器
+        location_widget = QWidget()
+        location_layout = QVBoxLayout(location_widget)
+        location_layout.setContentsMargins(0, 0, 20, 0)
+        location_layout.setSpacing(8)
+        
+        # 历史文件位置显示（延长路径显示）
+        self.historyLocationEdit = LineEdit()
+        self.historyLocationEdit.setReadOnly(True)
+        self.historyLocationEdit.setClearButtonEnabled(False)
+        self.historyLocationEdit.setPlaceholderText(self.get_text("history_file_path_placeholder", "历史文件路径"))
+        # 设置更长的最小宽度以便完整显示较长路径
+        self.historyLocationEdit.setMinimumWidth(400)
+        self.historyLocationEdit.setMaximumWidth(1200)
+        # 可选：设置字体为等宽字体，便于显示路径
+        font = self.historyLocationEdit.font()
+        font.setFamily("Consolas, Courier, monospace")
+        self.historyLocationEdit.setFont(font)
+        
+        # 根据是否有历史记录来更新位置显示
         if history_size > 0 and self.download_history:
             history_file = self.download_history.history_file
-            self.historyLocationLabel.setText(self.get_text("history_file_location", history_file) or f"历史文件位置: {history_file}")
-            self.historyLocationLabel.show()
+            self.historyLocationEdit.setText(history_file)
         else:
-            self.historyLocationLabel.hide()
-
-        # 操作按钮行
-        button_layout = QHBoxLayout()
-        button_layout.setSpacing(15)
-        button_layout.setContentsMargins(0, 10, 0, 0)
-
+            self.historyLocationEdit.setText(self.get_text("no_history_file", "暂无历史文件"))
+        
+        location_layout.addWidget(self.historyLocationEdit)
+        
+        # 将位置控件添加到卡片
+        self.history_location_card.hBoxLayout.addWidget(location_widget)
+        history_info_group.addSettingCard(self.history_location_card)
+        
+        # 快速操作卡片
+        self.quick_actions_card = SettingCard(
+            FluentIcon.COMMAND_PROMPT,
+            self.get_text("quick_actions", "快速操作"),
+            self.get_text("history_quick_actions_desc", "清除历史记录和查看历史文件")
+        )
+        
+        # 创建快速操作控件容器
+        actions_widget = QWidget()
+        actions_layout = QHBoxLayout(actions_widget)
+        actions_layout.setContentsMargins(0, 0, 20, 0)
+        actions_layout.setSpacing(10)
+        
         # 创建历史记录菜单
         self.historyMenu = RoundMenu(parent=self)
         
@@ -141,17 +164,15 @@ class HistoryInterface(QWidget):
                         return lambda: self._clearHistoryByType(rt)
                     self.historyMenu.addAction(Action(FluentIcon.DELETE, display_name, triggered=create_callback()))
 
-        # 清除历史按钮（始终显示）
+        # 清除历史按钮
         self.clearHistoryButton = PrimaryDropDownPushButton(FluentIcon.DELETE, self.get_text("clear_history") or "清除历史")
-        self.clearHistoryButton.setFixedHeight(40)
+        self.clearHistoryButton.setFixedSize(160, 32)
         self.clearHistoryButton.setMenu(self.historyMenu)
-        button_layout.addWidget(self.clearHistoryButton)
 
-        # 查看历史文件按钮（根据条件显示）
+        # 查看历史文件按钮
         self.viewHistoryButton = PushButton(FluentIcon.VIEW, self.get_text("view_history_file") or "查看历史文件")
-        self.viewHistoryButton.setFixedHeight(40)
+        self.viewHistoryButton.setFixedSize(160, 32)
         self.viewHistoryButton.clicked.connect(self._viewHistoryFile)
-        button_layout.addWidget(self.viewHistoryButton)
 
         # 根据是否有历史记录来显示/隐藏查看按钮
         if history_size > 0:
@@ -159,36 +180,49 @@ class HistoryInterface(QWidget):
         else:
             self.viewHistoryButton.hide()
 
-        button_layout.addStretch()
-        stats_layout.addLayout(button_layout)
+        actions_layout.addStretch()
+        actions_layout.addWidget(self.clearHistoryButton)
+        actions_layout.addWidget(self.viewHistoryButton)
+        
+        # 将快速操作控件添加到卡片
+        self.quick_actions_card.hBoxLayout.addWidget(actions_widget)
+        history_info_group.addSettingCard(self.quick_actions_card)
+        
+        # 日志管理卡片
+        if LogControlCard:
+            self.log_management_card = LogControlCard(
+                parent=self,
+                lang=self.lang,
+                central_log_handler=CentralLogHandler.getInstance()
+            )
+            history_info_group.addSettingCard(self.log_management_card)
+        
+        content_layout.addWidget(history_info_group)
 
-        content_layout.addWidget(stats_card)
+        # 操作控制卡片（保留用于显示概览信息）
+        control_card = CardWidget()
+        control_card.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Maximum)
+        control_layout = QVBoxLayout(control_card)
+        control_layout.setContentsMargins(25, 20, 25, 20)
+        control_layout.setSpacing(15)
 
-        # 历史记录概览卡片（固定结构）
-        self.historyOverviewCard = CardWidget()
-        self.historyOverviewCard.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)  # 关键：自适应宽度
-        self.historyOverviewCard.setMaximumHeight(120)
-        overview_layout = QVBoxLayout(self.historyOverviewCard)
-        overview_layout.setContentsMargins(20, 15, 20, 15)
-
+        # 历史记录概览信息
         overview_title = StrongBodyLabel(self.get_text("history_overview") or "历史概览")
-        overview_layout.addWidget(overview_title)
+        control_layout.addWidget(overview_title)
 
-        self.historyStatsLabel = CaptionLabel("")
-        overview_layout.addWidget(self.historyStatsLabel)
+        self.historyOverviewLabel = CaptionLabel("")
+        self.historyOverviewLabel.setWordWrap(True)
+        control_layout.addWidget(self.historyOverviewLabel)
 
-        # 添加弹性空间
-        overview_layout.addStretch()
-
-        content_layout.addWidget(self.historyOverviewCard)
+        content_layout.addWidget(control_card)
+        self.historyOverviewCard = control_card  # 保持兼容性
 
         # 更新历史概览信息
         self.updateHistoryOverview(history_size)
 
         # 日志区域
         log_card = CardWidget()
-        log_card.setFixedHeight(300)
-
+        log_card.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Maximum)
         log_layout = QVBoxLayout(log_card)
         log_layout.setContentsMargins(20, 10, 20, 15)
         log_layout.setSpacing(10)
@@ -202,6 +236,9 @@ class HistoryInterface(QWidget):
         log_layout.addWidget(self.logText)
 
         content_layout.addWidget(log_card)
+        
+        # 确保布局末尾有伸缩项，防止界面被拉伸
+        content_layout.addStretch(1)
 
         # 设置滚动区域
         scroll.setWidget(content_widget)
@@ -213,6 +250,64 @@ class HistoryInterface(QWidget):
 
         # 创建日志处理器
         self.logHandler = LogHandler(self.logText)
+
+    def _updateHistoryStatsCard(self, history_size):
+        """更新历史统计卡片的内容"""
+        if history_size > 0:
+            # 获取不同类型的历史记录数量
+            record_counts = {}
+            if self.download_history and hasattr(self.download_history, 'get_record_types'):
+                record_types = self.download_history.get_record_types()
+                for record_type in record_types:
+                    count = self.download_history.get_history_size(record_type)
+                    if count > 0:
+                        record_counts[record_type] = count
+            
+            # 构建详细描述
+            desc_parts = [f"{self.get_text('total_records', '总记录数')}: {history_size}"]
+            
+            if len(record_counts) > 1:
+                for record_type, count in record_counts.items():
+                    type_name = self.get_text(f'{record_type}_records', record_type.capitalize())
+                    desc_parts.append(f"{type_name}: {count}")
+            
+            # 计算文件大小
+            try:
+                file_size = os.path.getsize(self.download_history.history_file) / 1024 if self.download_history else 0
+                desc_parts.append(f"{self.get_text('file_size', '文件大小')}: {file_size:.1f} KB")
+            except:
+                pass
+            
+            content_desc = " | ".join(desc_parts)
+        else:
+            content_desc = self.get_text("no_history_records", "暂无历史记录")
+        
+        # 更新卡片内容描述
+        self.history_stats_card.setContent(content_desc)
+    
+    def _refreshHistoryStats(self):
+        """刷新历史统计信息"""
+        try:
+            # 重新加载历史数据
+            if self.download_history:
+                self.download_history.load_history()
+            
+            # 获取最新的历史记录数量
+            history_size = self.download_history.get_history_size() if self.download_history else 0
+            
+            # 更新统计卡片
+            self._updateHistoryStatsCard(history_size)
+            
+            # 刷新整个界面
+            self.refreshHistoryInterface()
+            
+            # 记录刷新操作
+            if hasattr(self, 'logHandler'):
+                self.logHandler.info(self.get_text("statistics_refreshed", "统计信息已刷新"))
+        
+        except Exception as e:
+            if hasattr(self, 'logHandler'):
+                self.logHandler.error(f"{self.get_text('refresh_failed', '刷新失败')}: {str(e)}")
 
     # 添加筛选类型变更事件处理
     def _onFilterTypeChanged(self, index):
@@ -413,9 +508,9 @@ class HistoryInterface(QWidget):
                 file_size = 0
 
             # 构建统计信息
-            total_files_text = self.get_text('total_files', history_size) or f"总文件数: {history_size}"
-            avg_files_text = self.get_text('avg_files_per_extraction', avg_files) or f"每次提取平均文件数: {avg_files}"
-            file_size_text = self.get_text('history_file_size', f"{file_size:.1f}") or f"历史文件大小: {file_size:.1f} KB"
+            total_files_text = self.get_text('total_files', history_size) or f"{self.get_text('total_records', '总记录数')}: {history_size}"
+            avg_files_text = self.get_text('avg_files_per_extraction', avg_files) or f"{self.get_text('avg_files_per_extraction_label', '每次提取平均文件数')}: {avg_files}"
+            file_size_text = self.get_text('history_file_size', f"{file_size:.1f}") or f"{self.get_text('file_size', '文件大小')}: {file_size:.1f} KB"
             
             stats_info = f"""
 • {total_files_text}
@@ -428,13 +523,14 @@ class HistoryInterface(QWidget):
                 type_stats = []
                 for record_type, count in record_counts.items():
                     if count > 0:
-                        type_text = self.get_text(f'{record_type}_files', count) or f"{record_type.capitalize()}文件: {count}"
+                        type_name = self.get_text(f'{record_type}_records', record_type.capitalize())
+                        type_text = f"{type_name}{self.get_text('files_suffix', '文件')}: {count}"
                         type_stats.append(f"• {type_text}")
                 
                 if type_stats:
                     stats_info += "\n" + "\n".join(type_stats)
             
-            self.historyStatsLabel.setText(stats_info.strip())
+            self.historyOverviewLabel.setText(stats_info.strip())
             self.historyOverviewCard.show()
         else:
             self.historyOverviewCard.hide()
@@ -445,6 +541,25 @@ class HistoryInterface(QWidget):
             # 获取最新的历史记录数量
             history_size = self.download_history.get_history_size() if self.download_history else 0
             
+            # 更新统计卡片
+            if hasattr(self, '_updateHistoryStatsCard'):
+                self._updateHistoryStatsCard(history_size)
+
+            # 更新位置显示
+            if hasattr(self, 'historyLocationEdit'):
+                if history_size > 0 and self.download_history:
+                    history_file = self.download_history.history_file
+                    self.historyLocationEdit.setText(history_file)
+                else:
+                    self.historyLocationEdit.setText(self.get_text("no_history_file", "暂无历史文件"))
+
+            # 更新查看按钮的显示/隐藏
+            if hasattr(self, 'viewHistoryButton'):
+                if history_size > 0:
+                    self.viewHistoryButton.show()
+                else:
+                    self.viewHistoryButton.hide()
+
             # 获取不同类型的历史记录数量
             record_counts = {}
             if self.download_history and hasattr(self.download_history, 'get_record_types'):
@@ -454,39 +569,11 @@ class HistoryInterface(QWidget):
                     if count > 0:
                         record_counts[record_type] = count
 
-            # 更新计数显示
-            if hasattr(self, 'historyCountLabel'):
-                count_text = self.get_text("files_recorded", history_size) or f"已记录文件数: {history_size}"
-                # 如果有多种类型的记录，添加详细信息
-                if len(record_counts) > 1:
-                    details = []
-                    for record_type, count in record_counts.items():
-                        details.append(f"{record_type.capitalize()}: {count}")
-                    count_text += f" ({', '.join(details)})"
-                
-                self.historyCountLabel.setText(count_text)
-
-            # 更新位置标签
-            if hasattr(self, 'historyLocationLabel'):
-                if history_size > 0 and self.download_history:
-                    history_file = self.download_history.history_file
-                    self.historyLocationLabel.setText(self.get_text("history_file_location", history_file) or f"历史文件位置: {history_file}")
-                    self.historyLocationLabel.show()
-                else:
-                    self.historyLocationLabel.hide()
-
-            # 更新查看按钮的显示/隐藏
-            if hasattr(self, 'viewHistoryButton'):
-                if history_size > 0:
-                    self.viewHistoryButton.show()
-                else:
-                    self.viewHistoryButton.hide()
-
             # 更新概览信息
             if hasattr(self, 'updateHistoryOverview'):
                 self.updateHistoryOverview(history_size, record_counts)
                 
-            # 更新筛选下拉菜单
+            # 更新筛选下拉菜单（如果存在）
             if hasattr(self, 'recordTypeComboBox'):
                 # 保存当前选择
                 current_data = self.recordTypeComboBox.currentData()
@@ -523,30 +610,19 @@ class HistoryInterface(QWidget):
         theme = self.config_manager.get("theme", "dark")
 
         if theme == "light":
-            self.setStyleSheet("""
-                #historyTitle {
-                    color: rgb(0, 0, 0);
-                    font-size: 24px;
-                    font-weight: bold;
-                }
-                #historyCount {
-                    color: rgb(0, 120, 215);
-                    font-size: 20px;
-                    font-weight: 600;
-                }
-            """)
+            # 浅色模式样式
+            text_color = "rgb(0, 0, 0)"
         else:
-            self.setStyleSheet("""
-                #historyTitle {
-                    color: rgb(255, 255, 255);
-                    font-size: 24px;
-                    font-weight: bold;
-                }
-                #historyCount {
-                    color: rgb(0, 212, 255);
-                    font-size: 20px;
-                    font-weight: 600;
-                }
+            # 深色模式样式
+            text_color = "rgb(255, 255, 255)"
+        
+        # 设置日志文本编辑器样式
+        if hasattr(self, 'logText'):
+            self.logText.setStyleSheet(f"""
+                TextEdit {{
+                    font-family: Consolas, Courier, monospace;
+                    color: {text_color};
+                }}
             """)
             
     def refreshHistoryInterfaceAfterClear(self):

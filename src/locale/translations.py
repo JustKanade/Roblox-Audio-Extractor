@@ -166,7 +166,7 @@ def get_translations():
                 CHINESE: "清除缓存"
             },
             'cache_description': {
-                ENGLISH: "Clear Roblox database and storage cache to free up disk space.",
+                ENGLISH: "Clear Roblox database and storage cache.",
                 CHINESE: "清除Roblox数据库和存储缓存"
             },
             'cache_details': {
@@ -272,6 +272,98 @@ def get_translations():
             'auto_clear_cache_failed': {
                 ENGLISH: "Auto clear cache failed",
                 CHINESE: "自动清除缓存失败"
+            },
+            'history_info': {
+                ENGLISH: "History Information",
+                CHINESE: "历史信息"
+            },
+            'history_statistics': {
+                ENGLISH: "History Statistics",
+                CHINESE: "历史统计"
+            },
+            'history_statistics_desc': {
+                ENGLISH: "Display statistics information of extraction history records",
+                CHINESE: "显示提取历史记录的统计信息"
+            },
+            'history_file_location_title': {
+                ENGLISH: "History File Location",
+                CHINESE: "历史文件位置"
+            },
+            'history_file_location_desc': {
+                ENGLISH: "Storage location of history record file",
+                CHINESE: "历史记录文件的存储位置"
+            },
+            'history_file_path_placeholder': {
+                ENGLISH: "History file path",
+                CHINESE: "历史文件路径"
+            },
+            'history_quick_actions_desc': {
+                ENGLISH: "Clear history records and view history file",
+                CHINESE: "清除历史记录和查看历史文件"
+            },
+            'no_history_file': {
+                ENGLISH: "No history file available",
+                CHINESE: "暂无历史文件"
+            },
+            'refresh_statistics': {
+                ENGLISH: "Refresh Statistics",
+                CHINESE: "刷新统计"
+            },
+            'no_history_records': {
+                ENGLISH: "No history records available",
+                CHINESE: "暂无历史记录"
+            },
+            'statistics_refreshed': {
+                ENGLISH: "Statistics refreshed",
+                CHINESE: "统计信息已刷新"
+            },
+            'refresh_failed': {
+                ENGLISH: "Refresh failed",
+                CHINESE: "刷新失败"
+            },
+            'total_records': {
+                ENGLISH: "Total Records",
+                CHINESE: "总记录数"
+            },
+            'file_size': {
+                ENGLISH: "File Size",
+                CHINESE: "文件大小"
+            },
+            'audio_records': {
+                ENGLISH: "Audio",
+                CHINESE: "音频"
+            },
+            'image_records': {
+                ENGLISH: "Image", 
+                CHINESE: "图像"
+            },
+            'texture_records': {
+                ENGLISH: "Texture",
+                CHINESE: "纹理"
+            },
+            'false_records': {
+                ENGLISH: "Other",
+                CHINESE: "其他"
+            },
+            'total_files': {
+                ENGLISH: "Total Files: {}",
+                CHINESE: "总文件数: {}"
+            },
+            'avg_files_per_extraction': {
+                ENGLISH: "Average Files per Extraction: {}",
+                CHINESE: "每次提取平均文件数: {}"
+            },
+            'history_file_size': {
+                ENGLISH: "History File Size: {} KB",
+                CHINESE: "历史文件大小: {} KB"
+            },
+            'avg_files_per_extraction_label': {
+                ENGLISH: "Average Files per Extraction",
+                CHINESE: "每次提取平均文件数"
+            },
+            'files_suffix': {
+                ENGLISH: " Files",
+                CHINESE: "文件"
             },
             "error_occurred": {
                 ENGLISH: "An error occurred: {}",

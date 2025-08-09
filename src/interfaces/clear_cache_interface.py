@@ -136,7 +136,7 @@ class ClearCacheInterface(QWidget):
         actions_layout.setSpacing(10)
         
         open_cache_btn = PushButton(FluentIcon.FOLDER, self.get_text("open_directory", "打开目录"))
-        open_cache_btn.setFixedSize(120, 32)
+        open_cache_btn.setFixedSize(150, 32)
         # 使用安全的方法连接事件
         open_cache_btn.clicked.connect(lambda: self._openDirectory())
 
