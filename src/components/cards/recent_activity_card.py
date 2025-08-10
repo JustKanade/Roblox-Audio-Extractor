@@ -19,7 +19,8 @@ class ResizeHandle(QFrame):
     
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.setFixedHeight(8)
+        # 增大手柄整体高度
+        self.setFixedHeight(24)
         self.setCursor(QCursor(Qt.SizeVerCursor))
         self.setStyleSheet("""
             QFrame {
@@ -32,7 +33,8 @@ class ResizeHandle(QFrame):
         
         # 创建拖拽指示器布局
         layout = QHBoxLayout(self)
-        layout.setContentsMargins(0, 2, 0, 2)
+        # 增大上下边距以增大图标区域
+        layout.setContentsMargins(0, 6, 0, 6)
         layout.setSpacing(0)
         
         # 添加伸缩项使指示器居中
@@ -41,8 +43,9 @@ class ResizeHandle(QFrame):
         # 创建调整大小图标 - 使用可用的图标
         try:
             # 尝试使用展开收起图标
-            self.resize_icon = IconWidget(FluentIcon.SCROLL, self)
-            self.resize_icon.setFixedSize(16, 4)
+            self.resize_icon = IconWidget(FluentIcon.MORE, self)
+            # 增大图标高度
+            self.resize_icon.setFixedSize(20, 20)
             layout.addWidget(self.resize_icon)
         except:
             # 如果没有合适的图标，就不显示图标，只显示拖拽区域
