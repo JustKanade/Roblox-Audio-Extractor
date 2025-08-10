@@ -158,7 +158,7 @@ class AboutInterface(QWidget):
         content_widget = QWidget()
         content_widget.setObjectName('aboutScrollWidget')
         self.expandLayout = ExpandLayout(content_widget)
-        self.expandLayout.setContentsMargins(36, 20, 36, 20)
+        self.expandLayout.setContentsMargins(20, 20, 20, 20)
         self.expandLayout.setSpacing(28)
 
         # 关于应用横幅 - 跟随滚动
@@ -220,6 +220,37 @@ class AboutInterface(QWidget):
         main_layout = QVBoxLayout(self)
         main_layout.setContentsMargins(0, 0, 0, 0)
         main_layout.addWidget(scroll)
+        
+        # 设置为响应式
+        self.setResponsiveContentWidget(scroll)
+    
+    def setResponsiveContentWidget(self, scroll_area):
+        """为滚动区域内的内容容器应用响应式布局设置，防止卡片间距异常"""
+        if not scroll_area:
+            return
+            
+        content_widget = scroll_area.widget()
+        if not content_widget:
+            return
+            
+        # 设置垂直大小策略为最小值，防止垂直方向上不必要的扩展
+        content_widget.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.MinimumExpanding)
+        
+        # 确保布局设置了顶部对齐
+        if content_widget.layout():
+            content_widget.layout().setAlignment(Qt.AlignTop)
+            
+            # 确保布局末尾有伸缩项
+            if isinstance(content_widget.layout(), QVBoxLayout):
+                has_stretch = False
+                for i in range(content_widget.layout().count()):
+                    item = content_widget.layout().itemAt(i)
+                    if item and item.spacerItem():
+                        has_stretch = True
+                        break
+                        
+                if not has_stretch:
+                    content_widget.layout().addStretch()
             
     def setAboutStyles(self):
         """设置关于页面样式"""
