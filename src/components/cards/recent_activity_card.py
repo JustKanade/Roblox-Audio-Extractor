@@ -57,23 +57,7 @@ class ResizeHandle(QFrame):
         self.start_pos = QPoint()
         self.start_height = 0
     
-    def paintEvent(self, event):
-        """绘制拖拽指示线"""
-        super().paintEvent(event)
-        painter = QPainter(self)
-        painter.setRenderHint(QPainter.Antialiasing)
-        
-        # 绘制两条平行的指示线
-        pen = QPen(QColor(120, 120, 120, 100), 1)
-        painter.setPen(pen)
-        
-        center_y = self.height() // 2
-        margin = 20
-        
-        # 上线
-        painter.drawLine(margin, center_y - 1, self.width() - margin, center_y - 1)
-        # 下线
-        painter.drawLine(margin, center_y + 1, self.width() - margin, center_y + 1)
+
     
     def mousePressEvent(self, event):
         if event.button() == Qt.LeftButton:
