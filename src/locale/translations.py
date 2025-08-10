@@ -1096,6 +1096,35 @@ def get_translations():
                 ENGLISH: "About Application",
                 CHINESE: "关于应用"
             },
+            # 贡献者相关翻译
+            "contributors_section": {
+                ENGLISH: "Thank You All:",
+                CHINESE: "贡献者"
+            },
+            "contributors_table": {
+                ENGLISH: "Project Contributors",
+                CHINESE: "项目贡献者"
+            },
+            "contributors_description": {
+                ENGLISH: "People who have contributed to this project",
+                CHINESE: "为此项目做出贡献的人员"
+            },
+            "contributor_name": {
+                ENGLISH: "Name",
+                CHINESE: "昵称"
+            },
+            "contributor_type": {
+                ENGLISH: "Contribution Type",
+                CHINESE: "贡献类型"
+            },
+            "contributor_links": {
+                ENGLISH: "Links",
+                CHINESE: "链接"
+            },
+            "contributor_notes": {
+                ENGLISH: "Notes",
+                CHINESE: "备注"
+            },
             "view_history_file": {
                 ENGLISH: "View History File",
                 CHINESE: "查看历史文件"

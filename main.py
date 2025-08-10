@@ -269,9 +269,9 @@ class MainWindow(FluentWindow):
 
         
         self.aboutInterface = AboutInterface(
-            parent=self,
-            config_manager=self.config_manager,
-            lang=lang
+                parent=self,
+                config_manager=self.config_manager,
+                lang=lang
         )
 
         

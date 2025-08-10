@@ -21,6 +21,7 @@ from src.components.cards.about_cards import (
     GitHubLinkCard, SystemInfoCard, TechStackCard, VersionInfoCard, FeedbackCard
 )
 from src.components.cards.Settings.ffmpeg_status_card import FFmpegStatusCard
+from src.components.cards.contributors_table_card import ContributorsTableCard
 import os
 import sys
 
@@ -164,6 +165,18 @@ class AboutInterface(QWidget):
         # 关于应用横幅 - 跟随滚动
         self.about_banner = BannerWidget(parent=content_widget, config_manager=self.config_manager, lang=self.lang)
         self.expandLayout.addWidget(self.about_banner)
+
+        # 贡献者卡片组
+        self.contributorsGroup = SettingCardGroup(
+            self.get_text("contributors_section", "Contributors"),
+            content_widget
+        )
+        
+        # 贡献者表格卡片
+        self.contributorsTableCard = ContributorsTableCard(parent=self.contributorsGroup, lang=self.lang)
+        self.contributorsGroup.addSettingCard(self.contributorsTableCard)
+        
+        self.expandLayout.addWidget(self.contributorsGroup)
 
         # 链接和支持卡片组
         self.linksGroup = SettingCardGroup(
