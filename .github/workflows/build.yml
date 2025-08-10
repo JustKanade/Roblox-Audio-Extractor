@@ -150,6 +150,7 @@ jobs:
             --icon=res/icons/logo.ico `
             --add-data="res/*;res/" `
             --add-data="src/*;src/" `
+            --add-data="data/*;data/" `
             --name $name `
             main.py
       - uses: actions/upload-artifact@v4
@@ -190,6 +191,7 @@ jobs:
           pyinstaller --onefile \
             --add-data="res/*:res/" \
             --add-data="src/*:src/" \
+            --add-data="data/*:data/" \
             --name $name \
             main.py
       - uses: actions/upload-artifact@v4
@@ -228,6 +230,7 @@ jobs:
           pyinstaller --onefile \
             --add-data="res/*:res/" \
             --add-data="src/*:src/" \
+            --add-data="data/*:data/" \
             --name $name \
             main.py
       - uses: actions/upload-artifact@v4
