@@ -226,7 +226,7 @@ class ClearCacheInterface(QWidget):
         control_layout.addLayout(button_layout)
 
         # 日志区域
-        self.recent_activity_card = RecentActivityCard(parent=content_widget, lang=self.lang)
+        self.recent_activity_card = RecentActivityCard(parent=content_widget, lang=self.lang, config_manager=self.config_manager)
         # 保持向后兼容性
         self.logText = self.recent_activity_card.get_text_edit()
 

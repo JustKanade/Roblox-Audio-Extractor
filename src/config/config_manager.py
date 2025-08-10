@@ -99,6 +99,7 @@ class AppConfig(QConfig):
     # UI配置
     disableAvatarAutoUpdate = ConfigItem("UI", "DisableAvatarAutoUpdate", False, BoolValidator())
     greetingEnabled = ConfigItem("UI", "GreetingEnabled", True, BoolValidator())
+    logCardHeight = RangeConfigItem("UI", "LogCardHeight", 250, RangeValidator(150, 600))
 
 class ConfigManager:
     """配置文件管理器 - 结合官方qconfig和传统配置管理"""
@@ -309,6 +310,7 @@ class ConfigManager:
                 "autoCheckUpdate": self.cfg.autoCheckUpdate,  # 添加键名映射
                 "greeting_enabled": self.cfg.greetingEnabled,
                 "disable_avatar_auto_update": self.cfg.disableAvatarAutoUpdate,
+                "log_card_height": self.cfg.logCardHeight,
                 # 音频转换配置
                 "convert_audio_enabled": self.cfg.convertAudioEnabled,
                 "convert_audio_format": self.cfg.convertAudioFormat,
@@ -376,6 +378,7 @@ class ConfigManager:
                 "autoCheckUpdate": self.cfg.autoCheckUpdate,  # 添加键名映射
                 "greeting_enabled": self.cfg.greetingEnabled,
                 "disable_avatar_auto_update": self.cfg.disableAvatarAutoUpdate,
+                "log_card_height": self.cfg.logCardHeight,
                 # 音频转换配置
                 "convert_audio_enabled": self.cfg.convertAudioEnabled,
                 "convert_audio_format": self.cfg.convertAudioFormat,

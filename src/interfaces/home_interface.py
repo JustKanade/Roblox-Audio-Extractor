@@ -114,7 +114,7 @@ class HomeInterface(QWidget):
         )
         
         # 最近活动日志卡片
-        self.recent_activity_card = RecentActivityCard(parent=self.activityGroup, lang=self.lang)
+        self.recent_activity_card = RecentActivityCard(parent=self.activityGroup, lang=self.lang, config_manager=self.config_manager)
         # 保持向后兼容性
         self.homeLogText = self.recent_activity_card.get_text_edit()
         self.logHandler = self.recent_activity_card.get_log_handler()
