@@ -21,6 +21,7 @@ from src.components.cards.home_cards import (
     QuickActionsCard, SystemInfoHomeCard, DirectoryInfoCard,
     ExtractAudioCard, ClearCacheCard, SettingsCard
 )
+from src.components.cards.recent_activity_card import RecentActivityCard
 
 import os
 import multiprocessing
@@ -113,20 +114,12 @@ class HomeInterface(QWidget):
         )
         
         # 最近活动日志卡片
-        log_card = CardWidget()
-        log_card.setMinimumHeight(200)
-        log_card.setMaximumHeight(300)
+        self.recent_activity_card = RecentActivityCard(parent=self.activityGroup, lang=self.lang)
+        # 保持向后兼容性
+        self.homeLogText = self.recent_activity_card.get_text_edit()
+        self.logHandler = self.recent_activity_card.get_log_handler()
 
-        log_layout = QVBoxLayout(log_card)
-        log_layout.setContentsMargins(20, 15, 20, 15)
-        log_layout.setSpacing(10)
-
-        self.homeLogText = TextEdit()
-        self.homeLogText.setReadOnly(True)
-        self.homeLogText.setMinimumHeight(150)
-        log_layout.addWidget(self.homeLogText)
-
-        self.activityGroup.addSettingCard(log_card)
+        self.activityGroup.addSettingCard(self.recent_activity_card)
         self.expandLayout.addWidget(self.activityGroup)
 
         # 设置滚动区域
@@ -228,10 +221,9 @@ class HomeInterface(QWidget):
                 TimeGreetings.show_greeting(language_code)
             
             # 日志信息
-            log = LogHandler(self.homeLogText)
-            log.info(self.lang.get('welcome_message'))
-            log.info(self.lang.get('about_version'))
-            log.info(f"{self.lang.get('default_dir')}: {self.default_dir}")
-            log.info(self.lang.get("config_file_location", self.config_manager.config_file))
+            self.logHandler.info(self.lang.get('welcome_message'))
+            self.logHandler.info(self.lang.get('about_version'))
+            self.logHandler.info(f"{self.lang.get('default_dir')}: {self.default_dir}")
+            self.logHandler.info(self.lang.get("config_file_location", self.config_manager.config_file))
         except Exception as e:
             print(f"添加欢迎信息时出错: {e}") 

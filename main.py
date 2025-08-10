@@ -465,12 +465,11 @@ class MainWindow(FluentWindow):
             TimeGreetings.show_greeting(language_code)
         
         # 添加日志信息
-        if hasattr(self, 'homeInterface') and hasattr(self.homeInterface, 'logText'):
-            log = LogHandler(self.homeInterface.logText)
-            log.info(lang.get('welcome_message'))
-            log.info(lang.get('about_version'))
-            log.info(f"{lang.get('default_dir')}: {self.default_dir}")
-            log.info(lang.get("config_file_location", self.config_manager.config_file))
+        if hasattr(self, 'homeInterface') and hasattr(self.homeInterface, 'logHandler'):
+            self.homeInterface.logHandler.info(lang.get('welcome_message'))
+            self.homeInterface.logHandler.info(lang.get('about_version'))
+            self.homeInterface.logHandler.info(f"{lang.get('default_dir')}: {self.default_dir}")
+            self.homeInterface.logHandler.info(lang.get("config_file_location", self.config_manager.config_file))
             
     def onThemeChanged(self, theme_name):
         """主题更改事件处理"""

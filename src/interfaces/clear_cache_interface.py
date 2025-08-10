@@ -19,6 +19,7 @@ import sys
 
 from src.utils.file_utils import open_directory
 from src.utils.log_utils import LogHandler
+from src.components.cards.recent_activity_card import RecentActivityCard
 
 # 尝试导入LogControlCard
 try:
@@ -225,21 +226,11 @@ class ClearCacheInterface(QWidget):
         control_layout.addLayout(button_layout)
 
         # 日志区域
-        log_card = CardWidget()
-        log_card.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Maximum)
-        log_layout = QVBoxLayout(log_card)
-        log_layout.setContentsMargins(20, 10, 20, 15)
-        log_layout.setSpacing(10)
+        self.recent_activity_card = RecentActivityCard(parent=content_widget, lang=self.lang)
+        # 保持向后兼容性
+        self.logText = self.recent_activity_card.get_text_edit()
 
-        log_title = StrongBodyLabel(self.get_text("recent_activity", "最近活动"))
-        log_layout.addWidget(log_title)
-
-        self.logText = TextEdit()
-        self.logText.setReadOnly(True)
-        self.logText.setFixedHeight(220)
-        log_layout.addWidget(self.logText)
-
-        content_layout.addWidget(log_card)
+        content_layout.addWidget(self.recent_activity_card)
         
         # 确保布局末尾有伸缩项，防止界面被拉伸
         content_layout.addStretch(1)
@@ -253,7 +244,7 @@ class ClearCacheInterface(QWidget):
         main_layout.addWidget(scroll)
 
         # 创建日志处理器
-        self.logHandler = LogHandler(self.logText)
+        self.logHandler = self.recent_activity_card.get_log_handler()
     
     def _getEffectiveCachePath(self) -> str:
         """获取有效的缓存路径"""

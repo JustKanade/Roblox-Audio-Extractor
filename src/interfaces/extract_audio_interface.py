@@ -27,6 +27,7 @@ from src.utils.file_utils import open_directory
 from src.extractors.audio_extractor import ClassificationMethod, is_ffmpeg_available
 from src.workers.extraction_worker import ExtractionWorker
 from src.logging.central_log_handler import CentralLogHandler
+from src.components.cards.recent_activity_card import RecentActivityCard
 
 # 尝试导入LogControlCard
 try:
@@ -294,22 +295,11 @@ class ExtractAudioInterface(QWidget):
         control_layout.addLayout(button_layout)
 
         # 添加日志区域
-        log_card = CardWidget()
-        log_card.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Maximum)
-        log_layout = QVBoxLayout(log_card)
-        log_layout.setContentsMargins(20, 10, 20, 15)
-        log_layout.setSpacing(10)
+        self.recent_activity_card = RecentActivityCard(parent=content_widget, lang=self.lang)
+        # 保持向后兼容性
+        self.logTextEdit = self.recent_activity_card.get_text_edit()
 
-        log_title = StrongBodyLabel(self.get_text("recent_activity"))
-        log_layout.addWidget(log_title)
-
-        self.logTextEdit = TextEdit()
-        self.logTextEdit.setReadOnly(True)
-        self.logTextEdit.setFixedHeight(220)
-        # 样式将在setExtractStyles方法中动态设置
-        log_layout.addWidget(self.logTextEdit)
-
-        content_layout.addWidget(log_card)
+        content_layout.addWidget(self.recent_activity_card)
         
         # 确保布局末尾有伸缩项，防止界面被拉伸
         content_layout.addStretch(1)
@@ -323,7 +313,7 @@ class ExtractAudioInterface(QWidget):
         main_layout.addWidget(scroll)
 
         # 设置日志处理器
-        self.extractLogHandler = LogHandler(self.logTextEdit)
+        self.extractLogHandler = self.recent_activity_card.get_log_handler()
 
         # 更新分类信息
         self.updateClassificationInfo()

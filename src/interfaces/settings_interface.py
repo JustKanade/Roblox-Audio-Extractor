@@ -25,6 +25,7 @@ import multiprocessing
 from functools import partial
 
 from src.utils.log_utils import LogHandler
+from src.components.cards.recent_activity_card import RecentActivityCard
 
 from src.logging.central_log_handler import CentralLogHandler
 from src.management.language_management.language_manager import apply_language
@@ -255,22 +256,11 @@ class SettingsInterface(QWidget):
         self.createSettingGroups(content_layout)
 
         # 日志区域
-        log_card = CardWidget()
-        log_card.setFixedHeight(250)
+        self.recent_activity_card = RecentActivityCard(parent=content_widget, lang=self.lang)
+        # 保持向后兼容性
+        self.settingsLogText = self.recent_activity_card.get_text_edit()
 
-        log_layout = QVBoxLayout(log_card)
-        log_layout.setContentsMargins(20, 10, 20, 15)
-        log_layout.setSpacing(10)
-
-        log_title = StrongBodyLabel(self.get_text("recent_activity"))
-        log_layout.addWidget(log_title)
-
-        self.settingsLogText = TextEdit()
-        self.settingsLogText.setReadOnly(True)
-        self.settingsLogText.setFixedHeight(170)
-        log_layout.addWidget(self.settingsLogText)
-
-        content_layout.addWidget(log_card)
+        content_layout.addWidget(self.recent_activity_card)
 
         # 设置滚动区域
         scroll.setWidget(content_widget)
@@ -281,7 +271,7 @@ class SettingsInterface(QWidget):
         main_layout.addWidget(scroll)
 
         # 创建日志处理器
-        self.settingsLogHandler = LogHandler(self.settingsLogText)
+        self.settingsLogHandler = self.recent_activity_card.get_log_handler()
         
     def createSettingGroups(self, layout):
         """创建设置卡片组"""
