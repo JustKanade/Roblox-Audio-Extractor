@@ -22,7 +22,7 @@ class ExtractionWorker(QThread):
     finished = pyqtSignal(dict)  # 完成信号(结果字典)
     logMessage = pyqtSignal(str, str)  # 日志消息信号(消息, 类型)
 
-    def __init__(self, base_dir, num_threads, download_history, classification_method, custom_output_dir=None, scan_db=True, convert_enabled=False, convert_format="MP3"):
+    def __init__(self, base_dir, num_threads, download_history, classification_method, custom_output_dir=None, scan_db=True, convert_enabled=False, convert_format="MP3", use_multiprocessing=False, conservative_multiprocessing=True):
         super().__init__()
         self.base_dir = base_dir
         self.num_threads = num_threads
@@ -32,6 +32,8 @@ class ExtractionWorker(QThread):
         self.scan_db = scan_db
         self.convert_enabled = convert_enabled
         self.convert_format = convert_format
+        self.use_multiprocessing = use_multiprocessing
+        self.conservative_multiprocessing = conservative_multiprocessing
         self.is_cancelled = False
         self.total_files = 0
         self.processed_count = 0
@@ -53,7 +55,9 @@ class ExtractionWorker(QThread):
                 self.download_history,
                 self.classification_method,
                 self.custom_output_dir,  # 传入自定义输出路径
-                self.scan_db  # 是否扫描数据库
+                self.scan_db,  # 是否扫描数据库
+                self.use_multiprocessing,  # 是否使用多进程
+                self.conservative_multiprocessing  # 是否使用保守的多进程策略
             )
 
             # 设置取消检查函数
@@ -84,6 +88,11 @@ class ExtractionWorker(QThread):
                 })
                 return
 
+            # 如果使用多进程，发送预处理消息
+            if self.use_multiprocessing:
+                self.logMessage.emit(self._get_lang('multiprocess_preprocessing', self.extractor.num_processes), 'info')
+                self.logMessage.emit(self._get_lang('preprocessing_files'), 'info')
+
             # 创建一个用于更新进度的函数
             original_process_file = self.extractor.process_file
             self.actual_extracted_count = 0  # 记录实际提取的文件数量
@@ -113,11 +122,12 @@ class ExtractionWorker(QThread):
             # 进行处理
             extraction_result = self.extractor.process_files()
             
-            # 使用实际提取的文件数量更新结果
-            extraction_result["processed"] = self.actual_extracted_count
+            # 不再强制覆盖processed统计，使用提取器返回的准确数据
+            # 但保留actual_extracted_count用于转换逻辑判断
+            self.logMessage.emit(f"Processing completed: {extraction_result.get('processed', 0)} files processed", 'info')
 
             # 如果启用了音频转换且提取了文件，进行格式转换
-            if self.convert_enabled and self.actual_extracted_count > 0:
+            if self.convert_enabled and extraction_result.get("processed", 0) > 0:
                 self.logMessage.emit(f'Converting audio files to {self.convert_format}...', 'info')
                 try:
                     conversion_result = self._convert_audio_files(extraction_result.get("output_dir", ""))
@@ -165,7 +175,13 @@ class ExtractionWorker(QThread):
             'found_files': 'Found {} files to process (scan took {:.2f}s)',
             'no_files_found': 'No files found to process',
             'processing_with_threads': 'Processing with {} threads',
-            'error_occurred': 'Error occurred: {}'
+            'error_occurred': 'Error occurred: {}',
+            'preprocessing_files': 'Preprocessing files for deduplication...',
+            'preprocessing_complete': 'Preprocessing complete: found {} duplicates, skipped {} already processed',
+            'final_processing': 'Processing {} unique files (preprocessing took {:.2f} seconds)',
+            'calculating_content_hash': 'Calculating content hashes...',
+            'deduplication_stats': 'Deduplication completed: {} duplicates removed, {} already processed skipped',
+            'multiprocess_preprocessing': 'Using {} processes for preprocessing...'
         }
         
         if key in english_strings:

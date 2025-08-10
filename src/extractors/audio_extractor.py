@@ -19,6 +19,14 @@ import multiprocessing
 from typing import Dict, List, Any, Set, Optional, Tuple, Union
 from enum import Enum, auto
 
+# 导入多进程工具
+from src.utils.multiprocessing_utils import (
+    MultiprocessingManager, 
+    ProcessingConfig,
+    get_optimal_process_count,
+    create_worker_function
+)
+
 # 统一的日志设置
 logger = logging.getLogger(__name__)
 
@@ -34,6 +42,256 @@ class ClassificationMethod(Enum):
     """音频分类方法枚举"""
     DURATION = auto()  # 按时长分类
     SIZE = auto()  # 按大小分类
+
+
+def _process_file_worker(file_path: str, config: ProcessingConfig) -> Dict[str, Any]:
+    """多进程工作函数 - 处理单个文件（已预处理去重）
+    
+    Args:
+        file_path: 文件路径（已经预处理去重）
+        config: 处理配置
+        
+    Returns:
+        处理结果字典，包含 success, file_hash, content_hash, error 等字段
+    """
+    
+    result = {
+        'success': None,  # None=跳过, True=成功, False=失败
+        'file_hash': None,
+        'content_hash': None,
+        'error': None
+    }
+    
+    try:
+        # 导入所需模块 (在工作进程中重新导入)
+        import os
+        import hashlib
+        import gzip
+        
+        # 读取并检查文件
+        file_content = _extract_ogg_content_worker(file_path)
+        if not file_content:
+            result['error'] = "无法提取内容"
+            return result
+            
+        # 检查是否为有效的音频文件
+        if not _is_valid_ogg_worker(file_content):
+            result['error'] = "无效的音频格式"
+            return result
+            
+        # 计算内容哈希
+        content_hash = hashlib.md5(file_content[:8192]).hexdigest()
+        result['content_hash'] = content_hash
+        
+        # 计算文件哈希
+        file_hash = _get_file_hash_worker(file_path)
+        result['file_hash'] = file_hash
+        
+        # 文件已经预处理去重，直接保存
+        success, error_message = _save_ogg_file_worker(file_path, file_content, config)
+        if success:
+            result['success'] = True
+        else:
+            result['success'] = False
+            result['error'] = error_message
+        
+        return result
+        
+    except Exception as e:
+        # 记录错误但不中断处理
+        logger.error(f"处理文件 {file_path} 时出错: {e}")
+        result['error'] = str(e)
+        return result
+
+
+def _extract_ogg_content_worker(file_path: str) -> Optional[bytes]:
+    """工作进程中的OGG内容提取"""
+    try:
+        with open(file_path, 'rb') as f:
+            # 读取前4KB作为头部块
+            header_chunk = f.read(4096)
+            
+            # 检测OGG格式
+            ogg_start = header_chunk.find(b'OggS')
+            if ogg_start >= 0:
+                f.seek(ogg_start)
+                return f.read()
+            
+            # 检测MP3格式
+            id3_start = header_chunk.find(b'ID3')
+            mp3_frame_sync = False
+            
+            # 检查MP3帧同步标记
+            for i in range(len(header_chunk) - 1):
+                if (header_chunk[i] & 0xFF) == 0xFF and (header_chunk[i + 1] & 0xE0) == 0xE0:
+                    mp3_frame_sync = True
+                    break
+            
+            if id3_start >= 0 or mp3_frame_sync:
+                if id3_start >= 0:
+                    f.seek(0)
+                    content = f.read()
+                    post_id3_content = content[id3_start:]
+                    ogg_in_id3 = post_id3_content.find(b'OggS')
+                    if ogg_in_id3 >= 0:
+                        return post_id3_content[ogg_in_id3:]
+                
+                f.seek(0)
+                return f.read()
+            
+            # 检查整个文件
+            f.seek(0)
+            content = f.read()
+            
+            ogg_start = content.find(b'OggS')
+            if ogg_start >= 0:
+                return content[ogg_start:]
+            
+            # 尝试gzip解压
+            if len(content) < 1024 * 1024:
+                try:
+                    import gzip
+                    decompressed = gzip.decompress(content)
+                    ogg_start = decompressed.find(b'OggS')
+                    if ogg_start >= 0:
+                        return decompressed[ogg_start:]
+                    
+                    id3_start = decompressed.find(b'ID3')
+                    if id3_start >= 0:
+                        return decompressed[id3_start:]
+                        
+                    for i in range(len(decompressed) - 1):
+                        if (decompressed[i] & 0xFF) == 0xFF and (decompressed[i + 1] & 0xE0) == 0xE0:
+                            return decompressed[i:]
+                except Exception:
+                    pass
+        
+        return None
+    except Exception:
+        return None
+
+
+def _is_valid_ogg_worker(content: bytes) -> bool:
+    """工作进程中的OGG文件验证"""
+    if len(content) < 4:
+        return False
+    
+    # 检查OGG文件头
+    if content[:4] == b'OggS':
+        return True
+    
+    # 检查MP3文件头
+    if content[:3] == b'ID3':
+        return True
+    
+    # 检查MP3帧同步标记
+    if (content[0] & 0xFF) == 0xFF and (content[1] & 0xE0) == 0xE0:
+        return True
+    
+    return False
+
+
+def _get_file_hash_worker(file_path: str) -> str:
+    """工作进程中的文件哈希计算"""
+    import hashlib
+    hasher = hashlib.md5()
+    hasher.update(file_path.encode('utf-8'))
+    with open(file_path, 'rb') as f:
+        # 只读取前1KB用于哈希计算，提高性能
+        hasher.update(f.read(1024))
+    return hasher.hexdigest()
+
+
+def _save_ogg_file_worker(file_path: str, file_content: bytes, config: ProcessingConfig) -> Tuple[bool, Optional[str]]:
+    """工作进程中的文件保存
+    
+    Returns:
+        (success, error_message): 成功标志和错误信息
+    """
+    try:
+        import os
+        import random
+        import string
+        
+        # 生成文件名
+        base_name = os.path.splitext(os.path.basename(file_path))[0]
+        random_suffix = ''.join(random.choices(string.ascii_lowercase + string.digits, k=8))
+        
+        # 确定输出文件扩展名
+        if file_content[:4] == b'OggS':
+            extension = '.ogg'
+        elif file_content[:3] == b'ID3' or (file_content[0] & 0xFF) == 0xFF:
+            extension = '.mp3'
+        else:
+            extension = '.ogg'  # 默认
+        
+        output_filename = f"{base_name}_{random_suffix}{extension}"
+        
+        # 确定分类目录
+        category = _get_category_worker(file_path, file_content, config)
+        category_dir = os.path.join(config.output_dir, "Audio", category)
+        
+        # 确保目录存在
+        try:
+            os.makedirs(category_dir, exist_ok=True)
+        except Exception as e:
+            return False, f"无法创建目录 {category_dir}: {str(e)}"
+        
+        output_path = os.path.join(category_dir, output_filename)
+        
+        # 保存文件
+        try:
+            with open(output_path, 'wb') as f:
+                f.write(file_content)
+        except Exception as e:
+            return False, f"无法写入文件 {output_path}: {str(e)}"
+        
+        # 验证文件是否成功写入
+        if not os.path.exists(output_path):
+            return False, f"文件保存后不存在: {output_path}"
+            
+        # 验证文件大小
+        try:
+            saved_size = os.path.getsize(output_path)
+            if saved_size != len(file_content):
+                return False, f"文件大小不匹配: 期望 {len(file_content)}, 实际 {saved_size}"
+        except Exception as e:
+            return False, f"无法验证文件大小: {str(e)}"
+        
+        return True, None
+        
+    except Exception as e:
+        return False, f"保存文件时发生未知错误: {str(e)}"
+
+
+def _get_category_worker(file_path: str, file_content: bytes, config: ProcessingConfig) -> str:
+    """工作进程中的分类确定"""
+    if config.classification_method == ClassificationMethod.DURATION:
+        # 按时长分类 (简化版，无ffmpeg依赖)
+        size = len(file_content)
+        if size < 50 * 1024:
+            return "ultra_short_0-5s"
+        elif size < 200 * 1024:
+            return "short_5-15s"
+        elif size < 1024 * 1024:
+            return "medium_15-60s"
+        elif size < 5 * 1024 * 1024:
+            return "long_60-300s"
+        else:
+            return "ultra_long_300s+"
+    else:
+        # 按大小分类
+        size = len(file_content)
+        if size < 50 * 1024:
+            return "ultra_small_0-50KB"
+        elif size < 200 * 1024:
+            return "small_50-200KB"
+        elif size < 1024 * 1024:
+            return "medium_200KB-1MB"
+        elif size < 5 * 1024 * 1024:
+            return "large_1MB-5MB"
+        else:
+            return "ultra_large_5MB+"
 
 
 class ExtractedHistory:
@@ -339,6 +597,7 @@ class ProcessingStats:
         """初始化统计对象"""
         self.stats = {}
         self.lock = threading.Lock()
+        self._pending_updates = {}  # 待处理的更新
         self.reset()
         self._last_update_time = 0
         self._update_interval = 0.1  # 限制更新频率，单位秒
@@ -353,31 +612,62 @@ class ProcessingStats:
                 'error_files': 0,
                 'last_update': time.time()
             }
+            self._pending_updates = {
+                'processed_files': 0,
+                'duplicate_files': 0,
+                'already_processed': 0,
+                'error_files': 0
+            }
             self._last_update_time = 0
 
     def increment(self, stat_key: str, amount: int = 1) -> None:
-        """增加特定统计计数"""
-        # 限制更新频率，减少锁争用
+        """增加特定统计计数 - 使用累积更新策略"""
         current_time = time.time()
-        if current_time - self._last_update_time < self._update_interval:
-            return  # 如果距离上次更新时间太短，直接返回
-
+        
         with self.lock:
-            if stat_key in self.stats:
-                self.stats[stat_key] += amount
+            # 确保键存在
+            if stat_key not in self.stats:
+                self.stats[stat_key] = 0
+            if stat_key not in self._pending_updates:
+                self._pending_updates[stat_key] = 0
+            
+            # 累积待处理的更新
+            self._pending_updates[stat_key] += amount
+            
+            # 检查是否应该应用待处理的更新
+            if current_time - self._last_update_time >= self._update_interval:
+                # 应用所有待处理的更新
+                for key, pending_amount in self._pending_updates.items():
+                    if pending_amount > 0:
+                        self.stats[key] += pending_amount
+                        
+                # 清空待处理更新
+                for key in self._pending_updates:
+                    self._pending_updates[key] = 0
+                    
                 self.stats['last_update'] = current_time
-            else:
-                self.stats[stat_key] = amount
-            self._last_update_time = current_time
+                self._last_update_time = current_time
 
     def get(self, stat_key: str) -> int:
         """获取特定统计计数"""
         with self.lock:
-            return self.stats.get(stat_key, 0)
+            # 返回已确认的统计 + 待处理的更新
+            confirmed = self.stats.get(stat_key, 0)
+            pending = self._pending_updates.get(stat_key, 0)
+            return confirmed + pending
 
     def get_all(self) -> Dict[str, int]:
         """获取所有统计数据"""
         with self.lock:
+            # 强制应用所有待处理的更新
+            for key, pending_amount in self._pending_updates.items():
+                if pending_amount > 0 and key in self.stats:
+                    self.stats[key] += pending_amount
+                    
+            # 清空待处理更新
+            for key in self._pending_updates:
+                self._pending_updates[key] = 0
+                
             return self.stats.copy()
 
 
@@ -388,10 +678,23 @@ class RobloxAudioExtractor:
                  download_history: Optional[ExtractedHistory] = None,
                  classification_method: ClassificationMethod = ClassificationMethod.DURATION,
                  custom_output_dir: Optional[str] = None,
-                 scan_db: bool = True):
+                 scan_db: bool = True,
+                 use_multiprocessing: bool = False,
+                 conservative_multiprocessing: bool = True):
         """初始化提取器"""
         self.base_dir = os.path.abspath(base_dir)
-        self.num_threads = num_threads or min(32, multiprocessing.cpu_count() * 2)
+        self.use_multiprocessing = use_multiprocessing
+        self.conservative_multiprocessing = conservative_multiprocessing
+        
+        # 根据多进程配置调整线程/进程数量
+        if self.use_multiprocessing:
+            self.num_processes = get_optimal_process_count(
+                max_processes=num_threads if num_threads > 1 else None,
+                conservative=conservative_multiprocessing
+            )
+        else:
+            self.num_threads = num_threads or min(32, multiprocessing.cpu_count() * 2)
+            
         self.keywords = keywords or ["oggs", "ID3"]  # 默认同时搜索"oggs"和"ID3"
         self.download_history = download_history
         self.classification_method = classification_method
@@ -675,6 +978,84 @@ class RobloxAudioExtractor:
         # 使用新的直接内容哈希检查
         return self.download_history.is_content_processed(content_hash)
         
+    def _calculate_content_hash_fast(self, file_path: str) -> Optional[str]:
+        """快速计算文件内容哈希（只读前8KB）"""
+        try:
+            # 使用现有的内容提取逻辑
+            file_content = self._extract_ogg_content(file_path)
+            if not file_content:
+                return None
+                
+            # 检查是否为有效的OGG文件
+            if not self._is_valid_ogg(file_content):
+                return None
+                
+            # 计算内容哈希（与现有逻辑保持一致）
+            content_hash = hashlib.md5(file_content[:8192]).hexdigest()
+            return content_hash
+            
+        except Exception as e:
+            # 忽略无法处理的文件
+            return None
+    
+    def _preprocess_and_deduplicate_files(self, files_to_process: List[str]) -> List[str]:
+        """预处理文件列表并去除重复
+        
+        Args:
+            files_to_process: 原始文件列表
+            
+        Returns:
+            去重后的文件列表
+        """
+        if not files_to_process:
+            return []
+        
+        print(f"• 正在对 {len(files_to_process)} 个文件进行预处理去重...")
+        
+        deduplicated_files = []
+        content_hash_map = {}  # content_hash -> file_path (保留第一个)
+        skipped_already_processed = 0
+        duplicates_found = 0
+        
+        # 处理进度计数
+        processed_count = 0
+        total_count = len(files_to_process)
+        
+        for file_path in files_to_process:
+            if self.is_cancelled():
+                break
+                
+            processed_count += 1
+            
+            # 每处理100个文件显示一次进度
+            if processed_count % 100 == 0 or processed_count == total_count:
+                progress_percent = (processed_count / total_count) * 100
+                print(f"  预处理进度: {processed_count}/{total_count} ({progress_percent:.1f}%)")
+            
+            # 计算内容哈希
+            content_hash = self._calculate_content_hash_fast(file_path)
+            if not content_hash:
+                continue  # 跳过无效文件
+                
+            # 检查是否在历史记录中已处理过
+            if self.download_history and self._is_content_hash_in_history(content_hash):
+                skipped_already_processed += 1
+                continue
+                
+            # 检查当前批次是否重复
+            if content_hash in content_hash_map:
+                duplicates_found += 1
+                continue
+                
+            # 添加到去重列表
+            content_hash_map[content_hash] = file_path
+            deduplicated_files.append(file_path)
+        
+        print(f"✓ 预处理完成：发现 {duplicates_found} 个重复文件，跳过 {skipped_already_processed} 个已处理文件")
+        print(f"• 最终将处理 {len(deduplicated_files)} 个唯一文件")
+        
+        return deduplicated_files
+        
     def process_files(self) -> Dict[str, Any]:
         """处理目录中的文件"""
         # 扫描文件并记录开始时间
@@ -707,9 +1088,109 @@ class RobloxAudioExtractor:
 
         # 处理文件
         processing_start = time.time()
+
+        # 选择处理模式
+        if self.use_multiprocessing:
+            return self._process_files_multiprocessing(files_to_process, processing_start)
+        else:
+            return self._process_files_threading(files_to_process, processing_start)
+
+    def _process_files_multiprocessing(self, files_to_process: List[str], processing_start: float) -> Dict[str, Any]:
+        """使用多进程处理文件"""
+        print(f"\n• 使用 {self.num_processes} 个进程处理文件...")
+
+        # 预处理去重步骤
+        preprocessing_start = time.time()
+        files_to_process = self._preprocess_and_deduplicate_files(files_to_process)
+        preprocessing_duration = time.time() - preprocessing_start
+        
+        # 如果预处理后没有文件需要处理
+        if not files_to_process:
+            print(f"! 预处理后没有文件需要处理")
+            return {
+                "processed": 0,
+                "duplicates": 0,
+                "already_processed": 0,
+                "errors": 0,
+                "output_dir": self.output_dir,
+                "duration": preprocessing_duration,
+                "files_per_second": 0
+            }
+        
+        print(f"• 预处理耗时 {preprocessing_duration:.2f} 秒，开始多进程处理...")
+
+        # 准备处理配置
+        config = ProcessingConfig(
+            base_dir=self.base_dir,
+            output_dir=self.output_dir,
+            classification_method=self.classification_method,
+            processed_hashes=list(self.download_history.file_hashes) if self.download_history else [],
+            content_hashes=list(self.download_history.content_hashes) if self.download_history else [],
+            scan_db=self.scan_db
+        )
+
+        # 创建多进程管理器
+        def progress_callback(current, total, elapsed, progress):
+            self.processed_count = current
+            # 进度更新频率已降低，避免过多的进程间通信
+
+        manager = MultiprocessingManager(
+            num_processes=self.num_processes,
+            conservative=self.conservative_multiprocessing,
+            progress_callback=progress_callback,
+            cancel_check=lambda: self.is_cancelled()
+        )
+
+        # 创建工作函数
+        worker_func = create_worker_function(_process_file_worker)
+
+        try:
+            # 执行多进程处理
+            result = manager.process_items(
+                items=files_to_process,
+                worker_func=worker_func,
+                config=config
+            )
+            
+            result_stats = result.get('stats', {})
+            processed_hashes = result.get('processed_hashes', [])
+
+            # 批量添加成功处理的哈希到历史记录
+            if self.download_history and processed_hashes:
+                print(f"• 批量添加 {len(processed_hashes)} 个文件哈希到历史记录...")
+                for file_hash in processed_hashes:
+                    self.download_history.add_hash(file_hash, 'audio')
+                
+                # 保存历史记录
+                self.download_history.save_history()
+                print(f"✓ 已保存历史记录")
+
+        except Exception as e:
+            logger.error(f"多进程处理出错: {e}")
+            result_stats = {'processed_files': 0, 'duplicate_files': 0, 'error_files': 0, 'already_processed': 0}
+
+        # 清理临时文件夹
+        self._cleanup_temp_directories()
+
+        # 计算最终统计
+        total_time = time.time() - processing_start
+        files_per_second = result_stats.get('processed_files', 0) / total_time if total_time > 0 else 0
+
+        return {
+            "processed": result_stats.get('processed_files', 0),
+            "duplicates": result_stats.get('duplicate_files', 0),
+            "already_processed": result_stats.get('already_processed', 0),
+            "errors": result_stats.get('error_files', 0),
+            "output_dir": self.output_dir,
+            "duration": total_time,
+            "files_per_second": files_per_second
+        }
+
+    def _process_files_threading(self, files_to_process: List[str], processing_start: float) -> Dict[str, Any]:
+        """使用多线程处理文件（原有逻辑）"""
         print(f"\n• 使用 {self.num_threads} 个线程处理文件...")
 
-        # 创建一个工作队列和一个结果队列
+        # 创建一个工作队列
         work_queue = queue.Queue()
 
         # 填充工作队列
@@ -744,31 +1225,17 @@ class RobloxAudioExtractor:
 
         # 等待所有工作完成
         try:
-            # 主线程等待工作完成
             work_queue.join()
         except KeyboardInterrupt:
-            # 允许用户中断处理
             self.cancelled = True
             print("\n操作被用户取消.")
 
-        # 如果提取历史记录可用，保存它
+        # 保存历史记录
         if self.download_history:
             self.download_history.save_history()
-            
+
         # 清理临时文件夹
-        try:
-            # 查找并删除所有db_temp_开头的临时目录
-            for item in os.listdir(self.output_dir):
-                temp_dir_path = os.path.join(self.output_dir, item)
-                if os.path.isdir(temp_dir_path) and item.startswith("db_temp_"):
-                    try:
-                        import shutil
-                        shutil.rmtree(temp_dir_path, ignore_errors=True)
-                        print(f"✓ 已清理临时文件夹: {item}")
-                    except Exception as e:
-                        print(f"! 清理临时文件夹失败: {str(e)}")
-        except Exception as e:
-            print(f"! 清理临时文件过程中出错: {str(e)}")
+        self._cleanup_temp_directories()
 
         # 计算结果统计
         total_time = time.time() - processing_start
@@ -784,6 +1251,21 @@ class RobloxAudioExtractor:
             "duration": total_time,
             "files_per_second": files_per_second
         }
+
+    def _cleanup_temp_directories(self):
+        """清理临时文件夹"""
+        try:
+            for item in os.listdir(self.output_dir):
+                temp_dir_path = os.path.join(self.output_dir, item)
+                if os.path.isdir(temp_dir_path) and item.startswith("db_temp_"):
+                    try:
+                        import shutil
+                        shutil.rmtree(temp_dir_path, ignore_errors=True)
+                        print(f"✓ 已清理临时文件夹: {item}")
+                    except Exception as e:
+                        print(f"! 清理临时文件夹失败: {str(e)}")
+        except Exception as e:
+            print(f"! 清理临时文件过程中出错: {str(e)}")
 
     def set_cancel_check(self, check_fn):
         """设置取消检查函数"""

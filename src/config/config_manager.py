@@ -74,6 +74,8 @@ class AppConfig(QConfig):
     threads = RangeConfigItem(
         "Performance", "Threads", min(32, multiprocessing.cpu_count() * 2), 
         RangeValidator(1, 64))
+    useMultiprocessing = ConfigItem("Performance", "UseMultiprocessing", False, BoolValidator())
+    conservativeMultiprocessing = ConfigItem("Performance", "ConservativeMultiprocessing", True, BoolValidator())
     
     # 功能配置
     classificationMethod = OptionsConfigItem(
@@ -300,6 +302,8 @@ class ConfigManager:
                 "last_input_dir": self.cfg.lastInputDir,
                 "launch_file": self.cfg.launchFile,
                 "threads": self.cfg.threads,
+                "useMultiprocessing": self.cfg.useMultiprocessing,
+                "conservativeMultiprocessing": self.cfg.conservativeMultiprocessing,
                 "classification_method": self.cfg.classificationMethod,
                 "save_logs": self.cfg.saveLogs,
                 "auto_open_output_dir": self.cfg.autoOpenOutputDir,
@@ -368,6 +372,8 @@ class ConfigManager:
                 "last_input_dir": self.cfg.lastInputDir,
                 "launch_file": self.cfg.launchFile,
                 "threads": self.cfg.threads,
+                "useMultiprocessing": self.cfg.useMultiprocessing,
+                "conservativeMultiprocessing": self.cfg.conservativeMultiprocessing,
                 "classification_method": self.cfg.classificationMethod,
                 "save_logs": self.cfg.saveLogs,
                 "auto_open_output_dir": self.cfg.autoOpenOutputDir,

@@ -7,11 +7,11 @@ Central Log Handling System - Manages log display across all interfaces
 
 import os
 import datetime
-import logging
+import logging as std_logging  # 明确导入标准库的logging
 
 # 设置日志记录
-logging.basicConfig(level=logging.INFO, format='%(message)s')
-logger = logging.getLogger(__name__)
+std_logging.basicConfig(level=std_logging.INFO, format='%(message)s')
+logger = std_logging.getLogger(__name__)
 
 class CentralLogHandler:
     """中央日志处理系统，管理所有界面的日志显示"""

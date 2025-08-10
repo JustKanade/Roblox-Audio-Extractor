@@ -526,6 +526,40 @@ def get_translations():
                 ENGLISH: "Number of parallel processing threads",
                 CHINESE: "并行处理线程数量设置"
             },
+            
+            # 多进程设置相关
+            "use_multiprocessing": {
+                ENGLISH: "Use Multiprocessing",
+                CHINESE: "使用多进程"
+            },
+            "multiprocessing_description": {
+                ENGLISH: "Enable multiprocessing to improve performance for CPU-intensive tasks",
+                CHINESE: "启用多进程处理以提高CPU密集型任务的性能"
+            },
+            "multiprocessing_strategy": {
+                ENGLISH: "Multiprocessing Strategy",
+                CHINESE: "多进程策略"
+            },
+            "multiprocessing_strategy_description": {
+                ENGLISH: "Choose multiprocessing count strategy: Conservative strategy is more stable, aggressive strategy offers higher performance",
+                CHINESE: "选择多进程数量策略：保守策略更稳定，激进策略性能更高"
+            },
+            "multiprocessing_strategy_disabled_tooltip": {
+                ENGLISH: "Enable multiprocessing mode first to configure strategy",
+                CHINESE: "请先启用多进程模式以配置策略"
+            },
+            "conservative_strategy": {
+                ENGLISH: "(CPU cores + 1)",
+                CHINESE: "(CPU核心数 + 1)"
+            },
+            "aggressive_strategy": {
+                ENGLISH: "(CPU cores × 2)",
+                CHINESE: " (CPU核心数 × 2)"
+            },
+            "processes": {
+                ENGLISH: " processes",
+                CHINESE: " 个进程"
+            },
             "log_title": {
                 ENGLISH: "Extraction Log",
                 CHINESE: "提取日志"
@@ -1834,5 +1868,57 @@ def get_translations():
             "disabled": {
                 ENGLISH: "Disabled",
                 CHINESE: "禁用"
+            },
+            
+            # 预处理去重相关翻译
+            "preprocessing_files": {
+                ENGLISH: "Preprocessing files for deduplication...",
+                CHINESE: "正在对文件进行预处理去重..."
+            },
+            "preprocessing_complete": {
+                ENGLISH: "Preprocessing complete: found {} duplicates, skipped {} already processed",
+                CHINESE: "预处理完成：发现 {} 个重复文件，跳过 {} 个已处理文件"
+            },
+            "final_processing": {
+                ENGLISH: "Processing {} unique files (preprocessing took {:.2f} seconds)",
+                CHINESE: "最终处理 {} 个唯一文件（预处理耗时 {:.2f} 秒）"
+            },
+            "calculating_content_hash": {
+                ENGLISH: "Calculating content hashes...",
+                CHINESE: "正在计算内容哈希..."
+            },
+            "deduplication_stats": {
+                ENGLISH: "Deduplication completed: {} duplicates removed, {} already processed skipped",
+                CHINESE: "去重完成：移除 {} 个重复文件，跳过 {} 个已处理文件"
+            },
+            "multiprocess_preprocessing": {
+                ENGLISH: "Using {} processes for preprocessing...",
+                CHINESE: "使用 {} 个进程进行预处理..."
+            },
+            
+            # 多进程警告对话框相关翻译
+            "multiprocessing_warning_title": {
+                ENGLISH: "Multiprocessing Mode Warning",
+                CHINESE: "多进程模式警告"
+            },
+            "multiprocessing_warning_message": {
+                ENGLISH: "Multiprocessing mode is an experimental feature that may:\n\n• Consume more system resources\n• Potentially cause instability\n• Require more memory\n\nThis feature aims to improve performance for large-scale extraction tasks.\n\nAre you sure you want to enable multiprocessing mode?",
+                CHINESE: "多进程模式是一个实验性功能，可能会：\n\n• 消耗更多系统资源\n• 可能导致不稳定\n• 需要更多内存\n\n此功能旨在提升大规模提取任务的性能。\n\n您确定要启用多进程模式吗？"
+            },
+            "enable_multiprocessing": {
+                ENGLISH: "Enable",
+                CHINESE: "启用"
+            },
+            "cancel_multiprocessing": {
+                ENGLISH: "Cancel",
+                CHINESE: "取消"
+            },
+            "multiprocessing_enabled": {
+                ENGLISH: "Multiprocessing mode has been enabled",
+                CHINESE: "多进程模式已启用"
+            },
+            "multiprocessing_disabled": {
+                ENGLISH: "Multiprocessing mode has been disabled",
+                CHINESE: "多进程模式已禁用"
             },
         }

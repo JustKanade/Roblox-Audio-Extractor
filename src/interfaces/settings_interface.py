@@ -71,6 +71,12 @@ except ImportError:
     ThreadCountCard = None
 
 try:
+    from src.components.cards.Settings.multiprocessing_card import MultiprocessingCard, MultiprocessingStrategyCard
+except ImportError:
+    MultiprocessingCard = None
+    MultiprocessingStrategyCard = None
+
+try:
     from src.components.cards.Settings.launch_file_card import LaunchFileCard
 except ImportError:
     LaunchFileCard = None
@@ -445,7 +451,29 @@ class SettingsInterface(QWidget):
     def createPerformanceSettingsCards(self, group):
         """创建性能设置卡片"""
         
-        # 默认线程数设置
+        # 多进程启用设置
+        if MultiprocessingCard is not None:
+            multiprocessing_card = MultiprocessingCard(self.config_manager, self.lang)
+            multiprocessing_card.valueChanged.connect(self.saveMultiprocessingConfig)
+            group.addSettingCard(multiprocessing_card)
+            self.multiprocessing_card = multiprocessing_card
+        
+        # 多进程策略设置
+        if MultiprocessingStrategyCard is not None:
+            strategy_card = MultiprocessingStrategyCard(self.config_manager, self.lang)
+            strategy_card.valueChanged.connect(self.saveMultiprocessingStrategyConfig)
+            group.addSettingCard(strategy_card)
+            self.strategy_card = strategy_card
+            
+            # 根据当前多进程状态设置初始可用性
+            multiprocessing_enabled = self.config_manager.get("useMultiprocessing", False) if self.config_manager else False
+            strategy_card.setEnabled(multiprocessing_enabled)
+            
+            # 如果多进程未启用，显示提示信息
+            if not multiprocessing_enabled:
+                strategy_card.setToolTip(self.get_text("multiprocessing_strategy_disabled_tooltip"))
+        
+        # 默认线程数设置（保留用于多线程模式）
         if ThreadCountCard is not None:
             threads_card = ThreadCountCard(self.config_manager, self.lang)
             threads_card.valueChanged.connect(self.saveThreadsConfig)
@@ -794,6 +822,32 @@ class SettingsInterface(QWidget):
                 extract_interface = self._parent_window.extractInterface
                 if hasattr(extract_interface, 'updateThreadsValue'):
                     extract_interface.updateThreadsValue()
+    
+    def saveMultiprocessingConfig(self, value):
+        """保存多进程启用配置"""
+        if self.config_manager:
+            self.config_manager.set("useMultiprocessing", value)
+            if hasattr(self, 'settingsLogHandler'):
+                status = self.get_text("enabled") if value else self.get_text("disabled")
+                self.settingsLogHandler.info(f"{self.get_text('use_multiprocessing', '使用多进程')}: {status}")
+            
+            # 动态更新多进程策略卡片的可用性
+            if hasattr(self, 'strategy_card'):
+                self.strategy_card.setEnabled(value)
+                if value:
+                    # 启用时清除提示信息
+                    self.strategy_card.setToolTip("")
+                else:
+                    # 禁用时显示提示信息
+                    self.strategy_card.setToolTip(self.get_text("multiprocessing_strategy_disabled_tooltip"))
+    
+    def saveMultiprocessingStrategyConfig(self, value):
+        """保存多进程策略配置"""
+        if self.config_manager:
+            self.config_manager.set("conservativeMultiprocessing", value)
+            if hasattr(self, 'settingsLogHandler'):
+                strategy = self.get_text("conservative_strategy", "保守策略") if value else self.get_text("aggressive_strategy", "激进策略")
+                self.settingsLogHandler.info(f"{self.get_text('multiprocessing_strategy', '多进程策略')}: {strategy}")
                     
     def browseOutputDirectory(self):
         """浏览输出目录对话框"""

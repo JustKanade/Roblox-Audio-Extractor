@@ -456,6 +456,10 @@ class ExtractAudioInterface(QWidget):
             else:
                 self.extractLogHandler.info(self.get_text("using_default_output_dir"))
         
+        # 获取多进程配置
+        use_multiprocessing = self.config_manager.get("useMultiprocessing", False) if self.config_manager else False
+        conservative_multiprocessing = self.config_manager.get("conservativeMultiprocessing", True) if self.config_manager else True
+        
         # 创建提取工作线程
         self.extraction_worker = ExtractionWorker(
             input_dir, 
@@ -465,7 +469,9 @@ class ExtractAudioInterface(QWidget):
             custom_output_dir,  # 使用配置的自定义输出目录
             scan_db,  # 传递数据库扫描选项
             self.convert_enabled_switch.isChecked(),  # 是否启用音频转换
-            self.convert_format_combo.currentText()   # 音频转换格式
+            self.convert_format_combo.currentText(),   # 音频转换格式
+            use_multiprocessing,  # 是否使用多进程
+            conservative_multiprocessing  # 是否使用保守的多进程策略
         )
 
         # 连接信号

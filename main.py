@@ -564,12 +564,21 @@ class MainWindow(FluentWindow):
         custom_output_dir = self.config_manager.get("custom_output_dir", "")
         
         
+        # 获取多进程配置
+        use_multiprocessing = self.config_manager.get("useMultiprocessing", False)
+        conservative_multiprocessing = self.config_manager.get("conservativeMultiprocessing", True)
+        
         self.extraction_worker = ExtractionWorker(
             selected_dir,
             num_threads,
             self.download_history,
             classification_method,
-            custom_output_dir  
+            custom_output_dir,
+            True,  # scan_db 默认为True
+            False,  # convert_enabled 默认为False  
+            "MP3",  # convert_format 默认为MP3
+            use_multiprocessing,
+            conservative_multiprocessing
         )
 
         

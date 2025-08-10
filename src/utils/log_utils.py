@@ -5,7 +5,7 @@
 Logging Utility Functions and Classes
 """
 
-import logging
+import logging as std_logging  # 明确导入标准库的logging
 from typing import Optional
 
 # 尝试导入中央日志处理系统
@@ -97,7 +97,7 @@ class LogHandler:
         """
         if hasattr(self.text_edit, 'append'):
             self.text_edit.append(message)
-        logging.info(message)
+        std_logging.info(message)
 
 
 def setup_basic_logging():
@@ -105,12 +105,12 @@ def setup_basic_logging():
     设置基本的日志配置
     Setup basic logging configuration
     """
-    logging.basicConfig(
-        level=logging.INFO, 
+    std_logging.basicConfig(
+        level=std_logging.INFO, 
         format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
         datefmt='%Y-%m-%d %H:%M:%S'
     )
-    return logging.getLogger(__name__)
+    return std_logging.getLogger(__name__)
 
 
 def save_log_to_file(log_content: str, filename: Optional[str] = None) -> str:
