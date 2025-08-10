@@ -644,8 +644,8 @@ def get_translations():
                 CHINESE: "深色主题"
             },
             "theme_system": {
-                ENGLISH: "Follow System",
-                CHINESE: "跟随系统"
+                ENGLISH: "Follow System Settings",
+                CHINESE: "跟随系统设置"
             },
             "theme_changed": {
                 ENGLISH: "Theme changed to: {}",

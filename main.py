@@ -193,7 +193,7 @@ class MainWindow(FluentWindow):
                 print("窗口初始化时设置置顶")
             
         
-        current_theme = self.config_manager.get("theme", "dark")
+        current_theme = self.config_manager.get("theme")
         other_theme = "light" if current_theme == "dark" else "dark"
         QTimer.singleShot(200, lambda: _pre_cache_theme_styles(self, other_theme))
 
@@ -425,7 +425,7 @@ class MainWindow(FluentWindow):
     def setExtractStyles(self):
         """设置提取音频界面的样式"""
         try:
-            theme = self.config_manager.get("theme", "dark")
+            theme = self.config_manager.get("theme")
             
             
             title_label = self.extractInterface.findChild(TitleLabel, "extractAudioTitle")

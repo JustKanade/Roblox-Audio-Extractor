@@ -118,7 +118,7 @@ def get_language_code(language_name):
           "简体中文" in language_name or "Chinese" in language_name):
         return "zh"
     elif (language_name in ["跟随系统设置", "Follow System Settings", "System Settings"] or
-          "跟随系统" in language_name or "Follow System" in language_name):
+          "跟随系统设置" in language_name or "Follow System" in language_name):
         return "auto"
     else:
         return "en"  # 默认返回英语 

@@ -177,7 +177,7 @@ class HomeInterface(QWidget):
         if not self.config_manager:
             return
             
-        theme = self.config_manager.get("theme", "dark")
+        theme = self.config_manager.get("theme")
 
         if theme == "light":
             # 浅色模式样式

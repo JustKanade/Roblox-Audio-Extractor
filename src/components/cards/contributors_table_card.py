@@ -85,8 +85,8 @@ class ContributorsTableCard(QWidget):
         headers = [
             self.get_text("contributor_name", "Name"),
             self.get_text("contributor_type", "Contribution Type"), 
-            self.get_text("contributor_links", "Links"),
-            self.get_text("contributor_notes", "Notes")
+            self.get_text("contributor_notes", "Notes"),
+            self.get_text("contributor_links", "Links")
         ]
         self.table.setHorizontalHeaderLabels(headers)
         
@@ -162,6 +162,19 @@ class ContributorsTableCard(QWidget):
             type_item.setFlags(type_item.flags() & ~Qt.ItemIsEditable)
             self.table.setItem(row, 1, type_item)
             
+            # 备注（支持多语言）
+            notes = contributor.get("notes", {})
+            if isinstance(notes, dict):
+                current_lang = "zh" if self.lang and hasattr(self.lang, 'current_language') and \
+                              str(self.lang.current_language) == "Language.CHINESE" else "en"
+                notes_text = notes.get(current_lang, notes.get("en", ""))
+            else:
+                notes_text = str(notes)
+                
+            notes_item = QTableWidgetItem(notes_text)
+            notes_item.setFlags(notes_item.flags() & ~Qt.ItemIsEditable)
+            self.table.setItem(row, 2, notes_item)
+            
             # 链接
             link_url = contributor.get("links", "") or contributor.get("github", "")  # 兼容旧数据
             if link_url:
@@ -187,24 +200,11 @@ class ContributorsTableCard(QWidget):
                 # 设置链接文字颜色为主题色
                 self.setLinkItemColor(link_item)
                 
-                self.table.setItem(row, 2, link_item)
+                self.table.setItem(row, 3, link_item)
             else:
                 link_item = QTableWidgetItem("-")
                 link_item.setFlags(link_item.flags() & ~Qt.ItemIsEditable)
-                self.table.setItem(row, 2, link_item)
-            
-            # 备注（支持多语言）
-            notes = contributor.get("notes", {})
-            if isinstance(notes, dict):
-                current_lang = "zh" if self.lang and hasattr(self.lang, 'current_language') and \
-                              str(self.lang.current_language) == "Language.CHINESE" else "en"
-                notes_text = notes.get(current_lang, notes.get("en", ""))
-            else:
-                notes_text = str(notes)
-                
-            notes_item = QTableWidgetItem(notes_text)
-            notes_item.setFlags(notes_item.flags() & ~Qt.ItemIsEditable)
-            self.table.setItem(row, 3, notes_item)
+                self.table.setItem(row, 3, link_item)
             
         # 自适应列宽
         self.table.resizeColumnsToContents()
@@ -213,8 +213,8 @@ class ContributorsTableCard(QWidget):
         header = self.table.horizontalHeader()
         header.setSectionResizeMode(0, QHeaderView.ResizeToContents)  # 姓名列自适应
         header.setSectionResizeMode(1, QHeaderView.ResizeToContents)  # 贡献类型列自适应
-        header.setSectionResizeMode(2, QHeaderView.ResizeToContents)  # 链接列自适应
-        header.setSectionResizeMode(3, QHeaderView.Stretch)           # 备注列拉伸填充
+        header.setSectionResizeMode(2, QHeaderView.Stretch)           # 备注列拉伸填充
+        header.setSectionResizeMode(3, QHeaderView.ResizeToContents)  # 链接列自适应
         
         # 计算表格所需的高度
         self.updateTableSize()
@@ -277,9 +277,9 @@ class ContributorsTableCard(QWidget):
         if not hasattr(self, 'table') or self.table.rowCount() == 0:
             return
             
-        # 遍历表格中的所有链接项（第2列）
+        # 遍历表格中的所有链接项（第3列）
         for row in range(self.table.rowCount()):
-            item = self.table.item(row, 2)
+            item = self.table.item(row, 3)
             if item and item.data(Qt.UserRole):  # 如果有链接数据
                 self.setLinkItemColor(item)
     
@@ -313,7 +313,7 @@ class ContributorsTableCard(QWidget):
     def onCellEntered(self, row, column):
         """处理鼠标进入单元格事件"""
         # 如果是链接列且有有效链接，设置手形光标
-        if column == 2:
+        if column == 3:
             item = self.table.item(row, column)
             if item and item.data(Qt.UserRole):
                 self.table.setCursor(QCursor(Qt.PointingHandCursor))
@@ -325,7 +325,7 @@ class ContributorsTableCard(QWidget):
     def onCellClicked(self, row, column):
         """处理单元格点击事件"""
         # 如果点击的是链接列
-        if column == 2:
+        if column == 3:
             item = self.table.item(row, column)
             if item and item.data(Qt.UserRole):
                 url = item.data(Qt.UserRole)

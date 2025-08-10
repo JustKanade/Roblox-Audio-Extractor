@@ -210,6 +210,10 @@ class SettingsInterface(QWidget):
             current_zoom_display = self._get_zoom_display_name(self.config_manager.get("dpi_scale", "Auto"))
             qconfig.set(self.zoomConfig, current_zoom_display)
             
+            # 加载主题配置项
+            current_theme_display = self._get_theme_display_name(self.config_manager.get("theme", "auto"))
+            qconfig.set(self.themeConfig, current_theme_display)
+            
     def _get_language_display_name(self, language_code):
         """将语言代码转换为显示名称"""
         if language_code == "zh":
@@ -218,6 +222,15 @@ class SettingsInterface(QWidget):
             return self.get_text("english")
         else:  # "auto" or any other value
             return self.get_text("follow_system_language")
+            
+    def _get_theme_display_name(self, theme_value):
+        """将主题值转换为显示名称"""
+        if theme_value == "dark":
+            return self.get_text("theme_dark")
+        elif theme_value == "light":
+            return self.get_text("theme_light")
+        else:  # "auto" or any other value
+            return self.get_text("theme_system")
             
     def _get_zoom_display_name(self, zoom_value):
         """将界面缩放值转换为显示名称"""
@@ -686,10 +699,18 @@ class SettingsInterface(QWidget):
     
     def onThemeChanged(self, config_item):
         """主题改变事件"""
-        theme_value = qconfig.get(config_item)
-        # 调用父窗口的onThemeChanged方法
+        selected_theme = qconfig.get(config_item)
+        
+        # 将显示名称转换为配置值
+        theme_value = self._get_theme_value_from_display(selected_theme)
+        
+        if self.config_manager:
+            # 保存配置
+            self.config_manager.set("theme", theme_value)
+        
+        # 调用父窗口的onThemeChanged方法，传递显示名称
         if self._parent_window and hasattr(self._parent_window, 'onThemeChanged'):
-            self._parent_window.onThemeChanged(theme_value)
+            self._parent_window.onThemeChanged(selected_theme)
     
     def onZoomChanged(self, config_item):
         """界面缩放改变事件"""
@@ -709,6 +730,15 @@ class SettingsInterface(QWidget):
             # 显示重启提示对话框
             self._show_zoom_restart_dialog()
     
+    def _get_theme_value_from_display(self, display_name):
+        """将主题显示名称转换为配置值"""
+        if display_name == self.get_text("theme_dark"):
+            return "dark"
+        elif display_name == self.get_text("theme_light"):
+            return "light"
+        else:  # self.get_text("theme_system") or any other value
+            return "auto"
+            
     def _get_zoom_value_from_display(self, display_name):
         """将显示名称转换为配置值"""
         if display_name == "100%":

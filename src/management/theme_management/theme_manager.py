@@ -36,7 +36,7 @@ def apply_theme_from_config(window, config_manager, central_log_handler=None):
     """
     try:
         # 获取主题设置
-        theme_setting = config_manager.get("theme", "dark")
+        theme_setting = config_manager.get("theme")
         
         # 更新中央日志处理器的主题设置
         if central_log_handler:
@@ -176,7 +176,7 @@ def apply_theme_change(window, theme_name, config_manager, central_log_handler=N
                 theme_value = "dark"
             elif theme_name in ["浅色", "Light Theme"]:
                 theme_value = "light"
-            elif theme_name in ["跟随系统", "Follow System"]:
+            elif theme_name in ["跟随系统设置", "Follow System Settings"]:
                 theme_value = "auto"
             else:
                 theme_value = "auto"
@@ -269,7 +269,7 @@ def update_all_styles(window):
         if not hasattr(window, "config_manager"):
             return
             
-        theme = window.config_manager.get("theme", "dark")
+        theme = window.config_manager.get("theme")
         
         # 确定当前主题和另一个主题
         current_theme = theme  # "dark" 或 "light"

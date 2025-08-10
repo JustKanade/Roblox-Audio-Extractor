@@ -11,6 +11,18 @@
         "en": "Project creator and maintainer",
         "zh": "项目创建者和维护者"
       }
+    },
+    {
+      "name": "zhiyiYo",
+      "contribution_type": {
+        "en": "Creator of QFluentWidgets",
+        "zh": "QFluentWidgets 作者"
+      },
+      "links": "https://github.com/zhiyiYo",
+      "notes": {
+        "en": "Provide Widgets support",
+        "zh": "提供组件支持"
+      }
     }
   ]
 } 

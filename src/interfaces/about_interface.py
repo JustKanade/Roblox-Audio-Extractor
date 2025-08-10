@@ -268,7 +268,7 @@ class AboutInterface(QWidget):
     def setAboutStyles(self):
         """设置关于页面样式"""
         if self.config_manager:
-            theme = self.config_manager.get("theme", "dark")
+            theme = self.config_manager.get("theme")
         else:
             theme = "dark"
 
