@@ -20,6 +20,7 @@ import sys
 from src.utils.file_utils import open_directory
 from src.utils.log_utils import LogHandler
 from src.components.cards.recent_activity_card import RecentActivityCard
+from src.management.theme_management.interface_theme_mixin import InterfaceThemeMixin
 
 # 尝试导入LogControlCard
 try:
@@ -31,7 +32,7 @@ except ImportError:
 from src.logging.central_log_handler import CentralLogHandler
 
 
-class ClearCacheInterface(QWidget):
+class ClearCacheInterface(QWidget, InterfaceThemeMixin):
     """缓存清理界面类"""
     
     def __init__(self, parent=None, config_manager=None, lang=None, default_dir=None):
@@ -54,7 +55,7 @@ class ClearCacheInterface(QWidget):
         # 初始化界面
         self.initUI()
         # 应用样式
-        self.setCacheStyles()
+        self.setInterfaceStyles()
         
         # 连接路径管理器信号实现实时同步
         if self.path_manager:
@@ -331,28 +332,17 @@ class ClearCacheInterface(QWidget):
         if self._parent_window and hasattr(self._parent_window, 'cancelClearCache'):
             self._parent_window.cancelClearCache()
         
-    def setCacheStyles(self):
+    def setInterfaceStyles(self):
         """设置缓存界面样式"""
-        if not self.config_manager:
-            return
-            
-        theme = self.config_manager.get("theme")
-
-        if theme == "light":
-            # 浅色模式样式
-            text_color = "rgb(0, 0, 0)"
-        else:
-            # 深色模式样式
-            text_color = "rgb(255, 255, 255)"
+        # 调用父类的通用样式设置
+        super().setInterfaceStyles()
+        
+        # 获取文本样式
+        text_styles = self.get_text_styles()
         
         # 设置日志文本编辑器样式
         if hasattr(self, 'logText'):
-            self.logText.setStyleSheet(f"""
-                TextEdit {{
-                    font-family: Consolas, Courier, monospace;
-                    color: {text_color};
-                }}
-            """)
+            self.logText.setStyleSheet(text_styles['log_text'])
             
     def updateProgressBar(self, value):
         """更新进度条"""

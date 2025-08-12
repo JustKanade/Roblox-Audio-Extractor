@@ -22,12 +22,10 @@ from src.components.cards.home_cards import (
     ExtractMenuCard, ClearCacheCard, SettingsCard
 )
 from src.components.cards.recent_activity_card import RecentActivityCard
-
-import os
-import multiprocessing
+from src.management.theme_management.interface_theme_mixin import InterfaceThemeMixin
 from typing import Any, Optional
 
-class HomeInterface(QWidget):
+class HomeInterface(QWidget, InterfaceThemeMixin):
     """首页界面类"""
     
     def __init__(self, parent=None, default_dir: str = "", config_manager: Any = None, lang: Any = None):
@@ -133,7 +131,7 @@ class HomeInterface(QWidget):
         main_layout.addWidget(scroll)
 
         # 应用样式
-        self.setHomeStyles()
+        self.setInterfaceStyles()
         
         # 设置为响应式
         self.setResponsiveContentWidget(scroll)
@@ -173,62 +171,37 @@ class HomeInterface(QWidget):
         
 
 
-    def setHomeStyles(self):
+    def setInterfaceStyles(self):
         """设置主页样式"""
-        # 检查当前主题并设置相应样式
-        if not self.config_manager:
-            return
-            
-        theme = self.config_manager.get("theme")
-
-        if theme == "light":
-            # 浅色模式样式
-            self.setStyleSheet("""
-                #homeInterface {
-                    background-color: transparent;
-                }
-                #homeScrollArea {
-                    background-color: transparent;
-                    border: none;
-                }
-                #homeScrollWidget {
-                    background-color: transparent;
-                }
-                #aboutTitle {
-                    color: rgb(0, 0, 0);
-                    font-size: 32px;
-                    font-weight: bold;
-                }
-                #aboutVersion {
-                    color: rgb(0, 120, 215);
-                    font-size: 18px;
-                    font-weight: 600;
-                }
-            """)
-        else:
-            # 深色模式样式
-            self.setStyleSheet("""
-                #homeInterface {
-                    background-color: transparent;
-                }
-                #homeScrollArea {
-                    background-color: transparent;
-                    border: none;
-                }
-                #homeScrollWidget {
-                    background-color: transparent;
-                }
-                #aboutTitle {
-                    color: rgb(255, 255, 255);
-                    font-size: 32px;
-                    font-weight: bold;
-                }
-                #aboutVersion {
-                    color: rgb(0, 212, 255);
-                    font-size: 18px;
-                    font-weight: 600;
-                }
-            """)
+        # 调用父类的通用样式设置
+        super().setInterfaceStyles()
+        
+        # 获取文本样式
+        text_styles = self.get_text_styles()
+        
+        # 应用特定的主页样式
+        specific_styles = f"""
+            #homeInterface {{
+                background-color: transparent;
+            }}
+            #homeScrollArea {{
+                background-color: transparent;
+                border: none;
+            }}
+            #homeScrollWidget {{
+                background-color: transparent;
+            }}
+            #aboutTitle {{
+                {text_styles['title']}
+            }}
+            #aboutVersion {{
+                {text_styles['version']}
+            }}
+        """
+        
+        # 合并通用样式和特定样式
+        combined_styles = self.get_common_interface_styles() + specific_styles
+        self.setStyleSheet(combined_styles)
             
 
             

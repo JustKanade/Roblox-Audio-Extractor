@@ -331,24 +331,40 @@ def update_all_styles(window):
 
         # 更新各个界面样式
         # 主页样式
-        if hasattr(window, 'setHomeStyles'):
-            window.setHomeStyles()
+        if hasattr(window, 'homeInterface') and hasattr(window.homeInterface, 'setInterfaceStyles'):
+            window.homeInterface.setInterfaceStyles()
 
         # 提取音频界面样式
-        if hasattr(window, 'extractInterface') and hasattr(window.extractInterface, 'setExtractStyles'):
-            window.extractInterface.setExtractStyles()
+        if hasattr(window, 'extractInterface') and hasattr(window.extractInterface, 'setInterfaceStyles'):
+            window.extractInterface.setInterfaceStyles()
+            
+        # 提取字体界面样式
+        if hasattr(window, 'extractFontsInterface') and hasattr(window.extractFontsInterface, 'setInterfaceStyles'):
+            window.extractFontsInterface.setInterfaceStyles()
+            
+        # 提取图片界面样式
+        if hasattr(window, 'extractImagesInterface') and hasattr(window.extractImagesInterface, 'setInterfaceStyles'):
+            window.extractImagesInterface.setInterfaceStyles()
+            
+        # 提取纹理界面样式
+        if hasattr(window, 'extractTexturesInterface') and hasattr(window.extractTexturesInterface, 'setInterfaceStyles'):
+            window.extractTexturesInterface.setInterfaceStyles()
             
         # 关于界面样式
-        if hasattr(window, 'aboutInterface') and hasattr(window.aboutInterface, 'setAboutStyles'):
-            window.aboutInterface.setAboutStyles()
+        if hasattr(window, 'aboutInterface') and hasattr(window.aboutInterface, 'setInterfaceStyles'):
+            window.aboutInterface.setInterfaceStyles()
 
         # 清除缓存界面样式
-        if hasattr(window, 'setCacheStyles'):
-            window.setCacheStyles()
+        if hasattr(window, 'clearCacheInterface') and hasattr(window.clearCacheInterface, 'setInterfaceStyles'):
+            window.clearCacheInterface.setInterfaceStyles()
 
         # 历史界面样式
-        if hasattr(window, 'setHistoryStyles'):
-            window.setHistoryStyles()
+        if hasattr(window, 'historyInterface') and hasattr(window.historyInterface, 'setInterfaceStyles'):
+            window.historyInterface.setInterfaceStyles()
+            
+        # 设置界面样式
+        if hasattr(window, 'settingsInterface') and hasattr(window.settingsInterface, 'setInterfaceStyles'):
+            window.settingsInterface.setInterfaceStyles()
 
         # 记录缓存状态
         logger.debug(f"当前主题:{current_theme}，两种主题样式都已缓存")

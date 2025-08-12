@@ -438,25 +438,9 @@ class MainWindow(FluentWindow):
     def setExtractStyles(self):
         """设置提取音频界面的样式"""
         try:
-            theme = self.config_manager.get("theme")
-            
-            
-            title_label = self.extractInterface.findChild(TitleLabel, "extractAudioTitle")
-            if title_label:
-                if theme == "light":
-                    title_label.setStyleSheet("""
-                        font-size: 28px;
-                        font-weight: bold;
-                        color: rgb(0, 0, 0);
-                        margin-bottom: 3px;
-                    """)
-                else:
-                    title_label.setStyleSheet("""
-                        font-size: 28px;
-                        font-weight: bold;
-                        color: rgb(255, 255, 255);
-                        margin-bottom: 3px;
-                    """)
+            # 调用提取界面的统一样式设置方法
+            if hasattr(self.extractInterface, 'setInterfaceStyles'):
+                self.extractInterface.setInterfaceStyles()
                     
         except Exception as e:
             print(f"设置提取音频界面样式时出错: {e}")

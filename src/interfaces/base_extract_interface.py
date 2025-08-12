@@ -29,6 +29,8 @@ from abc import ABCMeta, abstractmethod
 
 from src.utils.log_utils import LogHandler
 
+from src.management.theme_management.interface_theme_mixin import InterfaceThemeMixin
+
 # 创建兼容的元类
 class QWidgetMeta(type(QWidget), ABCMeta):
     pass
@@ -43,7 +45,7 @@ except ImportError:
     LogControlCard = None
 
 
-class BaseExtractInterface(QWidget, metaclass=QWidgetMeta):
+class BaseExtractInterface(QWidget, InterfaceThemeMixin, metaclass=QWidgetMeta):
     """基础提取界面类 - 抽象基类"""
     
     def __init__(self, parent=None, config_manager=None, lang=None, default_dir=None, download_history=None):
@@ -75,7 +77,7 @@ class BaseExtractInterface(QWidget, metaclass=QWidgetMeta):
         # 初始化界面
         self.initUI()
         # 应用样式
-        self.setExtractStyles()
+        self.setInterfaceStyles()
         
         # 连接路径管理器信号实现实时同步
         if self.path_manager:
@@ -802,18 +804,32 @@ class BaseExtractInterface(QWidget, metaclass=QWidgetMeta):
         """更新进度标签"""
         self.progressLabel.setText(text)
 
-    def setExtractStyles(self):
+    def setInterfaceStyles(self):
         """设置提取界面样式"""
-        self.setStyleSheet("""
-            QWidget {
-                background-color: transparent;
-            }
-            CardWidget {
+        # 调用父类的通用样式设置
+        super().setInterfaceStyles()
+        
+        # 获取主题相关样式
+        colors = self.get_theme_colors()
+        text_styles = self.get_text_styles()
+        
+        # 应用特定的提取界面样式
+        specific_styles = f"""
+            QWidget {{
+                background-color: {colors['background']};
+            }}
+            CardWidget {{
                 border-radius: 10px;
-            }
-            TextEdit {
-                border: 1px solid rgba(0, 0, 0, 0.1);
+                background-color: {colors['background']};
+            }}
+            TextEdit {{
+                border: 1px solid {colors['border']};
                 border-radius: 6px;
-                background-color: rgba(255, 255, 255, 0.8);
-            }
-        """) 
+                background-color: rgba(255, 255, 255, 0.1);
+                {text_styles['body']}
+            }}
+        """
+        
+        # 合并样式
+        combined_styles = self.get_common_interface_styles() + specific_styles
+        self.setStyleSheet(combined_styles) 

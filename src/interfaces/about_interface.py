@@ -26,6 +26,8 @@ from src.components.avatar.avatar_widget import AvatarDownloader
 import os
 import sys
 
+from src.management.theme_management.interface_theme_mixin import InterfaceThemeMixin
+
 # 导入事件相关定义
 AVATAR_SETTING_CHANGED_EVENT_TYPE = QEvent.Type(1001)  # 与avatar_setting_card.py保持一致
 
@@ -266,7 +268,7 @@ class BannerWidget(CardWidget):
         return super().event(event)
 
 
-class AboutInterface(QWidget):
+class AboutInterface(QWidget, InterfaceThemeMixin):
     """关于界面类"""
     
     def __init__(self, parent=None, config_manager=None, lang=None):
@@ -284,7 +286,7 @@ class AboutInterface(QWidget):
         # 初始化界面
         self.initUI()
         # 应用样式
-        self.setAboutStyles()
+        self.setInterfaceStyles()
         
     def initUI(self):
         """初始化界面"""
@@ -404,56 +406,34 @@ class AboutInterface(QWidget):
                 if not has_stretch:
                     content_widget.layout().addStretch()
             
-    def setAboutStyles(self):
+    def setInterfaceStyles(self):
         """设置关于页面样式"""
-        if self.config_manager:
-            theme = self.config_manager.get("theme")
-        else:
-            theme = "dark"
-
-        if theme == "light":
-            self.setStyleSheet("""
-                #aboutInterface {
-                    background-color: transparent;
-                }
-                #aboutScrollArea {
-                    background-color: transparent;
-                    border: none;
-                }
-                #aboutScrollWidget {
-                    background-color: transparent;
-                }
-                #aboutTitle {
-                    color: rgb(0, 0, 0);
-                    font-size: 32px;
-                    font-weight: bold;
-                }
-                #aboutVersion {
-                    color: rgb(0, 120, 215);
-                    font-size: 18px;
-                    font-weight: 600;
-                }
-            """)
-        else:
-            self.setStyleSheet("""
-                #aboutInterface {
-                    background-color: transparent;
-                }
-                #aboutScrollArea {
-                    background-color: transparent;
-                    border: none;
-                }
-                #aboutScrollWidget {
-                    background-color: transparent;
-                }
-                #aboutTitle {
-                    color: rgb(255, 255, 255);
-                    font-size: 32px;
-                    font-weight: bold;
-                }
-                #aboutVersion {
-                    color: rgb(0, 212, 255);
-                    font-size: 18px;
-                    font-weight: 600;
-                }
-            """) 
+        # 调用父类的通用样式设置
+        super().setInterfaceStyles()
+        
+        # 获取文本样式
+        text_styles = self.get_text_styles()
+        
+        # 应用特定的关于页面样式
+        specific_styles = f"""
+            #aboutInterface {{
+                background-color: transparent;
+            }}
+            #aboutScrollArea {{
+                background-color: transparent;
+                border: none;
+            }}
+            #aboutScrollWidget {{
+                background-color: transparent;
+            }}
+            #aboutTitle {{
+                {text_styles['title']}
+            }}
+            #aboutVersion {{
+                {text_styles['version']}
+            }}
+        """
+        
+        # 合并通用样式和特定样式
+        combined_styles = self.get_common_interface_styles() + specific_styles
+        self.setStyleSheet(combined_styles) 

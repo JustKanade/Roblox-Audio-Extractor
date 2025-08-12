@@ -21,6 +21,7 @@ from src.utils.file_utils import open_directory
 from src.utils.log_utils import LogHandler
 from src.utils.history_manager import ExtractedHistory
 from src.components.cards.recent_activity_card import RecentActivityCard
+from src.management.theme_management.interface_theme_mixin import InterfaceThemeMixin
 
 # 尝试导入LogControlCard
 try:
@@ -32,7 +33,7 @@ except ImportError:
 from src.logging.central_log_handler import CentralLogHandler
 
 
-class HistoryInterface(QWidget):
+class HistoryInterface(QWidget, InterfaceThemeMixin):
     """历史记录界面类"""
     
     def __init__(self, parent=None, config_manager=None, lang=None, download_history=None):
@@ -54,7 +55,7 @@ class HistoryInterface(QWidget):
         # 初始化界面
         self.initUI()
         # 应用样式
-        self.setHistoryStyles()
+        self.setInterfaceStyles()
         
     def initUI(self):
         """初始化界面"""
@@ -528,28 +529,17 @@ class HistoryInterface(QWidget):
         except Exception as e:
             print(f"刷新历史界面时出错: {e}")
         
-    def setHistoryStyles(self):
+    def setInterfaceStyles(self):
         """设置历史界面样式"""
-        if not self.config_manager:
-            return
-            
-        theme = self.config_manager.get("theme")
-
-        if theme == "light":
-            # 浅色模式样式
-            text_color = "rgb(0, 0, 0)"
-        else:
-            # 深色模式样式
-            text_color = "rgb(255, 255, 255)"
+        # 调用父类的通用样式设置
+        super().setInterfaceStyles()
+        
+        # 获取文本样式
+        text_styles = self.get_text_styles()
         
         # 设置日志文本编辑器样式
         if hasattr(self, 'logText'):
-            self.logText.setStyleSheet(f"""
-                TextEdit {{
-                    font-family: Consolas, Courier, monospace;
-                    color: {text_color};
-                }}
-            """)
+            self.logText.setStyleSheet(text_styles['log_text'])
             
     def refreshHistoryInterfaceAfterClear(self):
         """清除历史后刷新界面"""

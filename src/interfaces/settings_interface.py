@@ -30,6 +30,7 @@ from src.components.cards.recent_activity_card import RecentActivityCard
 from src.logging.central_log_handler import CentralLogHandler
 from src.management.language_management.language_manager import apply_language
 from src.config.config_manager import isWin11
+from src.management.theme_management.interface_theme_mixin import InterfaceThemeMixin
 
 
 
@@ -81,7 +82,7 @@ try:
 except ImportError:
     LaunchFileCard = None
 
-class SettingsInterface(QWidget):
+class SettingsInterface(QWidget, InterfaceThemeMixin):
     """设置界面类"""
     
     def __init__(self, parent=None, config_manager=None, lang=None, version=None):
@@ -294,6 +295,9 @@ class SettingsInterface(QWidget):
 
         # 创建日志处理器
         self.settingsLogHandler = self.recent_activity_card.get_log_handler()
+        
+        # 应用样式
+        self.setInterfaceStyles()
         
     def createSettingGroups(self, layout):
         """创建设置卡片组"""
@@ -1001,3 +1005,12 @@ class SettingsInterface(QWidget):
                 # 记录其他错误但不中断流程
                 if hasattr(self, 'settingsLogHandler'):
                     self.settingsLogHandler.warning(f"设置模块语言时出错 {module_name}: {e}") 
+
+    def setInterfaceStyles(self):
+        """设置界面样式"""
+        # 调用父类的通用样式设置
+        super().setInterfaceStyles()
+        
+        # 获取文本样式，settings界面主要使用通用样式即可
+        # 可以在这里添加特定的设置界面样式
+        pass 
