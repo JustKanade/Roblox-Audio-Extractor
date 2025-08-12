@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+    #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
 配置文件管理器 - 处理应用程序配置的加载、保存和访问
@@ -83,6 +83,14 @@ class AppConfig(QConfig):
         OptionsValidator(["duration", "size", "name"]))
     saveLogs = ConfigItem("Features", "SaveLogs", False, BoolValidator())
     autoOpenOutputDir = ConfigItem("Features", "AutoOpenOutputDir", True, BoolValidator())
+    
+    # 字体配置
+    fontClassificationMethod = OptionsConfigItem(
+        "Fonts", "FontClassificationMethod", "family",
+        OptionsValidator(["family", "style", "size"]))
+    fontThreads = RangeConfigItem(
+        "Fonts", "FontThreads", min(4, multiprocessing.cpu_count()), 
+        RangeValidator(1, 16))
     
     # 音频转换配置
     convertAudioEnabled = ConfigItem("Features", "ConvertAudioEnabled", False, BoolValidator())
@@ -320,6 +328,12 @@ class ConfigManager:
                 # 音频转换配置
                 "convert_audio_enabled": self.cfg.convertAudioEnabled,
                 "convert_audio_format": self.cfg.convertAudioFormat,
+                # 兼容旧的音频转换配置键名
+                "convert_enabled": self.cfg.convertAudioEnabled,
+                "convert_format": self.cfg.convertAudioFormat,
+                # 字体配置
+                "font_classification_method": self.cfg.fontClassificationMethod,
+                "font_threads": self.cfg.fontThreads,
             }
             
             if key in key_mapping:
@@ -390,6 +404,12 @@ class ConfigManager:
                 # 音频转换配置
                 "convert_audio_enabled": self.cfg.convertAudioEnabled,
                 "convert_audio_format": self.cfg.convertAudioFormat,
+                # 兼容旧的音频转换配置键名
+                "convert_enabled": self.cfg.convertAudioEnabled,
+                "convert_format": self.cfg.convertAudioFormat,
+                # 字体配置
+                "font_classification_method": self.cfg.fontClassificationMethod,
+                "font_threads": self.cfg.fontThreads,
             }
             
             if key in key_mapping:

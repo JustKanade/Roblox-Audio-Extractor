@@ -19,7 +19,7 @@ from qfluentwidgets import (
 import os
 from src.utils.file_utils import open_directory
 from src.utils.log_utils import LogHandler
-from src.extractors.audio_extractor import ExtractedHistory
+from src.utils.history_manager import ExtractedHistory
 from src.components.cards.recent_activity_card import RecentActivityCard
 
 # 尝试导入LogControlCard
@@ -143,27 +143,7 @@ class HistoryInterface(QWidget):
         
         # 创建历史记录菜单
         self.historyMenu = RoundMenu(parent=self)
-        
-        # 获取所有可用的记录类型
-        if self.download_history and hasattr(self.download_history, "get_record_types"):
-            # 添加"清除所有历史"选项
-            self.historyMenu.addAction(Action(FluentIcon.DELETE, self.get_text("all_history"), triggered=lambda: self._clearHistoryByType("all")))
-            
-            # 添加分隔线
-            self.historyMenu.addSeparator()
-            
-            # 添加各类型历史记录选项
-            record_types = self.download_history.get_record_types()
-            for record_type in record_types:
-                # 获取每种类型的记录数量
-                records_count = self.download_history.get_history_size(record_type)
-                if records_count > 0:
-                    # 首字母大写，并添加记录数
-                    display_name = f"{record_type.capitalize()} ({records_count})"
-                    # 使用固定参数值创建函数，避免闭包问题
-                    def create_callback(rt=record_type):
-                        return lambda: self._clearHistoryByType(rt)
-                    self.historyMenu.addAction(Action(FluentIcon.DELETE, display_name, triggered=create_callback()))
+        self._updateHistoryMenu()
 
         # 清除历史按钮
         self.clearHistoryButton = PrimaryDropDownPushButton(FluentIcon.DELETE, self.get_text("clear_history") or "清除历史")
@@ -416,68 +396,19 @@ class HistoryInterface(QWidget):
                         parent=self
                     )
                     
-    def _clearHistoryByType(self, record_type: str):
-        """根据类型清除提取历史记录
+    def _callParentClearHistory(self, record_type: str):
+        """调用父窗口的清除历史方法
         
         Args:
             record_type: 要清除的记录类型，'all'表示清除所有记录
         """
-        if not self.download_history:
+        if self._parent_window and hasattr(self._parent_window, 'clearHistory'):
+            self._parent_window.clearHistory(record_type)
+        else:
+            # 如果父窗口不可用，显示错误信息
             if hasattr(self, 'logHandler'):
-                self.logHandler.error(self.get_text("history_not_available"))
-            return
-            
-        try:
-            # 清除历史记录
-            if record_type == "all":
-                self.download_history.clear_history()
-                message = self.get_text("all_history_cleared")
-            else:
-                # 确保record_type是字符串类型
-                record_type_str = str(record_type)
-                self.download_history.clear_history(record_type_str)
-                message = self.get_text("history_type_cleared").format(record_type_str.capitalize())
-            
-            # 刷新界面
-            self.refreshHistoryInterfaceAfterClear()
-            
-            # 显示成功消息
-            if hasattr(self, 'logHandler'):
-                self.logHandler.success(message)
-            
-            # 显示通知
-            from qfluentwidgets import InfoBar, InfoBarPosition
-            from PyQt5.QtCore import Qt
-            
-            InfoBar.success(
-                title=self.get_text("success"),
-                content=message,
-                orient=Qt.Horizontal,
-                isClosable=True,
-                position=InfoBarPosition.TOP,
-                duration=3000,
-                parent=self
-            )
-            
-        except Exception as e:
-            # 显示错误消息
-            error_message = f"{self.get_text('clear_history_failed')}: {str(e)}"
-            if hasattr(self, 'logHandler'):
-                self.logHandler.error(error_message)
-            
-            from qfluentwidgets import InfoBar, InfoBarPosition
-            from PyQt5.QtCore import Qt
-            
-            InfoBar.error(
-                title=self.get_text("error"),
-                content=error_message,
-                orient=Qt.Horizontal,
-                isClosable=True,
-                position=InfoBarPosition.TOP,
-                duration=3000,
-                parent=self
-            )
-                    
+                self.logHandler.error(self.get_text("parent_window_not_available", "无法访问主窗口"))
+
     def _viewHistoryFile(self):
         """查看历史文件"""
         if self.download_history and self.download_history.history_file:
@@ -550,6 +481,10 @@ class HistoryInterface(QWidget):
                     self.viewHistoryButton.show()
                 else:
                     self.viewHistoryButton.hide()
+
+            # 更新清除历史菜单
+            if hasattr(self, '_updateHistoryMenu'):
+                self._updateHistoryMenu()
 
             # 获取不同类型的历史记录数量
             record_counts = {}
@@ -626,3 +561,42 @@ class HistoryInterface(QWidget):
             self.refreshHistoryInterface()
         except Exception as e:
             print(f"清除历史后刷新界面时出错: {e}") 
+
+    def _updateHistoryMenu(self):
+        """更新历史记录菜单"""
+        # 清空现有菜单项
+        self.historyMenu.clear()
+        
+        # 获取所有可用的记录类型
+        if self.download_history and hasattr(self.download_history, "get_record_types"):
+            # 添加"清除所有历史"选项
+            self.historyMenu.addAction(Action(FluentIcon.DELETE, self.get_text("all_history", "所有历史记录"), triggered=lambda: self._callParentClearHistory("all")))
+            
+            # 检查是否有任何类型的历史记录
+            has_any_records = False
+            record_types = self.download_history.get_record_types()
+            for record_type in record_types:
+                records_count = self.download_history.get_history_size(record_type)
+                if records_count > 0:
+                    has_any_records = True
+                    break
+            
+            # 如果有记录，添加分隔线和具体类型选项
+            if has_any_records:
+                self.historyMenu.addSeparator()
+                
+                # 添加各类型历史记录选项
+                for record_type in record_types:
+                    records_count = self.download_history.get_history_size(record_type)
+                    if records_count > 0:
+                        # 首字母大写，并添加记录数
+                        display_name = f"{record_type.capitalize()} ({records_count})"
+                        # 使用固定参数值创建函数，避免闭包问题
+                        def create_callback(rt=record_type):
+                            return lambda: self._callParentClearHistory(rt)
+                        self.historyMenu.addAction(Action(FluentIcon.DELETE, display_name, triggered=create_callback()))
+        else:
+            # 如果没有历史记录，添加禁用的提示项
+            action = Action(FluentIcon.INFO, self.get_text("no_history_to_clear", "暂无历史记录可清除"))
+            action.setEnabled(False)
+            self.historyMenu.addAction(action) 

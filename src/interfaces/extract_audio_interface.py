@@ -221,4 +221,4 @@ class ExtractAudioInterface(BaseExtractInterface):
             if hasattr(self, 'convert_card'):
                 self.config_manager.set("convert_enabled", self.convert_card.isChecked())
             if hasattr(self, 'format_combo'):
-                self.config_manager.set("convert_format", self.format_combo.currentText()) 
+                self.config_manager.set("convert_format", self.format_combo.currentText())

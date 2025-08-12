@@ -19,7 +19,8 @@ from typing import Dict, List, Any, Set, Optional
 from enum import Enum, auto
 
 
-from src.extractors.audio_extractor import RobloxAudioExtractor, ExtractedHistory, ContentHashCache, ProcessingStats, ClassificationMethod, is_ffmpeg_available
+from src.extractors.audio_extractor import RobloxAudioExtractor, ProcessingStats, ClassificationMethod, is_ffmpeg_available
+from src.utils.history_manager import ExtractedHistory, ContentHashCache
 
 
 from src.utils.file_utils import resource_path
@@ -913,9 +914,15 @@ class MainWindow(FluentWindow):
             record_type: 要清除的记录类型，默认为'all'表示清除所有记录
         """
         
+        # 根据清除类型生成确认消息
+        if record_type == "all":
+            confirm_message = lang.get("confirm_clear_history")
+        else:
+            confirm_message = lang.get("confirm_clear_history_type", record_type.capitalize())
+        
         result = MessageBox(
             lang.get("clear_history"),
-            lang.get("confirm_clear_history"),
+            confirm_message,
             self
         )
 
@@ -925,17 +932,23 @@ class MainWindow(FluentWindow):
             return
             
         try:
+            # 检查历史记录是否可用
+            if not self.download_history:
+                error_message = lang.get("history_not_available", "历史记录不可用")
+                if hasattr(self.historyInterface, 'logHandler'):
+                    self.historyInterface.logHandler.error(error_message)
+                return
             
             if record_type == "all":
                 self.download_history.clear_history()
                 message = lang.get("all_history_cleared")
             else:
-                
+                # 确保record_type是字符串类型
                 record_type_str = str(record_type)
                 self.download_history.clear_history(record_type_str)
                 message = lang.get("history_type_cleared").format(record_type_str.capitalize())
 
-            
+            # 使用QTimer延迟刷新界面，确保数据已保存
             QTimer.singleShot(100, self.historyInterface.refreshHistoryInterfaceAfterClear)
                 
             

@@ -11,7 +11,7 @@ from .audio_extractor import (
     ClassificationMethod as AudioClassificationMethod,
     ProcessingStats as AudioProcessingStats,
     ContentHashCache as AudioContentHashCache,
-    ExtractedHistory as AudioExtractedHistory
+    # ExtractedHistory moved to src.utils.history_manager
 )
 
 # 导出Roblox字体提取器及相关组件
@@ -57,7 +57,7 @@ __all__ = [
     'AudioClassificationMethod',
     'AudioProcessingStats', 
     'AudioContentHashCache',
-    'AudioExtractedHistory',
+    # 'AudioExtractedHistory',  # 已移动到 src.utils.history_manager
     
     # Roblox字体提取器
     'RobloxFontExtractor',

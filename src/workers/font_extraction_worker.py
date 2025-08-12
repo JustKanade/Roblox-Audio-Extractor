@@ -84,7 +84,8 @@ class FontExtractionWorker(QThread):
                 num_threads=self.num_threads,
                 use_multiprocessing=self.use_multiprocessing,
                 conservative_multiprocessing=self.conservative_multiprocessing,
-                log_callback=log_callback
+                log_callback=log_callback,
+                download_history=self.download_history
             )
             
             # 设置取消检查函数
@@ -151,6 +152,16 @@ class FontExtractionWorker(QThread):
                 "stats": {},
                 "duration": time.time() - self.start_time if self.start_time > 0 else 0
             })
+        
+        finally:
+            # 确保历史记录被保存 - 修复：强制保存历史记录
+            if self.download_history:
+                try:
+                    self.download_history.save_history()
+                    history_size = self.download_history.get_history_size('font')
+                    self.logMessage.emit(f"History saved: {history_size} font files", 'info')
+                except Exception as e:
+                    self.logMessage.emit(f"Failed to save font history: {str(e)}", 'error')
 
     def _on_progress(self, current: int, total: int, message: str):
         """

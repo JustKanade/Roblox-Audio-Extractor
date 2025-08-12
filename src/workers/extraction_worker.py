@@ -133,7 +133,7 @@ class ExtractionWorker(QThread):
                     conversion_result = self._convert_audio_files(extraction_result.get("output_dir", ""))
                     extraction_result["conversion_result"] = conversion_result
                     # 添加转换输出目录信息
-                    conversion_result["converted_dir"] = os.path.join(extraction_result.get("output_dir", ""), f"Audio_{self.convert_format.upper()}")
+                    conversion_result["converted_dir"] = os.path.join(extraction_result.get("output_dir", ""), "Audio", f"Audio_{self.convert_format.upper()}")
                     if conversion_result["converted"] > 0:
                         self.logMessage.emit(f'Successfully converted {conversion_result["converted"]} files to {self.convert_format}', 'success')
                     else:
@@ -212,7 +212,7 @@ class ExtractionWorker(QThread):
         
         # 为转换后的格式创建专门的文件夹
         convert_format_upper = self.convert_format.upper()
-        converted_dir = os.path.join(output_dir, f"Audio_{convert_format_upper}")
+        converted_dir = os.path.join(output_dir, "Audio", f"Audio_{convert_format_upper}")
         
         # 递归查找所有.ogg文件
         ogg_files = []

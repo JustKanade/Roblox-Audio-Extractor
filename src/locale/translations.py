@@ -403,6 +403,18 @@ def get_translations():
                 ENGLISH: "Are you sure you want to clear all extraction history?\n\nThis operation cannot be undone.",
                 CHINESE: "确定要清除所有提取历史吗？\n\n此操作无法撤销。"
             },
+            "confirm_clear_history_type": {
+                ENGLISH: "Are you sure you want to clear {} type extraction history?\n\nThis operation cannot be undone.",
+                CHINESE: "确定要清除 {} 类型的提取历史吗？\n\n此操作无法撤销。"
+            },
+            "history_not_available": {
+                ENGLISH: "History record is not available",
+                CHINESE: "历史记录不可用"
+            },
+            "parent_window_not_available": {
+                ENGLISH: "Unable to access main window",
+                CHINESE: "无法访问主窗口"
+            },
             "history_cleared": {
                 ENGLISH: "Extraction history has been cleared.",
                 CHINESE: "提取历史已清除。"
@@ -412,8 +424,8 @@ def get_translations():
                 CHINESE: "选择要清除的历史记录类型:"
             },
             "all_history": {
-                ENGLISH: "All History Records",
-                CHINESE: "所有历史记录"
+                ENGLISH: "All History",
+                CHINESE: "所有历史"
             },
             "all_history_cleared": {
                 ENGLISH: "All history records cleared successfully",
@@ -510,6 +522,22 @@ def get_translations():
             "convert_audio_format_info": {
                 ENGLISH: "Convert extracted OGG files to other audio formats after extraction",
                 CHINESE: "提取完成后将OGG文件转换为其他音频格式"
+            },
+            "convert_format": {
+                ENGLISH: "Convert Format",
+                CHINESE: "转换格式"
+            },
+            "convert_info": {
+                ENGLISH: "Convert audio file format (requires FFmpeg support)",
+                CHINESE: "转换音频文件格式（需要FFmpeg支持）"
+            },
+            "output_format": {
+                ENGLISH: "Output Format",
+                CHINESE: "输出格式"
+            },
+            "select_output_format": {
+                ENGLISH: "Select audio output format",
+                CHINESE: "选择音频输出格式"
             },
             "extract_audio_title": {
                 ENGLISH: "Extract Audio Files",
@@ -914,8 +942,8 @@ def get_translations():
                 CHINESE: "正在初始化字体提取器..."
             },
             "cache_info": {
-                ENGLISH: "Cache info: Path={}, Type={}",
-                CHINESE: "缓存信息: 路径={}, 类型={}"
+                ENGLISH: "Cache",
+                CHINESE: "缓存"
             },
             "cache_path_not_found": {
                 ENGLISH: "Roblox cache path not found or inaccessible",
@@ -2167,6 +2195,22 @@ def get_translations():
             "multiprocessing_disabled": {
                 ENGLISH: "Multiprocessing mode has been disabled",
                 CHINESE: "多进程模式已禁用"
+            },
+            "parent_window_not_available": {
+                ENGLISH: "Unable to access main window",
+                CHINESE: "无法访问主窗口"
+            },
+            "no_history_to_clear": {
+                ENGLISH: "No history records to clear",
+                CHINESE: "暂无历史记录可清除"
+            },
+            "font_records": {
+                ENGLISH: "Font Records",
+                CHINESE: "字体记录"
+            },
+            "saving_font_history": {
+                ENGLISH: "Saving font extraction history...",
+                CHINESE: "正在保存字体提取历史记录..."
             },
 
         }

@@ -19,6 +19,9 @@ from typing import Dict, List, Any, Optional, Callable
 from enum import Enum, auto
 from dataclasses import dataclass
 
+# 导入历史管理器
+from src.utils.history_manager import ExtractedHistory, ContentHashCache
+
 # 导入Roblox字体提取模块
 from .rbxh_parser import RBXHParser, ParsedCache, parse_cache_file, parse_cache_data
 from .content_identifier import ContentIdentifier, AssetType, IdentifiedContent, identify_content
@@ -48,6 +51,7 @@ class FontProcessingStats:
             'processed_caches': 0,
             'fontlist_found': 0,
             'fonts_downloaded': 0,
+            'already_processed': 0,  # 新增：已处理过的字体计数
             'duplicate_skipped': 0,
             'download_failed': 0,
             'processing_errors': 0
@@ -81,7 +85,8 @@ def _process_cache_item_worker(cache_item: CacheItem, config: 'FontProcessingCon
         'success': False,
         'fontlist_processed': 0,
         'fonts_downloaded': 0,
-        'errors': []
+        'errors': [],
+        'processed_hashes': [] # 新增：收集成功处理的哈希
     }
     
     try:
@@ -110,7 +115,9 @@ def _process_cache_item_worker(cache_item: CacheItem, config: 'FontProcessingCon
             font_processor = FontListProcessor(
                 config.fonts_dir, 
                 config.classification_method,
-                download_threads
+                download_threads,
+                download_history,
+                collect_hashes=True  # 多进程模式下启用哈希收集
             )
             
             # 处理字体列表
@@ -121,6 +128,7 @@ def _process_cache_item_worker(cache_item: CacheItem, config: 'FontProcessingCon
             
             if process_result["success"]:
                 result['fonts_downloaded'] = process_result["downloaded_count"]
+                result['processed_hashes'] = process_result.get("processed_hashes", [])
                 result['success'] = True
             else:
                 result['errors'].extend(process_result.get("errors", []))
@@ -136,11 +144,12 @@ class FontProcessingConfig:
     fonts_dir: str
     classification_method: FontClassificationMethod
     block_avatar_images: bool = True
+    history_file: Optional[str] = None # 新增历史文件路径参数
 
 class FontListProcessor:
     """字体列表处理器 - 处理Roblox字体列表"""
     
-    def __init__(self, output_dir: str, classification_method: FontClassificationMethod = FontClassificationMethod.FAMILY, max_download_threads: int = 4):
+    def __init__(self, output_dir: str, classification_method: FontClassificationMethod = FontClassificationMethod.FAMILY, max_download_threads: int = 4, download_history: Optional['ExtractedHistory'] = None, collect_hashes: bool = False):
         """
         初始化字体列表处理器
         
@@ -148,6 +157,8 @@ class FontListProcessor:
             output_dir: 输出目录
             classification_method: 分类方法
             max_download_threads: 最大下载线程数
+            download_history: 下载历史管理器，用于避免重复处理文件
+            collect_hashes: 是否收集处理过的哈希
         """
         self.output_dir = output_dir
         self.classification_method = classification_method
@@ -158,6 +169,9 @@ class FontListProcessor:
         })
         self._cancel_check_fn = None  # 取消检查函数
         self._log_callback = None  # 日志回调函数
+        self.download_history = download_history
+        self.collect_hashes = collect_hashes
+        self.processed_hashes = []  # 成功处理的哈希列表（用于多进程模式）
     
     def set_cancel_check(self, cancel_check_fn: Callable[[], bool]):
         """设置取消检查函数"""
@@ -178,6 +192,50 @@ class FontListProcessor:
             return self._cancel_check_fn()
         return False
     
+    def _get_file_hash(self, file_path_or_url: str) -> str:
+        """计算文件或URL的哈希值
+        
+        Args:
+            file_path_or_url: 文件路径或下载URL
+            
+        Returns:
+            str: 哈希值
+        """
+        try:
+            # 对于URL，使用URL本身作为哈希依据
+            if file_path_or_url.startswith(('http://', 'https://')):
+                return hashlib.md5(file_path_or_url.encode()).hexdigest()
+            
+            # 对于文件路径，读取文件内容的前8KB用于哈希计算
+            # 对于字体文件，开头部分通常包含足够的唯一特征
+            with open(file_path_or_url, 'rb') as f:
+                content_head = f.read(8192)  # 读取前8KB
+            
+            if content_head:
+                # 将文件内容的哈希与文件路径结合，确保唯一性
+                # 使用内容作为主要哈希依据，但仍然包含路径信息
+                content_hash = hashlib.md5(content_head).hexdigest()
+                path_hash = hashlib.md5(file_path_or_url.encode()).hexdigest()[:8]
+                return f"{content_hash}_{path_hash}"
+            else:
+                # 如果无法读取内容，退回到使用文件信息
+                file_stat = os.stat(file_path_or_url)
+                return hashlib.md5(f"{file_path_or_url}_{file_stat.st_size}_{file_stat.st_mtime}".encode()).hexdigest()
+        except Exception:
+            # 如果无法获取文件信息，使用文件路径/URL
+            return hashlib.md5(file_path_or_url.encode()).hexdigest()
+    
+    def _get_content_hash(self, content: bytes) -> str:
+        """计算内容的哈希值
+        
+        Args:
+            content: 字体文件内容（字节数据）
+            
+        Returns:
+            str: 内容哈希值
+        """
+        return hashlib.md5(content).hexdigest()
+    
     def process_fontlist(self, dump_name: str, content: bytes) -> Dict[str, Any]:
         """
         处理字体列表
@@ -194,6 +252,7 @@ class FontListProcessor:
             "font_family": "",
             "faces_count": 0,
             "downloaded_count": 0,
+            "already_processed_count": 0,  # 新增：已处理过的字体计数
             "errors": []
         }
         
@@ -227,10 +286,11 @@ class FontListProcessor:
             # 下载字体文件 - 支持多线程
             if len(faces) > 1 and self.max_download_threads > 1:
                 # 使用多线程下载
-                downloaded_count = self._download_fonts_multithreaded(font_name, faces, result["errors"])
+                downloaded_count, already_processed_count = self._download_fonts_multithreaded(font_name, faces, result["errors"])
             else:
                 # 串行下载（单个字体或线程数为1）
                 downloaded_count = 0
+                already_processed_count = 0
                 for face in faces:
                     # 检查是否已取消
                     if self.is_cancelled():
@@ -239,14 +299,18 @@ class FontListProcessor:
                         break
                     
                     try:
-                        if self._download_font_face(font_name, face):
+                        download_result = self._download_font_face(font_name, face)
+                        if download_result == "downloaded":
                             downloaded_count += 1
+                        elif download_result == "already_processed":
+                            already_processed_count += 1
                     except Exception as e:
                         error_msg = f"下载字体 {font_name}-{face.get('name', 'Unknown')} 失败: {e}"
                         logger.error(error_msg)
                         result["errors"].append(error_msg)
             
             result["downloaded_count"] = downloaded_count
+            result["already_processed_count"] = already_processed_count
             result["success"] = True
             
             logger.debug(f"字体列表处理完成: {font_name}, 成功下载 {downloaded_count}/{len(faces)} 个字体")
@@ -263,7 +327,7 @@ class FontListProcessor:
         
         return result
     
-    def _download_fonts_multithreaded(self, font_name: str, faces: List[Dict[str, Any]], errors: List[str]) -> int:
+    def _download_fonts_multithreaded(self, font_name: str, faces: List[Dict[str, Any]], errors: List[str]) -> tuple[int, int]:
         """
         多线程下载字体文件
         
@@ -273,9 +337,10 @@ class FontListProcessor:
             errors: 错误列表
             
         Returns:
-            int: 成功下载的字体数量
+            tuple[int, int]: (成功下载的字体数量, 已处理过的字体数量)
         """
         downloaded_count = 0
+        already_processed_count = 0
         download_lock = threading.Lock()
         
         # 创建工作队列
@@ -284,14 +349,17 @@ class FontListProcessor:
             work_queue.put(face)
         
         def download_worker():
-            nonlocal downloaded_count
+            nonlocal downloaded_count, already_processed_count
             while not self.is_cancelled():
                 try:
                     face = work_queue.get(timeout=2)
                     try:
-                        if self._download_font_face(font_name, face):
-                            with download_lock:
+                        result = self._download_font_face(font_name, face)
+                        with download_lock:
+                            if result == "downloaded":
                                 downloaded_count += 1
+                            elif result == "already_processed":
+                                already_processed_count += 1
                     except Exception as e:
                         error_msg = f"下载字体 {font_name}-{face.get('name', 'Unknown')} 失败: {e}"
                         logger.error(error_msg)
@@ -324,7 +392,7 @@ class FontListProcessor:
         for thread in threads:
             thread.join(timeout=1)
         
-        return downloaded_count
+        return downloaded_count, already_processed_count
     
     def _get_font_category(self, font_name: str, face_name: str, file_size: int) -> str:
         """
@@ -400,7 +468,7 @@ class FontListProcessor:
             else:
                 return "ultra_large_5MB+"
 
-    def _download_font_face(self, font_name: str, face: Dict[str, Any]) -> bool:
+    def _download_font_face(self, font_name: str, face: Dict[str, Any]) -> str:
         """
         下载单个字体文件
         
@@ -409,7 +477,7 @@ class FontListProcessor:
             face: 字体面信息
             
         Returns:
-            bool: 是否成功下载
+            str: 下载结果 ("downloaded", "already_processed", "failed")
         """
         try:
             face_name = face.get("name", "Regular")
@@ -421,11 +489,25 @@ class FontListProcessor:
                     logger.debug(f"跳过本地资源: {font_name}-{face_name}")
                 else:
                     logger.debug(f"跳过无效资源ID: {font_name}-{face_name}")
-                return False
+                return "failed"
             
             # 提取asset ID
-            asset_id_num = asset_id.split("rbxassetid://")[1]
+            split_result = asset_id.split("rbxassetid://")
+            if len(split_result) < 2 or not split_result[1].strip():
+                logger.debug(f"无效的资源ID格式: {asset_id} (字体: {font_name}-{face_name})")
+                return "failed"
+            
+            asset_id_num = split_result[1]
             download_url = f"https://assetdelivery.roblox.com/v1/asset?id={asset_id_num}"
+            
+            # 使用asset_id作为唯一标识符进行历史记录检查
+            asset_id_hash = f"font_asset_{asset_id_num}"
+            
+            # 检查是否已经处理过这个资源
+            if self.download_history and self.download_history.is_processed(asset_id_hash, 'font'):
+                logger.debug(f"跳过已处理的字体资源 (Asset ID: {asset_id_num}): {font_name}-{face_name}.ttf")
+                self.send_log("font_already_processed", "info", f"{font_name}-{face_name}.ttf")
+                return "already_processed"
             
             logger.debug(f"正在下载字体: {font_name}-{face_name}.ttf...")
             self.send_log("downloading_font", "info", f"{font_name}-{face_name}.ttf")
@@ -439,7 +521,7 @@ class FontListProcessor:
                 if self.is_cancelled():
                     logger.debug("字体下载被用户取消")
                     self.send_log("font_download_cancelled", "warning")
-                    return False
+                    return "failed"
                 
                 try:
                     response = self.session.get(download_url, timeout=30)
@@ -455,6 +537,17 @@ class FontListProcessor:
                     time.sleep(1)  # 等待1秒后重试
             
             if font_data:
+                # 计算内容哈希
+                content_hash = self._get_content_hash(font_data)
+                
+                # 检查内容是否已处理过
+                if self.download_history and self.download_history.is_content_processed(content_hash, 'font'):
+                    logger.debug(f"跳过已处理的字体内容 (内容重复): {font_name}-{face_name}.ttf")
+                    self.send_log("font_content_duplicate", "info", f"{font_name}-{face_name}.ttf")
+                    # 仍然需要添加历史记录确保一致性
+                    self._add_font_hash_to_history(asset_id_hash)
+                    return "already_processed"
+                
                 # 确定分类目录
                 category = self._get_font_category(font_name, face_name, len(font_data))
                 category_dir = os.path.join(self.output_dir, category)
@@ -464,16 +557,20 @@ class FontListProcessor:
                     os.makedirs(category_dir, exist_ok=True)
                 except Exception as e:
                     logger.error(f"无法创建目录 {category_dir}: {e}")
-                    return False
+                    return "failed"
                 
                 # 生成字体文件名和路径
                 font_filename = f"{font_name}-{face_name}.ttf"
                 font_path = os.path.join(category_dir, font_filename)
                 
                 # 检查文件是否已存在
-                if os.path.exists(font_path):
-                    logger.debug(f"跳过已存在的字体文件: {font_filename}")
-                    return True
+                file_already_exists = os.path.exists(font_path)
+                if file_already_exists:
+                    logger.debug(f"文件已存在，跳过保存但添加历史记录: {font_filename}")
+                    self.send_log("font_file_exists", "info", f"{category}/{font_filename}")
+                    # 即使文件存在，也要添加历史记录确保一致性
+                    self._add_font_hash_to_history(asset_id_hash)
+                    return "already_processed"
                 
                 # 保存字体文件
                 try:
@@ -481,17 +578,34 @@ class FontListProcessor:
                         f.write(font_data)
                     logger.debug(f"成功下载字体: {category}/{font_filename}")
                     self.send_log("font_download_success", "info", f"{category}/{font_filename}")
-                    return True
+                    
+                    # 添加历史记录
+                    self._add_font_hash_to_history(asset_id_hash)
+                    
+                    return "downloaded"
                 except Exception as e:
                     logger.error(f"无法写入字体文件 {font_path}: {e}")
-                    return False
+                    return "failed"
             else:
                 logger.error(f"字体下载失败 ({max_retries}次重试后): {font_name}-{face_name}")
-                return False
+                return "failed"
                 
         except Exception as e:
             logger.error(f"下载字体文件时出错: {e}")
-            return False
+            return "failed"
+    
+    def _add_font_hash_to_history(self, file_hash: str):
+        """添加字体哈希到历史记录的统一方法
+        
+        Args:
+            file_hash: 文件哈希值
+        """
+        if self.collect_hashes:
+            # 多进程模式：收集哈希，不立即保存
+            self.processed_hashes.append(file_hash)
+        elif self.download_history:
+            # 单线程/多线程模式：立即添加到历史记录
+            self.download_history.add_hash(file_hash, 'font')
     
 class RobloxFontExtractor:
     """Roblox字体提取器"""
@@ -503,7 +617,8 @@ class RobloxFontExtractor:
                  num_threads: int = 1,
                  use_multiprocessing: bool = False,
                  conservative_multiprocessing: bool = True,
-                 log_callback: Optional[Callable[[str, str], None]] = None):
+                 log_callback: Optional[Callable[[str, str], None]] = None,
+                 download_history: Optional[ExtractedHistory] = None):
         """
         初始化字体提取器
         
@@ -515,11 +630,13 @@ class RobloxFontExtractor:
             use_multiprocessing: 是否使用多进程
             conservative_multiprocessing: 是否使用保守的多进程策略
             log_callback: 日志回调函数(message, log_type)
+            download_history: 下载历史管理器，用于避免重复处理文件
         """
         # 多线程/多进程配置
         self.use_multiprocessing = use_multiprocessing
         self.conservative_multiprocessing = conservative_multiprocessing
         self.log_callback = log_callback
+        self.download_history = download_history
         
         # 根据多进程配置调整线程/进程数量
         if self.use_multiprocessing:
@@ -550,7 +667,7 @@ class RobloxFontExtractor:
         
         # 字体处理器 - 每个字体家族使用少量线程进行下载
         download_threads = min(4, max(1, (self.num_threads if not self.use_multiprocessing else self.num_processes) // 2))
-        self.font_processor = FontListProcessor(self.fonts_dir, classification_method, download_threads)
+        self.font_processor = FontListProcessor(self.fonts_dir, classification_method, download_threads, download_history)
         # 传递日志回调到字体处理器
         if self.log_callback:
             self.font_processor.set_log_callback(self.log_callback)
@@ -687,6 +804,7 @@ class RobloxFontExtractor:
                 "stats": {
                     'fontlist_found': stats_dict.get('fontlist_found', 0),
                     'fonts_downloaded': stats_dict.get('fonts_downloaded', 0),
+                    'already_processed': stats_dict.get('already_processed', 0),
                     'duplicate_skipped': stats_dict.get('duplicate_skipped', 0),
                     'download_failed': stats_dict.get('download_failed', 0),
                     'processing_errors': stats_dict.get('processing_errors', 0)
@@ -697,6 +815,13 @@ class RobloxFontExtractor:
             }
             
             logger.debug(f"字体提取完成! 统计: {result['stats']}")
+            
+            # 保存历史记录 - 确保所有修改都已持久化
+            if self.download_history:
+                logger.debug("保存字体提取历史记录...")
+                self.send_log("saving_font_history", "info")
+                self.download_history.save_history()
+                logger.debug("✓ 字体提取历史记录已保存")
             
             # 发送完成日志
             stats = result['stats']
@@ -725,11 +850,12 @@ class RobloxFontExtractor:
         logger.debug(f"使用 {self.num_processes} 个进程处理缓存项目...")
         self.send_log("processing_caches_multiprocess", "info", self.num_processes)
         
-        # 准备处理配置
+        # 创建配置对象用于多进程处理
         config = FontProcessingConfig(
             fonts_dir=self.fonts_dir,
             classification_method=self.classification_method,
-            block_avatar_images=self.block_avatar_images
+            block_avatar_images=self.block_avatar_images,
+            history_file=self.download_history.history_file if self.download_history else None  # 传递历史文件路径
         )
         
         # 创建多进程管理器
@@ -762,6 +888,24 @@ class RobloxFontExtractor:
             
             total_fontlist = sum(r.get('fontlist_processed', 0) for r in processed_results)
             total_downloaded = sum(r.get('fonts_downloaded', 0) for r in processed_results)
+            
+            # 收集所有成功处理的哈希
+            all_processed_hashes = []
+            for result_item in processed_results:
+                if result_item.get('success', False):
+                    hashes = result_item.get('processed_hashes', [])
+                    all_processed_hashes.extend(hashes)
+            
+            # 批量添加哈希到主进程的历史记录
+            if self.download_history and all_processed_hashes:
+                logger.debug(f"批量添加 {len(all_processed_hashes)} 个字体哈希到历史记录...")
+                for file_hash in all_processed_hashes:
+                    self.download_history.add_hash(file_hash, 'font')
+                
+                # 强制保存历史记录 - 修复：确保多进程模式下历史记录能够保存
+                logger.debug("强制保存字体提取历史记录...")
+                self.download_history.save_history()
+                logger.debug("✓ 多进程模式下字体提取历史记录已保存")
             
             # 更新统计
             self.stats.increment('processed_caches', processed)
@@ -873,6 +1017,7 @@ class RobloxFontExtractor:
                 
                 if result["success"]:
                     self.stats.increment('fonts_downloaded', result["downloaded_count"])
+                    self.stats.increment('already_processed', result.get("already_processed_count", 0))
                 else:
                     self.stats.increment('download_failed')
                     
@@ -904,15 +1049,16 @@ class RobloxFontExtractor:
             
             # 只处理字体列表
             if identified.asset_type == AssetType.FontList:
-                self.stats.fontlist_found += 1
+                self.stats.increment('fontlist_found')
                 
                 # 处理字体列表
                 result = self.font_processor.process_fontlist(cache_item.hash_id, parsed_cache.content)
                 
                 if result["success"]:
-                    self.stats.fonts_downloaded += result["downloaded_count"]
+                    self.stats.increment('fonts_downloaded', result["downloaded_count"])
+                    self.stats.increment('already_processed', result.get("already_processed_count", 0))
                 else:
-                    self.stats.download_failed += 1
+                    self.stats.increment('download_failed')
                     
             elif identified.asset_type == AssetType.Unknown:
                 logger.debug(f"未知内容类型: {identified.type_name}")
