@@ -1,6 +1,3 @@
-
-
-
 VERSION = "0.17.1"
 
 import warnings
@@ -25,7 +22,7 @@ from enum import Enum, auto
 from src.extractors.audio_extractor import RobloxAudioExtractor, ExtractedHistory, ContentHashCache, ProcessingStats, ClassificationMethod, is_ffmpeg_available
 
 
-from src.utils.file_utils import resource_path, open_directory
+from src.utils.file_utils import resource_path
 from src.utils.log_utils import LogHandler, setup_basic_logging, save_log_to_file
 from src.utils.import_utils import import_libs
 
@@ -68,7 +65,7 @@ from src.components.cards.Settings.greeting_setting_card import GreetingSettingC
 
 from src.config import ConfigManager
 
-from src.interfaces import HomeInterface, AboutInterface, ExtractImagesInterface, ExtractTexturesInterface, ClearCacheInterface, HistoryInterface, ExtractAudioInterface, SettingsInterface
+from src.interfaces import HomeInterface, AboutInterface, ExtractImagesInterface, ExtractTexturesInterface, ClearCacheInterface, HistoryInterface, ExtractAudioInterface, ExtractFontsInterface, SettingsInterface
 
 
 if hasattr(sys, '_MEIPASS'):
@@ -157,6 +154,8 @@ class MainWindow(FluentWindow):
         
         
         apply_responsive_handler(self, self._adjust_responsive_layout)
+        
+
 
     def initWindow(self):
         """初始化窗口设置"""
@@ -165,7 +164,7 @@ class MainWindow(FluentWindow):
         self.resize(750, 630)
 
         
-        self.setMinimumSize(750, 390)
+        self.setMinimumSize(750, 380)
 
         
         setTheme(Theme.AUTO)
@@ -222,6 +221,15 @@ class MainWindow(FluentWindow):
 
         
         self.extractInterface = ExtractAudioInterface(
+            parent=self,
+            config_manager=self.config_manager,
+            lang=lang,
+            default_dir=self.default_dir,
+            download_history=self.download_history
+        )
+
+        
+        self.extractFontsInterface = ExtractFontsInterface(
             parent=self,
             config_manager=self.config_manager,
             lang=lang,
@@ -305,6 +313,20 @@ class MainWindow(FluentWindow):
         )
         
         
+        self.stackedWidget.addWidget(self.extractFontsInterface)
+        
+        
+        self.navigationInterface.addItem(
+            routeKey=self.extractFontsInterface.objectName(),
+            icon=FluentIcon.FONT,
+            text=lang.get("extract_fonts"),
+            onClick=lambda: self.switchTo(self.extractFontsInterface),
+            selectable=True,
+            position=NavigationItemPosition.SCROLL,
+            parentRouteKey="extract"
+        )
+        
+        
         self.stackedWidget.addWidget(self.extractImagesInterface)
         self.stackedWidget.addWidget(self.extractTexturesInterface)
         
@@ -342,7 +364,7 @@ class MainWindow(FluentWindow):
             import src.components.avatar.avatar_widget as avatar_widget_module
             avatar_widget_module.lang = lang
             
-            avatar_widget = AvatarWidget(parent=self)
+            avatar_widget = AvatarWidget(parent=self, config_manager=self.config_manager)
             self.navigationInterface.addWidget(
                 routeKey="avatar_widget",
                 widget=avatar_widget,
@@ -665,27 +687,21 @@ class MainWindow(FluentWindow):
                 self.extractLogHandler.info(lang.get("files_per_sec", result.get('files_per_second', 0)))
                 self.extractLogHandler.info(lang.get("output_dir", result.get('output_dir', '')))
 
-                
-                final_dir = result.get("output_dir", "")
-                
-                audio_dir = os.path.join(final_dir, "Audio")
-
-                
-                if final_dir and os.path.exists(final_dir) and self.config_manager.get("auto_open_output_dir", True):
+                # 使用统一的自动打开输出目录功能
+                if hasattr(self.extractInterface, '_handleAutoOpenOutputDir'):
+                    # 临时设置extractInterface的日志处理器和配置管理器，以便复用逻辑
+                    original_log_handler = getattr(self.extractInterface, 'extractLogHandler', None)
+                    original_config_manager = getattr(self.extractInterface, 'config_manager', None)
                     
-                    if os.path.exists(audio_dir):
-                        open_success = open_directory(audio_dir)
-                        if open_success:
-                            self.extractLogHandler.info(lang.get("opening_output_dir", lang.get("audio_folder")))
-                        else:
-                            self.extractLogHandler.info(lang.get("manual_navigate", audio_dir))
-                    else:
-                        
-                        open_success = open_directory(final_dir)
-                        if open_success:
-                            self.extractLogHandler.info(lang.get("opening_output_dir", lang.get("ogg_category")))
-                        else:
-                            self.extractLogHandler.info(lang.get("manual_navigate", final_dir))
+                    self.extractInterface.extractLogHandler = self.extractLogHandler
+                    self.extractInterface.config_manager = self.config_manager
+                    
+                    # 调用统一的自动打开目录方法
+                    self.extractInterface._handleAutoOpenOutputDir(result, "audio")
+                    
+                    # 恢复原始设置
+                    self.extractInterface.extractLogHandler = original_log_handler
+                    self.extractInterface.config_manager = original_config_manager
 
                 
                 if hasattr(self, 'extractionStateTooltip'):
@@ -705,7 +721,7 @@ class MainWindow(FluentWindow):
                     parent=self
                 )
 
-                
+                # 音频提取特有的功能：刷新历史记录
                 self.historyInterface.refreshHistoryInterface()
             else:
                 self.extractLogHandler.warning(lang.get("no_files_processed"))
@@ -1063,20 +1079,9 @@ class MainWindow(FluentWindow):
             if default_roblox_dir and hasattr(self, 'settingsInterface') and hasattr(self.settingsInterface, 'settingsLogHandler'):
                 self.settingsInterface.settingsLogHandler.success(lang.get("default_path_restored", "默认路径已恢复") + f": {default_roblox_dir}")
         else:
-            
-            from src.utils.file_utils import get_roblox_default_dir
-            default_roblox_dir = get_roblox_default_dir()
-            if default_roblox_dir:
-                self.config_manager.set("global_input_path", default_roblox_dir)
-                self.config_manager.save_config()
-                
-                
-                if hasattr(self, 'settingsInterface') and hasattr(self.settingsInterface, 'globalInputPathCard') and hasattr(self.settingsInterface.globalInputPathCard, 'inputPathEdit'):
-                    self.settingsInterface.globalInputPathCard.inputPathEdit.setText(default_roblox_dir)
-                
-                
-                if hasattr(self, 'settingsInterface') and hasattr(self.settingsInterface, 'settingsLogHandler'):
-                    self.settingsInterface.settingsLogHandler.success(lang.get("default_path_restored", "默认路径已恢复") + f": {default_roblox_dir}")
+            # 如果路径管理器不可用，记录错误
+            if hasattr(self, 'settingsInterface') and hasattr(self.settingsInterface, 'settingsLogHandler'):
+                self.settingsInterface.settingsLogHandler.error(lang.get("path_manager_not_available", "路径管理器不可用"))
 
     def applyAlwaysOnTop(self, is_top):
         """应用总是置顶设置"""
@@ -1167,6 +1172,8 @@ class MainWindow(FluentWindow):
                 duration=5000,
                 parent=self
             )
+
+
 
 
 def main():

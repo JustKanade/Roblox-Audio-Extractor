@@ -88,7 +88,7 @@ class AvatarSettingCard(CardWidget):
         main_layout.addLayout(disable_auto_update_row)
         
         # 说明文本 - 加快启动速度的提示
-        tip_text = self._get_text("avatar_auto_update_tip") or "禁用侧边栏头像自动更新可以加快程序启动速度"
+        tip_text = self._get_text("avatar_auto_update_tip") or "禁用QQ头像自动更新可以加快程序启动速度，同时影响侧边栏和关于界面的头像显示"
         tip_label = BodyLabel(tip_text)
         tip_label.setWordWrap(True)
         tip_label.setStyleSheet("color: rgba(150, 150, 150, 0.8); font-size: 12px; margin-left: 20px;")

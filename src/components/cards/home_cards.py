@@ -86,6 +86,43 @@ class ExtractAudioCard(SettingCard):
         self.hBoxLayout.addWidget(content_widget)
 
 
+class ExtractFontsCard(SettingCard):
+    """字体提取卡片"""
+    
+    def __init__(self, parent=None, lang=None):
+        # 确保语言对象存在，否则创建空的语言处理函数
+        if lang is None:
+            self.get_text = lambda key, default="": default
+        else:
+            self.get_text = lang.get
+            
+        super().__init__(
+            FluentIcon.FONT,
+            self.get_text("extract_fonts", "Extract Fonts"),
+            self.get_text("extract_fonts_description", "Extract font files from Roblox cache and download associated fonts"),
+            parent
+        )
+        
+        self._setupContent()
+    
+    def _setupContent(self):
+        """设置内容"""
+        # 创建右侧内容容器
+        content_widget = QWidget()
+        content_layout = QHBoxLayout(content_widget)
+        content_layout.setContentsMargins(0, 0, 20, 0)
+        content_layout.setSpacing(8)
+        
+        # 创建字体提取按钮
+        self.extract_btn = PrimaryPushButton(FluentIcon.FONT, self.get_text("start_font_extraction", "开始提取字体"))
+        self.extract_btn.setFixedSize(145, 32)
+        
+        content_layout.addWidget(self.extract_btn)
+        
+        # 将内容添加到SettingCard的hBoxLayout
+        self.hBoxLayout.addWidget(content_widget)
+
+
 class ClearCacheCard(SettingCard):
     """清理缓存卡片"""
     

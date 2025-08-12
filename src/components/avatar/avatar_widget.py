@@ -6,9 +6,9 @@ JustKanade Avatar Widget - 显示QQ头像的侧边栏导航组件
 
 import os
 import requests
-from PyQt5.QtWidgets import QLabel, QVBoxLayout, QWidget
+from PyQt5.QtWidgets import QLabel, QVBoxLayout, QWidget, QApplication
 from PyQt5.QtGui import QImage, QPixmap, QPainter, QBrush, QColor, QFont
-from PyQt5.QtCore import Qt, QSize, QTimer, QRect, pyqtSignal, QThread, QUrl
+from PyQt5.QtCore import Qt, QSize, QTimer, QRect, pyqtSignal, QThread, QUrl, QEvent
 from PyQt5.QtGui import QDesktopServices
 
 from qfluentwidgets import NavigationWidget, isDarkTheme, MessageBox, FluentIcon, IconWidget
@@ -18,6 +18,9 @@ try:
     from src.locale import lang
 except ImportError:
     lang = None  # 如果导入失败，设为None
+
+# 导入事件相关定义
+AVATAR_SETTING_CHANGED_EVENT_TYPE = QEvent.Type(1001)  # 与avatar_setting_card.py保持一致
 
 class AvatarDownloader(QThread):
     """头像下载线程，避免阻塞UI"""
@@ -47,9 +50,10 @@ class AvatarDownloader(QThread):
 class AvatarWidget(NavigationWidget):
     """自定义头像导航组件，显示QQ头像"""
 
-    def __init__(self, qq_number="2824333590", parent=None):
+    def __init__(self, qq_number="2824333590", parent=None, config_manager=None):
         super().__init__(isSelectable=False, parent=parent)
         self.qq_number = qq_number
+        self.config_manager = config_manager
         self.avatar = None
         self.setFixedHeight(36)  # 设置固定高度与其他导航按钮一致
         self.github_url = "https://github.com/JustKanade"  # GitHub主页链接
@@ -58,13 +62,31 @@ class AvatarWidget(NavigationWidget):
         # 定时器，用于周期性更新头像
         self.update_timer = QTimer(self)
         self.update_timer.timeout.connect(self.refresh_avatar)
-        self.update_timer.start(30 * 60 * 1000)  # 30分钟更新一次
         
-        # 立即下载头像
-        self.refresh_avatar()
+        # 检查是否应该加载头像
+        if self.should_load_avatar():
+            self.update_timer.start(30 * 60 * 1000)  # 30分钟更新一次
+            # 立即下载头像
+            self.refresh_avatar()
+        else:
+            # 禁用头像下载，直接显示GitHub图标
+            self.use_github_icon = True
+            self.update()
+    
+    def should_load_avatar(self):
+        """检查是否应该加载头像"""
+        if not self.config_manager:
+            return True  # 没有配置管理器时默认加载
+        return not self.config_manager.get("disable_avatar_auto_update", False)
     
     def refresh_avatar(self):
         """刷新头像"""
+        # 检查是否应该加载头像
+        if not self.should_load_avatar():
+            self.use_github_icon = True
+            self.update()
+            return
+            
         self.downloader = AvatarDownloader(self.qq_number)
         self.downloader.downloadFinished.connect(self._on_avatar_downloaded)
         self.downloader.downloadError.connect(self._on_download_error)
@@ -92,6 +114,32 @@ class AvatarWidget(NavigationWidget):
         """设置是否处于紧凑模式 - 这个方法会被NavigationInterface自动调用"""
         super().setCompacted(isCompacted)  # 必须调用父类方法
         self.update()  # 更新界面显示
+    
+    def event(self, event):
+        """处理自定义事件"""
+        if event.type() == AVATAR_SETTING_CHANGED_EVENT_TYPE:
+            # 头像设置更改事件
+            if event.disable_update:
+                # 禁用头像下载
+                self.use_github_icon = True
+                # 停止定时器
+                if self.update_timer.isActive():
+                    self.update_timer.stop()
+                # 停止正在进行的下载
+                if hasattr(self, 'downloader') and self.downloader:
+                    self.downloader.terminate()
+                    self.downloader = None
+            else:
+                # 启用头像下载
+                self.use_github_icon = False
+                if not self.update_timer.isActive():
+                    self.update_timer.start(30 * 60 * 1000)  # 重新启动定时器
+                # 立即下载头像
+                self.refresh_avatar()
+            
+            self.update()  # 更新界面显示
+            return True
+        return super().event(event)
 
     def mousePressEvent(self, event):
         """鼠标按下事件处理"""

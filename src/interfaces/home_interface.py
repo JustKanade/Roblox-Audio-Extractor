@@ -19,7 +19,7 @@ from src.utils.log_utils import LogHandler
 from src.interfaces.about_interface import BannerWidget
 from src.components.cards.home_cards import (
     QuickActionsCard, SystemInfoHomeCard, DirectoryInfoCard,
-    ExtractAudioCard, ClearCacheCard, SettingsCard
+    ExtractAudioCard, ExtractFontsCard, ClearCacheCard, SettingsCard
 )
 from src.components.cards.recent_activity_card import RecentActivityCard
 
@@ -55,8 +55,8 @@ class HomeInterface(QWidget):
         self.expandLayout.setContentsMargins(20, 20, 20, 20)
         self.expandLayout.setSpacing(28)
 
-        # 欢迎横幅 - 复用BannerWidget
-        self.welcome_banner = BannerWidget(parent=content_widget, config_manager=self.config_manager, lang=self.lang)
+        # 欢迎横幅 - 复用BannerWidget，只显示程序logo
+        self.welcome_banner = BannerWidget(parent=content_widget, config_manager=self.config_manager, lang=self.lang, use_logo_only=True)
         self.expandLayout.addWidget(self.welcome_banner)
 
         # 快速操作卡片组
@@ -75,6 +75,11 @@ class HomeInterface(QWidget):
         self.extractAudioCard = ExtractAudioCard(parent=self.quickActionsGroup, lang=self.lang)
         self.extractAudioCard.extract_btn.clicked.connect(lambda: self.switchToInterface("extractInterface"))
         self.quickActionsGroup.addSettingCard(self.extractAudioCard)
+        
+        # 字体提取独立卡片
+        self.extractFontsCard = ExtractFontsCard(parent=self.quickActionsGroup, lang=self.lang)
+        self.extractFontsCard.extract_btn.clicked.connect(lambda: self.switchToInterface("extractFontsInterface"))
+        self.quickActionsGroup.addSettingCard(self.extractFontsCard)
         
         # 清理缓存独立卡片
         self.clearCacheCard = ClearCacheCard(parent=self.quickActionsGroup, lang=self.lang)

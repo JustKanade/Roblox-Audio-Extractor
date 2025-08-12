@@ -5,8 +5,8 @@ from PyQt5.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel, 
     QFrame, QSizePolicy
 )
-from PyQt5.QtCore import Qt, QRectF
-from PyQt5.QtGui import QPixmap, QFont
+from PyQt5.QtCore import Qt, QRectF, QEvent
+from PyQt5.QtGui import QPixmap, QFont, QImage, QPainter, QBrush, QPainterPath
 
 from qfluentwidgets import (
     CardWidget, TitleLabel, SubtitleLabel,
@@ -22,18 +22,29 @@ from src.components.cards.about_cards import (
 )
 from src.components.cards.Settings.ffmpeg_status_card import FFmpegStatusCard
 from src.components.cards.contributors_table_card import ContributorsTableCard
+from src.components.avatar.avatar_widget import AvatarDownloader
 import os
 import sys
+
+# 导入事件相关定义
+AVATAR_SETTING_CHANGED_EVENT_TYPE = QEvent.Type(1001)  # 与avatar_setting_card.py保持一致
 
 
 class BannerWidget(CardWidget):
     """ 横幅小部件 """
 
-    def __init__(self, parent=None, config_manager=None, lang=None):
+    def __init__(self, parent=None, config_manager=None, lang=None, qq_number="2824333590", use_logo_only=False):
         super().__init__(parent=parent)
         self.setFixedHeight(200)  # 设置固定高度
         self.config_manager = config_manager
         self.lang = lang
+        self.qq_number = qq_number
+        self.use_logo_only = use_logo_only  # 是否只使用程序logo
+        
+        # 头像相关属性
+        self.avatar_pixmap = None
+        self.use_avatar = False
+        self.downloader = None
         
         # 确保语言对象存在，否则创建空的语言处理函数
         if self.lang is None:
@@ -104,8 +115,98 @@ class BannerWidget(CardWidget):
         
         self.vBoxLayout.addLayout(main_layout)
     
+    def should_load_avatar(self):
+        """检查是否应该加载头像"""
+        if not self.config_manager:
+            return True  # 没有配置管理器时默认加载
+        return not self.config_manager.get("disable_avatar_auto_update", False)
+    
     def loadAboutIcon(self):
-        """加载关于页面图标"""
+        """加载关于页面图标 - 优先尝试QQ头像，失败时回退到应用logo"""
+        try:
+            # 如果设置为只使用logo，直接显示程序logo
+            if self.use_logo_only:
+                self.loadFallbackIcon()
+                return
+            
+            # 检查是否应该加载头像
+            if not self.should_load_avatar():
+                # 禁用头像下载，直接显示应用logo
+                self.loadFallbackIcon()
+                return
+                
+            # 首先尝试下载QQ头像
+            if self.qq_number:
+                self.downloader = AvatarDownloader(self.qq_number)
+                self.downloader.downloadFinished.connect(self._on_avatar_downloaded)
+                self.downloader.downloadError.connect(self._on_download_error)
+                self.downloader.start()
+            else:
+                # 如果没有QQ号，直接加载回退图标
+                self.loadFallbackIcon()
+        except Exception as e:
+            print(f"无法启动头像下载: {e}")
+            self.loadFallbackIcon()
+    
+    def _on_avatar_downloaded(self, content):
+        """头像下载成功的回调处理"""
+        try:
+            image = QImage()
+            if image.loadFromData(content):
+                # 将QImage转换为QPixmap并缩放
+                pixmap = QPixmap.fromImage(image)
+                scaled_pixmap = pixmap.scaled(
+                    100, 100,
+                    Qt.KeepAspectRatio,
+                    Qt.SmoothTransformation
+                )
+                # 制作圆形头像
+                circular_pixmap = self.makeCircularPixmap(scaled_pixmap)
+                self.about_icon_label.setPixmap(circular_pixmap)
+                self.avatar_pixmap = circular_pixmap
+                self.use_avatar = True
+                print("成功加载QQ头像到关于界面")
+            else:
+                # 头像数据加载失败，回退到应用logo
+                print("头像数据加载失败，回退到应用logo")
+                self.loadFallbackIcon()
+        except Exception as e:
+            print(f"处理头像下载结果时出错: {e}")
+            self.loadFallbackIcon()
+    
+    def _on_download_error(self, error_msg):
+        """头像下载失败的回调处理"""
+        print(f"头像下载失败: {error_msg}，回退到应用logo")
+        self.loadFallbackIcon()
+    
+    def makeCircularPixmap(self, pixmap):
+        """将头像制作成圆形"""
+        try:
+            size = min(pixmap.width(), pixmap.height())
+            # 创建正方形的pixmap
+            square_pixmap = QPixmap(size, size)
+            square_pixmap.fill(Qt.transparent)
+            
+            # 绘制圆形头像
+            painter = QPainter(square_pixmap)
+            painter.setRenderHint(QPainter.Antialiasing)
+            
+            # 创建圆形路径
+            path = QPainterPath()
+            path.addEllipse(0, 0, size, size)
+            painter.setClipPath(path)
+            
+            # 绘制头像
+            painter.drawPixmap(0, 0, pixmap.scaled(size, size, Qt.KeepAspectRatioByExpanding, Qt.SmoothTransformation))
+            painter.end()
+            
+            return square_pixmap
+        except Exception as e:
+            print(f"制作圆形头像时出错: {e}")
+            return pixmap  # 返回原始头像
+    
+    def loadFallbackIcon(self):
+        """加载回退图标（应用logo或默认文本）"""
         try:
             icon_path = resource_path(os.path.join("res", "icons", "logo.png"))
             if os.path.exists(icon_path):
@@ -116,15 +217,54 @@ class BannerWidget(CardWidget):
                     Qt.SmoothTransformation
                 )
                 self.about_icon_label.setPixmap(scaled_pixmap)
+                self.use_avatar = False
+                print("已加载应用logo到关于界面")
             else:
-                # 使用默认图标
+                # 使用默认文本图标
+                self.about_icon_label.clear()
                 self.about_icon_label.setText("♪")
                 font = QFont()
                 font.setPointSize(64)
                 self.about_icon_label.setFont(font)
                 self.about_icon_label.setAlignment(Qt.AlignCenter)
+                self.use_avatar = False
+                print("使用默认文本图标")
         except Exception as e:
-            print(f"无法加载关于页面图标: {e}")
+            print(f"加载回退图标时出错: {e}")
+            # 最终回退：使用默认文本
+            try:
+                self.about_icon_label.clear()
+                self.about_icon_label.setText("♪")
+                font = QFont()
+                font.setPointSize(64)
+                self.about_icon_label.setFont(font)
+                self.about_icon_label.setAlignment(Qt.AlignCenter)
+                self.use_avatar = False
+            except Exception as final_e:
+                print(f"设置默认文本图标也失败: {final_e}")
+    
+    def event(self, event):
+        """处理自定义事件"""
+        if event.type() == AVATAR_SETTING_CHANGED_EVENT_TYPE:
+            # 如果设置为只使用logo，忽略头像设置更改事件
+            if self.use_logo_only:
+                return True
+                
+            # 头像设置更改事件
+            if event.disable_update:
+                # 禁用头像下载
+                # 停止正在进行的下载
+                if hasattr(self, 'downloader') and self.downloader:
+                    self.downloader.terminate()
+                    self.downloader = None
+                # 显示回退图标
+                self.loadFallbackIcon()
+            else:
+                # 启用头像下载，重新加载头像
+                self.loadAboutIcon()
+            
+            return True
+        return super().event(event)
 
 
 class AboutInterface(QWidget):

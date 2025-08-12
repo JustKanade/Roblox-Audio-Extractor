@@ -1,7 +1,7 @@
 {
   "contributors": [
     {
-      "name": "JustKanade",
+      "name": "@JustKanade",
       "contribution_type": {
         "en": "Main Developer",
         "zh": "主创"
@@ -13,7 +13,7 @@
       }
     },
     {
-      "name": "zhiyiYo",
+      "name": "@zhiyiYo",
       "contribution_type": {
         "en": "Creator of QFluentWidgets",
         "zh": "QFluentWidgets 作者"

@@ -19,7 +19,7 @@ class CentralLogHandler:
     _instance = None  # 单例实例
     _log_entries = []  # 存储所有日志条目
     _text_edits = []   # 所有要更新的TextEdit控件
-    _max_entries = 200  # 最大日志条目数
+    _max_entries = 2000  # 最大日志条目数
     _theme = "auto"    # 默认主题
     _config_manager = None  # 配置管理器
     _log_file_path = None  # 日志文件路径
@@ -68,22 +68,23 @@ class CentralLogHandler:
                 # 检查前缀
                 prefix = ""
                 message = rest
+                # 移除emoji，改为文本前缀
                 if rest.startswith("✓ "):
-                    prefix = "✓ "
+                    prefix = "[SUCCESS] "
                     message = rest[2:]
                 elif rest.startswith("⚠ "):
-                    prefix = "⚠ "
+                    prefix = "[WARNING] "
                     message = rest[2:]
                 elif rest.startswith("✗ "):
-                    prefix = "✗ "
+                    prefix = "[ERROR] "
                     message = rest[2:]
                 
                 # 根据前缀和当前主题确定颜色
-                if prefix == "✓ ":
-                    color = "#2ECC71"  # 成功消息 - 绿色
-                elif prefix == "⚠ ":
+                if prefix == "[SUCCESS] ":
+                    color = "#42ff5e"  # 成功消息 - 绿色
+                elif prefix == "[WARNING] ":
                     color = "#FF8C00"  # 警告消息 - 橙色
-                elif prefix == "✗ ":
+                elif prefix == "[ERROR] ":
                     color = "#FF0000"  # 错误消息 - 红色
                 else:
                     # 根据当前主题设置默认颜色
@@ -125,17 +126,21 @@ class CentralLogHandler:
         else:
             color = "white"  # 深色模式下默认白色
             
-        # 特殊消息类型覆盖默认颜色
+        # 特殊消息类型覆盖默认颜色，并移除emoji，改为文本前缀
+        text_prefix = ""
         if prefix == "✓ ":
-            color = "#008800"  # 成功消息 - 绿色
+            color = "#42ff5e"  # 成功消息 - 绿色
+            text_prefix = "[SUCCESS] "
         elif prefix == "⚠ ":
             color = "#FF8C00"  # 警告消息 - 橙色
+            text_prefix = "[WARNING] "
         elif prefix == "✗ ":
             color = "#FF0000"  # 错误消息 - 红色
+            text_prefix = "[ERROR] "
             
         # 创建带颜色的HTML格式日志条目
-        html_entry = f'<span style="color:{color}">{timestamp}{prefix}{message}</span>'
-        plain_entry = f"{timestamp}{prefix}{message}"
+        html_entry = f'<span style="color:{color}">{timestamp}{text_prefix}{message}</span>'
+        plain_entry = f"{timestamp}{text_prefix}{message}"
         
         # 添加到日志条目列表 (保存纯文本版本用于后续处理)
         self._log_entries.append(plain_entry)

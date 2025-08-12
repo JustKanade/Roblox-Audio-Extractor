@@ -50,47 +50,6 @@ def resource_path(relative_path):
         return resource_file
 
 
-def get_roblox_default_dir():
-    """
-    获取Roblox默认目录路径，根据不同操作系统返回不同的路径
-    Get default Roblox directory path, returns different paths based on operating system
-    
-    返回:
-    str: Roblox默认缓存目录路径
-    """
-    try:
-        if os.name == 'nt':  # Windows
-            # 获取用户主目录
-            user_profile = os.environ.get('USERPROFILE')
-            if not user_profile:
-                # 备用方法获取用户主目录
-                import ctypes.wintypes
-                CSIDL_PROFILE = 40
-                buf = ctypes.create_unicode_buffer(ctypes.wintypes.MAX_PATH)
-                ctypes.windll.shell32.SHGetFolderPathW(0, CSIDL_PROFILE, 0, 0, buf)
-                user_profile = buf.value
-                
-            # Windows默认路径：C:\Users\用户名\AppData\Local\Roblox\rbx-storage
-            default_path = os.path.join(user_profile, "AppData", "Local", "Roblox", "rbx-storage")
-            
-        elif sys.platform == 'darwin':  # macOS
-            # macOS默认路径：~/Library/Roblox/rbx-storage
-            user_home = os.path.expanduser("~")
-            default_path = os.path.join(user_home, "Library", "Roblox", "rbx-storage")
-            
-        else:  # Linux及其他系统
-            # Linux没有官方客户端，但可以通过Wine运行Windows版本
-            # 假设Wine默认配置下的路径
-            user_home = os.path.expanduser("~")
-            default_path = os.path.join(user_home, ".wine", "drive_c", "users", os.environ.get('USER', 'user'), "AppData", "Local", "Roblox", "rbx-storage")
-            
-        return default_path
-    except Exception as e:
-        # 出错时返回空字符串
-        print(f"获取Roblox默认路径时出错: {e}")
-        return ""
-
-
 def open_directory(path):
     """
     打开指定的目录

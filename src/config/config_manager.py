@@ -102,6 +102,8 @@ class AppConfig(QConfig):
     disableAvatarAutoUpdate = ConfigItem("UI", "DisableAvatarAutoUpdate", False, BoolValidator())
     greetingEnabled = ConfigItem("UI", "GreetingEnabled", True, BoolValidator())
     logCardHeight = RangeConfigItem("UI", "LogCardHeight", 250, RangeValidator(150, 600))
+    
+
 
 class ConfigManager:
     """配置文件管理器 - 结合官方qconfig和传统配置管理"""

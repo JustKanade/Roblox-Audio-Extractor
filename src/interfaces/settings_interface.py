@@ -92,6 +92,9 @@ class SettingsInterface(QWidget):
         self.version = version
         self._parent_window = parent
         
+        # 获取路径管理器
+        self.path_manager = getattr(config_manager, 'path_manager', None) if config_manager else None
+        
         # 确保语言对象存在，否则创建空的语言处理函数
         if self.lang is None:
             # 创建一个返回键名的函数
@@ -933,8 +936,15 @@ class SettingsInterface(QWidget):
         
     def restoreDefaultInputPath(self):
         """恢复默认输入路径"""
-        # 获取默认的Roblox路径
-        default_roblox_dir = get_roblox_default_dir()
+        # 使用路径管理器获取默认的Roblox路径
+        if self.path_manager:
+            default_roblox_dir = self.path_manager.get_roblox_default_dir(force_refresh=True)
+        else:
+            # 如果路径管理器不可用，记录错误并返回
+            if hasattr(self, 'settingsLogHandler'):
+                self.settingsLogHandler.error(self.get_text("path_manager_not_available", "路径管理器不可用"))
+            return
+            
         if default_roblox_dir and self.config_manager:
             # 更新全局输入路径
             self.config_manager.set("global_input_path", default_roblox_dir)

@@ -159,6 +159,10 @@ def get_translations():
                 ENGLISH: "Extract Textures",
                 CHINESE: "提取纹理"
             },
+            "extract_fonts": {
+                ENGLISH: "Extract Fonts",
+                CHINESE: "提取字体"
+            },
             "view_history": {
                 ENGLISH: "History",
                 CHINESE: "提取历史"
@@ -485,6 +489,19 @@ def get_translations():
                 ENGLISH: "Enable to scan Roblox client database for audio metadata and enhanced file information",
                 CHINESE: "启用后将扫描Roblox客户端数据库以获取音频元数据和增强文件信息"
             },
+            # 字体下载相关翻译
+            "download_fonts": {
+                ENGLISH: "Download Font Files",
+                CHINESE: "下载字体文件"
+            },
+            "download_fonts_info": {
+                ENGLISH: "Automatically download font files referenced in FontList JSON files",
+                CHINESE: "自动下载FontList JSON文件中引用的字体文件"
+            },
+            "font_classification_method": {
+                ENGLISH: "Font Classification Method",
+                CHINESE: "字体分类方法"
+            },
             # 音频格式转换相关翻译
             "convert_audio_format": {
                 ENGLISH: "Convert Audio Format",
@@ -497,6 +514,10 @@ def get_translations():
             "extract_audio_title": {
                 ENGLISH: "Extract Audio Files",
                 CHINESE: "提取音频文件"
+            },
+            "extract_fonts_title": {
+                ENGLISH: "Extract Font Files",
+                CHINESE: "提取字体文件"
             },
             "input_dir": {
                 ENGLISH: "Input Directory:",
@@ -517,6 +538,14 @@ def get_translations():
             "by_size": {
                 ENGLISH: "By Size",
                 CHINESE: "按大小"
+            },
+            "by_font_family": {
+                ENGLISH: "By Font Family",
+                CHINESE: "按字体家族"
+            },
+            "by_font_style": {
+                ENGLISH: "By Font Style", 
+                CHINESE: "按字体样式"
             },
             "threads": {
                 ENGLISH: "Threads:",
@@ -583,6 +612,18 @@ def get_translations():
             "info_size_categories": {
                 ENGLISH: "Files will be sorted into folders by file size",
                 CHINESE: "文件将按文件大小分类到不同文件夹"
+            },
+            "info_font_family_categories": {
+                ENGLISH: "Fonts will be sorted into folders by font family (e.g. Arial, Roboto)",
+                CHINESE: "字体将按字体家族分类到不同文件夹 (如Arial、Roboto等)"
+            },
+            "info_font_style_categories": {
+                ENGLISH: "Fonts will be sorted into folders by font style (e.g. Regular, Bold, Italic)",
+                CHINESE: "字体将按字体样式分类到不同文件夹 (如Regular、Bold、Italic等)"
+            },
+            "info_font_size_categories": {
+                ENGLISH: "Fonts will be sorted into folders by file size",
+                CHINESE: "字体将按文件大小分类到不同文件夹"
             },
             # 新增分类方法相关翻译
             "classification_method": {
@@ -660,6 +701,10 @@ def get_translations():
                 ENGLISH: "Start Extraction",
                 CHINESE: "开始提取"
             },
+            "start_font_extraction": {
+                ENGLISH: "Start Font Extraction",
+                CHINESE: "开始提取字体"
+            },
             "processing": {
                 ENGLISH: "Processing...",
                 CHINESE: "处理中..."
@@ -707,6 +752,14 @@ def get_translations():
             "task_canceled": {
                 ENGLISH: "Task Canceled",
                 CHINESE: "任务已取消"
+            },
+            "extraction_completed": {
+                ENGLISH: "Extraction completed",
+                CHINESE: "提取完成"
+            },
+            "extraction_failed": {
+                ENGLISH: "Extraction failed",
+                CHINESE: "提取失败"
             },
             "ready": {
                 ENGLISH: "Ready",
@@ -816,6 +869,155 @@ def get_translations():
                 ENGLISH: "Extraction completed successfully!",
                 CHINESE: "提取成功完成！"
             },
+            "font_extraction_complete": {
+                ENGLISH: "Font extraction completed!",
+                CHINESE: "字体提取完成! "
+            },
+            "font_extraction_success": {
+                ENGLISH: "Font extraction completed successfully!",
+                CHINESE: "字体提取成功完成！"
+            },
+            "font_lists_found": {
+                ENGLISH: "Font lists found: {}",
+                CHINESE: "发现字体列表：{} 个"
+            },
+            "fonts_downloaded": {
+                ENGLISH: "Fonts downloaded: {}",
+                CHINESE: "已下载字体：{} 个"
+            },
+            "caches_scanned": {
+                ENGLISH: "Caches scanned: {}",
+                CHINESE: "已扫描缓存：{} 个"
+            },
+            "processing_errors": {
+                ENGLISH: "Processing errors: {}",
+                CHINESE: "处理错误：{} 个"
+            },
+            "download_failed": {
+                ENGLISH: "Download failed: {}",
+                CHINESE: "下载失败：{} 个"
+            },
+            "font_output_dir": {
+                ENGLISH: "Font output directory: {}",
+                CHINESE: "字体输出目录：{}"
+            },
+            "font_processing_speed": {
+                ENGLISH: "Processing speed: {} font lists/second",
+                CHINESE: "处理速度：{} 字体列表/秒"
+            },
+            "starting_font_extraction": {
+                ENGLISH: "Starting font extraction...",
+                CHINESE: "开始字体提取..."
+            },
+            "initializing_extractor": {
+                ENGLISH: "Initializing font extractor...",
+                CHINESE: "正在初始化字体提取器..."
+            },
+            "cache_info": {
+                ENGLISH: "Cache info: Path={}, Type={}",
+                CHINESE: "缓存信息: 路径={}, 类型={}"
+            },
+            "cache_path_not_found": {
+                ENGLISH: "Roblox cache path not found or inaccessible",
+                CHINESE: "Roblox缓存路径不存在或无法访问"
+            },
+            "extracting_fonts": {
+                ENGLISH: "Extracting font files...",
+                CHINESE: "正在提取字体文件..."
+            },
+            "extraction_completed": {
+                ENGLISH: "Font extraction completed! Found {} font lists, successfully downloaded {} font files (took {:.1f} seconds)",
+                CHINESE: "字体提取完成! 发现{}个字体列表，成功下载{}个字体文件 (耗时{:.1f}秒)"
+            },
+            "extraction_failed": {
+                ENGLISH: "Font extraction failed: {}",
+                CHINESE: "字体提取失败: {}"
+            },
+            "extraction_error": {
+                ENGLISH: "Error occurred during font extraction: {}",
+                CHINESE: "字体提取过程中发生错误: {}"
+            },
+            "error_details": {
+                ENGLISH: "Error details: {}",
+                CHINESE: "错误详情: {}"
+            },
+            "progress_update": {
+                ENGLISH: "Progress update: {:.1f}% ({}/{})",
+                CHINESE: "进度更新: {:.1f}% ({}/{})"
+            },
+            "extraction_cancelled": {
+                ENGLISH: "Font extraction cancelled",
+                CHINESE: "字体提取已取消"
+            },
+            # 新增字体提取日志翻译键
+            "scanning_cache": {
+                ENGLISH: "Scanning cache...",
+                CHINESE: "正在扫描缓存..."
+            },
+            "cache_scan_complete": {
+                ENGLISH: "Cache scan complete, found {} items",
+                CHINESE: "缓存扫描完成，发现 {} 个项目"
+            },
+            "no_cache_items_found": {
+                ENGLISH: "No cache items found",
+                CHINESE: "未发现缓存项目"
+            },
+            "cache_path_not_found": {
+                ENGLISH: "Roblox cache path not found or inaccessible",
+                CHINESE: "Roblox缓存路径不存在或无法访问"
+            },
+            "processing_font_list": {
+                ENGLISH: "Processing font list: {}, contains {} fonts",
+                CHINESE: "处理字体列表: {}，包含 {} 个字体"
+            },
+            "font_list_complete": {
+                ENGLISH: "Font list complete: {}, downloaded {}/{} fonts",
+                CHINESE: "字体列表处理完成: {}，成功下载 {}/{} 个字体"
+            },
+            "downloading_font": {
+                ENGLISH: "Downloading font: {}...",
+                CHINESE: "正在下载字体: {}..."
+            },
+            "font_download_success": {
+                ENGLISH: "Successfully downloaded font: {}",
+                CHINESE: "成功下载字体: {}"
+            },
+            "font_download_cancelled": {
+                ENGLISH: "Font download cancelled by user",
+                CHINESE: "字体下载被用户取消"
+            },
+            "multithread_download_cancelled": {
+                ENGLISH: "Multi-threaded font download cancelled by user",
+                CHINESE: "多线程字体下载被用户取消"
+            },
+            "thread_processing_cancelled": {
+                ENGLISH: "Thread processing cancelled by user", 
+                CHINESE: "线程处理被用户取消"
+            },
+            "font_extraction_cancelled": {
+                ENGLISH: "Font extraction operation cancelled",
+                CHINESE: "字体提取操作已取消"
+            },
+            "processing_caches_multiprocess": {
+                ENGLISH: "Using {} processes to process cache items...",
+                CHINESE: "使用 {} 个进程处理缓存项目..."
+            },
+            "processing_caches_multithread": {
+                ENGLISH: "Using {} threads to process cache items...",
+                CHINESE: "使用 {} 个线程处理缓存项目..."
+            },
+            "unknown": {
+                ENGLISH: "Unknown",
+                CHINESE: "未知"
+            },
+            "database": {
+                ENGLISH: "Database",
+                CHINESE: "数据库"
+            },
+            "filesystem": {
+                ENGLISH: "File system",
+                CHINESE: "文件系统"
+            },
             "processed": {
                 ENGLISH: "Processed: {} files",
                 CHINESE: "已处理：{} 个文件"
@@ -908,6 +1110,14 @@ def get_translations():
                 ENGLISH: "Audio folder",
                 CHINESE: "音频总文件夹"
             },
+            "fonts_folder": {
+                ENGLISH: "Fonts folder",
+                CHINESE: "字体总文件夹"
+            },
+            "fonts_category": {
+                ENGLISH: "Font files",
+                CHINESE: "字体文件"
+            },
             "readme_title": {
                 ENGLISH: "Roblox Audio Files - Classification Information",
                 CHINESE: "Roblox 音频文件 - 分类信息"
@@ -979,6 +1189,10 @@ def get_translations():
             "extract_audio_description": {
                 ENGLISH: "Extract audio files from Roblox cache for playback",
                 CHINESE: "从 Roblox 缓存中提取音频文件用于播放"
+            },
+            "extract_fonts_description": {
+                ENGLISH: "Extract font files from Roblox cache and download associated fonts",
+                CHINESE: "从 Roblox 缓存中提取字体文件并下载相关字体"
             },
             "clear_cache_description": {
                 ENGLISH: "Clean up temporary files and cached data to free up disk space",
@@ -1236,8 +1450,8 @@ def get_translations():
                 CHINESE: "自定义输出目录"
             },
             "output_dir_placeholder": {
-                ENGLISH: "Default: ‘extracted’ folder under extraction directory",
-                CHINESE: "默认使用提取目录下的 ‘extracted’ 文件夹"
+                ENGLISH: "Default: 'extracted' folder under extraction directory",
+                CHINESE: "默认使用提取目录下的 'extracted' 文件夹"
             },
             "save_logs": {
                 ENGLISH: "Save logs to file",
@@ -1619,6 +1833,10 @@ def get_translations():
                 ENGLISH: "Default Roblox path restored",
                 CHINESE: "已恢复默认Roblox路径"
             },
+            "path_manager_not_available": {
+                ENGLISH: "Path manager not available",
+                CHINESE: "路径管理器不可用"
+            },
             "press_enter_restore_path": {
                 ENGLISH: "Press Enter to restore default Roblox Cache path",
                 CHINESE: "按Enter恢复默认Roblox缓存路径"
@@ -1950,4 +2168,5 @@ def get_translations():
                 ENGLISH: "Multiprocessing mode has been disabled",
                 CHINESE: "多进程模式已禁用"
             },
+
         }
