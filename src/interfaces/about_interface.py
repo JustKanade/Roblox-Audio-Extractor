@@ -165,10 +165,10 @@ class BannerWidget(CardWidget):
                 self.about_icon_label.setPixmap(circular_pixmap)
                 self.avatar_pixmap = circular_pixmap
                 self.use_avatar = True
-                print("成功加载QQ头像到关于界面")
+
             else:
                 # 头像数据加载失败，回退到应用logo
-                print("头像数据加载失败，回退到应用logo")
+
                 self.loadFallbackIcon()
         except Exception as e:
             print(f"处理头像下载结果时出错: {e}")
@@ -218,7 +218,6 @@ class BannerWidget(CardWidget):
                 )
                 self.about_icon_label.setPixmap(scaled_pixmap)
                 self.use_avatar = False
-                print("已加载应用logo到关于界面")
             else:
                 # 使用默认文本图标
                 self.about_icon_label.clear()

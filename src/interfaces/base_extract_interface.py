@@ -307,10 +307,10 @@ class BaseExtractInterface(QWidget, metaclass=QWidgetMeta):
         # 开始提取按钮
         extraction_type = self.getExtractionType()
         self.extractButton = PrimaryPushButton(
-            self.get_text(f"start_{extraction_type}_extraction", f"Start {extraction_type.title()} Extraction")
+            self.get_text(f"extract")
         )
         self.extractButton.setIcon(FluentIcon.PLAY)
-        self.extractButton.setFixedSize(200, 35)
+        self.extractButton.setFixedSize(130, 35)
         self.extractButton.clicked.connect(self.startExtraction)
         button_layout.addWidget(self.extractButton)
 

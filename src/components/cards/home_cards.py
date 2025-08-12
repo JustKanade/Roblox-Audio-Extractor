@@ -13,7 +13,7 @@ from PyQt5.QtWidgets import QVBoxLayout, QHBoxLayout, QWidget
 from qfluentwidgets import (
     SettingCard, CardWidget, StrongBodyLabel, BodyLabel, CaptionLabel,
     FluentIcon, PrimaryPushButton, PushButton, TransparentPushButton,
-    PillPushButton, FlowLayout
+    PillPushButton, FlowLayout, PrimaryDropDownPushButton, RoundMenu, Action
 )
 
 
@@ -114,7 +114,7 @@ class ExtractFontsCard(SettingCard):
         content_layout.setSpacing(8)
         
         # 创建字体提取按钮
-        self.extract_btn = PrimaryPushButton(FluentIcon.FONT, self.get_text("start_font_extraction", "开始提取字体"))
+        self.extract_btn = PrimaryPushButton(FluentIcon.FONT, self.get_text("extract", "开始提取字体"))
         self.extract_btn.setFixedSize(145, 32)
         
         content_layout.addWidget(self.extract_btn)
@@ -270,3 +270,72 @@ class DirectoryInfoCard(SettingCard):
         
         # 将内容添加到SettingCard的hBoxLayout
         self.hBoxLayout.addWidget(content_widget) 
+
+
+class ExtractMenuCard(SettingCard):
+    """提取菜单卡片 - 包含音频和字体提取的下拉菜单"""
+    
+    def __init__(self, parent=None, lang=None):
+        # 确保语言对象存在，否则创建空的语言处理函数
+        if lang is None:
+            self.get_text = lambda key, default="": default
+        else:
+            self.get_text = lang.get
+            
+        super().__init__(
+            FluentIcon.DOWNLOAD,
+            self.get_text("extract_menu_button_title", "Extract Content"),
+            self.get_text("extract_menu_button_description", "Choose extraction type and access related functions"),
+            parent
+        )
+        
+        self._setupContent()
+    
+    def _setupContent(self):
+        """设置内容"""
+        # 创建右侧内容容器
+        content_widget = QWidget()
+        content_layout = QHBoxLayout(content_widget)
+        content_layout.setContentsMargins(0, 0, 20, 0)
+        content_layout.setSpacing(8)
+        
+        # 创建下拉菜单
+        self.menu = RoundMenu(parent=content_widget)
+        
+        # 添加音频提取菜单项
+        self.audio_action = Action(
+            FluentIcon.MUSIC,
+            self.get_text("extract_audio_menu_item", "Extract Audio"),
+            parent=self.menu
+        )
+        self.menu.addAction(self.audio_action)
+        
+        # 添加字体提取菜单项
+        self.fonts_action = Action(
+            FluentIcon.FONT,
+            self.get_text("extract_fonts_menu_item", "Extract Fonts"),
+            parent=self.menu
+        )
+        self.menu.addAction(self.fonts_action)
+        
+        # 创建下拉按钮
+        self.extract_dropdown_btn = PrimaryDropDownPushButton(
+            FluentIcon.DOWNLOAD,
+            self.get_text("extract_menu_button_text", "Start Extraction"),
+            content_widget
+        )
+        self.extract_dropdown_btn.setMenu(self.menu)
+        self.extract_dropdown_btn.setFixedSize(165, 32)
+        
+        content_layout.addWidget(self.extract_dropdown_btn)
+        
+        # 将内容添加到SettingCard的hBoxLayout
+        self.hBoxLayout.addWidget(content_widget)
+    
+    def get_audio_action(self):
+        """获取音频提取动作"""
+        return self.audio_action
+    
+    def get_fonts_action(self):
+        """获取字体提取动作"""
+        return self.fonts_action 

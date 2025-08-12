@@ -27,7 +27,7 @@ _theme_styles_cache: Dict[str, Optional[str]] = {"light": None, "dark": None}
 def apply_theme_from_config(window, config_manager, central_log_handler=None):
     """从配置文件应用主题设置
     
-    根据配置管理器中的设置应用主题
+    根据配置管理器中的设置立即应用主题，避免启动时的白色闪现
     
     Args:
         window: 要应用主题的窗口对象
@@ -42,13 +42,12 @@ def apply_theme_from_config(window, config_manager, central_log_handler=None):
         if central_log_handler:
             central_log_handler.set_theme(theme_setting)
         
-        # 使用延迟调用来应用主题，避免在应用初始化过程中干扰UI流程
-        # 延迟时间设置为50ms，确保应用完全加载
-        QTimer.singleShot(50, lambda: _safely_apply_theme(window, theme_setting, config_manager))
+        # 立即应用主题，避免延迟导致的白色闪现
+        _safely_apply_theme(window, theme_setting, config_manager)
         
         # 预缓存另一个主题的样式，以便后续切换更流畅
         other_theme = "light" if theme_setting == "dark" else "dark"
-        QTimer.singleShot(100, lambda: _pre_cache_theme_styles(window, other_theme))
+        _pre_cache_theme_styles(window, other_theme)
     except Exception as e:
         logger.error(f"应用主题配置时出错: {e}")
 
@@ -85,9 +84,9 @@ def _pre_cache_theme_styles(window, theme_setting):
 
 
 def _safely_apply_theme(window, theme_setting, config_manager):
-    """安全地应用主题设置
+    """安全地应用主题设置，避免白色闪现
     
-    处理主题应用过程中可能出现的异常
+    在应用主题前立即设置背景色，处理主题应用过程中可能出现的异常
     
     Args:
         window: 要应用主题的窗口对象
@@ -95,24 +94,42 @@ def _safely_apply_theme(window, theme_setting, config_manager):
         config_manager: 配置管理器实例
     """
     try:
-        # 准备两种主题的样式表用于快速切换
+        # 立即设置窗口背景色，防止白色闪现
+        if theme_setting == "light":
+            initial_bg = "rgb(243, 243, 243)"
+        elif theme_setting == "dark":
+            initial_bg = "rgb(32, 32, 32)"
+        else:  # auto - 根据系统主题决定
+            import sys
+            if sys.platform == "win32":
+                try:
+                    import winreg
+                    registry_key = winreg.OpenKey(winreg.HKEY_CURRENT_USER, 
+                                                r"Software\Microsoft\Windows\CurrentVersion\Themes\Personalize")
+                    value, _ = winreg.QueryValueEx(registry_key, "AppsUseLightTheme")
+                    winreg.CloseKey(registry_key)
+                    initial_bg = "rgb(243, 243, 243)" if value else "rgb(32, 32, 32)"
+                except:
+                    initial_bg = "rgb(243, 243, 243)"  # 默认浅色
+            else:
+                initial_bg = "rgb(243, 243, 243)"  # 非Windows系统默认浅色
+        
+        # 立即应用背景色
+        window.setStyleSheet(f"FluentWindow {{ background-color: {initial_bg}; }}")
+        
+        # 预缓存两种主题的样式表用于快速切换
         _pre_cache_theme_styles(window, "dark")
         _pre_cache_theme_styles(window, "light")
         
-        logger.debug(f"初始应用主题: {theme_setting}，已预缓存两种主题样式")
-        
-        # 立即应用基本样式改善初始体验
-        if theme_setting in ["dark", "light"] and _theme_styles_cache.get(theme_setting):
-            window.setStyleSheet(_theme_styles_cache[theme_setting])
+        logger.debug(f"立即应用主题背景: {theme_setting}，背景色: {initial_bg}")
         
         # 应用主题模式，直接使用QFluentWidgets的setTheme函数
-        # 使用lazy=True参数以提高切换性能
         if theme_setting == "light":
-            setTheme(Theme.LIGHT, lazy=True)
+            setTheme(Theme.LIGHT, lazy=False)
         elif theme_setting == "dark":
-            setTheme(Theme.DARK, lazy=True)
+            setTheme(Theme.DARK, lazy=False)
         else:  # auto
-            setTheme(Theme.AUTO, lazy=True)
+            setTheme(Theme.AUTO, lazy=False)
         
         # 应用主题颜色 - 使用新的qconfig系统
         try:
@@ -138,8 +155,8 @@ def _safely_apply_theme(window, theme_setting, config_manager):
             except Exception:
                 pass
 
-        # 使用非常短的延迟更新界面样式，确保流畅过渡
-        QTimer.singleShot(10, lambda: update_all_styles(window))
+        # 立即更新界面样式
+        update_all_styles(window)
     except Exception as e:
         logger.error(f"安全应用主题时出错: {e}")
 

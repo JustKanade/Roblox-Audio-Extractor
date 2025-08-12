@@ -2212,5 +2212,29 @@ def get_translations():
                 ENGLISH: "Saving font extraction history...",
                 CHINESE: "正在保存字体提取历史记录..."
             },
+            "extract_menu_button_title": {
+                ENGLISH: "Extract Content",
+                CHINESE: "内容提取"
+            },
+            "extract_menu_button_description": {
+                ENGLISH: "Choose extraction type and access related functions",
+                CHINESE: "选择提取类型并访问相关功能"
+            },
+            "extract_menu_button_text": {
+                ENGLISH: "Start Extraction",
+                CHINESE: "开始提取"
+            },
+            "extract_audio_menu_item": {
+                ENGLISH: "Extract Audio",
+                CHINESE: "提取音频"
+            },
+            "extract_fonts_menu_item": {
+                ENGLISH: "Extract Fonts",
+                CHINESE: "提取字体"
+            },
+            "processing": {
+                ENGLISH: "Processing...",
+                CHINESE: "处理中..."
+            },
 
         }

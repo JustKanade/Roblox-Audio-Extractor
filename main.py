@@ -103,13 +103,13 @@ class MainWindow(FluentWindow):
     def __init__(self):
         super().__init__()
 
-        
+        # 配置管理器初始化
         self.config_manager = ConfigManager()
         
-        
+        # 调试信息
         logger.debug("配置管理器初始化完成，使用qconfig系统")
         
-        
+        # 调试模式信息输出
         if self.config_manager.get("debug_mode_enabled", False):
             print(f"配置文件路径: {self.config_manager.config_file}")
             print(f"QFluentWidgets配置文件路径: {self.config_manager.qfluent_config_file}")
@@ -118,85 +118,75 @@ class MainWindow(FluentWindow):
             theme_mode = self.config_manager.cfg.get(self.config_manager.cfg.theme)
             print(f"当前主题配置: theme={theme_mode}, themeColor={theme_color.name() if isinstance(theme_color, QColor) else theme_color}")
 
-        
+        # 语言初始化
         global lang
         lang = initialize_lang(self.config_manager)
         self.lang = lang  
 
-        
+        # 日志处理器初始化
         CentralLogHandler.getInstance().init_with_config(self.config_manager)
 
-        
+        # 立即应用主题设置，避免白色闪现
+        self.applyThemeFromConfig()
+
+        # 窗口初始化
         self.initWindow()
 
-        
+        # 路径管理
         self.default_dir = self.config_manager.path_manager.get_roblox_default_dir() if self.config_manager.path_manager else ""
         
-        
+        # 应用数据目录创建
         app_data_dir = os.path.join(os.path.expanduser("~"), ".roblox_audio_extractor")
         os.makedirs(app_data_dir, exist_ok=True)
         history_file = os.path.join(app_data_dir, "extracted_history.json")
         
-        
+        # 历史记录初始化
         self.download_history = ExtractedHistory(history_file)
         
-        
+        # 工作线程初始化
         self.extraction_worker = None
         self.cache_clear_worker = None
         
-        
+        # UI组件初始化
         self.initUI()
         
-        
-        self.applyThemeFromConfig()
-        
-        
+        # 响应式布局应用
         self.applyResponsiveLayoutToAllInterfaces()
         
-        
+        # 响应式处理器应用
         apply_responsive_handler(self, self._adjust_responsive_layout)
-        
+
 
 
     def initWindow(self):
         """初始化窗口设置"""
-        
+        # 窗口标题和尺寸设置
         self.setWindowTitle(lang.get("title"))
         self.resize(750, 630)
 
-        
+        # 最小尺寸设置
         self.setMinimumSize(750, 380)
 
-        
-        setTheme(Theme.AUTO)
-
-        
+        # Mica效果设置
         mica_enabled = self.config_manager.cfg.get(self.config_manager.cfg.micaEnabled)
         self.setMicaEffectEnabled(mica_enabled)
 
-        
+        # 窗口图标设置
         try:
-            icon_path = resource_path(os.path.join("res", "icons", "logo.png"))
+            icon_path = resource_path(os.path.join("res", "icons", "title.png"))
             if os.path.exists(icon_path):
                 self.setWindowIcon(QIcon(icon_path))
         except Exception as e:
             print(f"无法设置窗口图标: {e}")
 
-        
-        
+        # 置顶设置
         always_on_top = self.config_manager.get("always_on_top", False)
         if always_on_top:
             apply_always_on_top(self, True)
             
-            
+            # 调试信息
             if self.config_manager.get("debug_mode_enabled", False):
                 print("窗口初始化时设置置顶")
-            
-        
-        current_theme = self.config_manager.get("theme")
-        other_theme = "light" if current_theme == "dark" else "dark"
-        QTimer.singleShot(200, lambda: _pre_cache_theme_styles(self, other_theme))
-
 
 
     def applyThemeFromConfig(self):
@@ -1236,22 +1226,30 @@ def main():
             print(f"无法设置应用图标: {e}")
 
         
+        # 创建主窗口实例
         main_window = MainWindow()
 
-        
+        # 立即创建并显示启动画面，完全遮盖主窗口
+        splash = None
         try:
             splash_icon = resource_path(os.path.join("res", "icons", "logo.png"))
             if os.path.exists(splash_icon):
                 splash = SplashScreen(QIcon(splash_icon), main_window)
                 splash.setIconSize(QSize(200, 200))
-                splash.raise_()
-
                 
+                # 确保启动画面完全覆盖并置于最前
+                splash.raise_()
+                splash.show()
+                
+                # 处理事件以确保启动画面立即显示
+                app.processEvents()
+                
+                # 设置3秒后关闭启动画面
                 QTimer.singleShot(2000, splash.finish)
         except Exception as e:
             print(f"无法显示启动画面: {e}")
 
-        
+        # 显示主窗口（启动画面会遮盖它）
         main_window.show()
 
         

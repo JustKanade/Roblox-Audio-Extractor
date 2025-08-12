@@ -19,7 +19,7 @@ from src.utils.log_utils import LogHandler
 from src.interfaces.about_interface import BannerWidget
 from src.components.cards.home_cards import (
     QuickActionsCard, SystemInfoHomeCard, DirectoryInfoCard,
-    ExtractAudioCard, ExtractFontsCard, ClearCacheCard, SettingsCard
+    ExtractMenuCard, ClearCacheCard, SettingsCard
 )
 from src.components.cards.recent_activity_card import RecentActivityCard
 
@@ -71,15 +71,12 @@ class HomeInterface(QWidget):
 
         self.quickActionsGroup.addSettingCard(self.quickActionsCard)
         
-        # 音频提取独立卡片
-        self.extractAudioCard = ExtractAudioCard(parent=self.quickActionsGroup, lang=self.lang)
-        self.extractAudioCard.extract_btn.clicked.connect(lambda: self.switchToInterface("extractInterface"))
-        self.quickActionsGroup.addSettingCard(self.extractAudioCard)
-        
-        # 字体提取独立卡片
-        self.extractFontsCard = ExtractFontsCard(parent=self.quickActionsGroup, lang=self.lang)
-        self.extractFontsCard.extract_btn.clicked.connect(lambda: self.switchToInterface("extractFontsInterface"))
-        self.quickActionsGroup.addSettingCard(self.extractFontsCard)
+        # 内容提取下拉菜单卡片
+        self.extractMenuCard = ExtractMenuCard(parent=self.quickActionsGroup, lang=self.lang)
+        # 连接菜单项事件
+        self.extractMenuCard.get_audio_action().triggered.connect(lambda: self.switchToInterface("extractInterface"))
+        self.extractMenuCard.get_fonts_action().triggered.connect(lambda: self.switchToInterface("extractFontsInterface"))
+        self.quickActionsGroup.addSettingCard(self.extractMenuCard)
         
         # 清理缓存独立卡片
         self.clearCacheCard = ClearCacheCard(parent=self.quickActionsGroup, lang=self.lang)
