@@ -132,6 +132,14 @@ class SettingsInterface(QWidget, InterfaceThemeMixin):
             "100%", "125%", "150%", "175%", "200%",
             self.get_text("use_system_setting")
         ]
+    
+    def _get_close_behavior_options(self):
+        """获取关闭行为选项的翻译文本"""
+        return [
+            self.get_text("close_behavior_ask"),
+            self.get_text("close_behavior_close"),
+            self.get_text("close_behavior_minimize")
+        ]
             
     def createConfigItems(self):
         """创建配置项"""
@@ -140,10 +148,7 @@ class SettingsInterface(QWidget, InterfaceThemeMixin):
             "DebugMode", "debug_mode", False, BoolValidator()
         )
         
-        # 总是置顶配置项
-        self.alwaysOnTopConfig = ConfigItem(
-            "AlwaysOnTop", "always_on_top", False, BoolValidator()
-        )
+
         
         # 问候语配置项
         self.greetingConfig = ConfigItem(
@@ -189,22 +194,27 @@ class SettingsInterface(QWidget, InterfaceThemeMixin):
             "DisableAvatarAutoUpdate", "disable_avatar_auto_update", False, BoolValidator()
         )
         
+        # 关闭行为配置项
+        self.closeBehaviorConfig = OptionsConfigItem(
+            "Window", "CloseBehavior", "ask", OptionsValidator(["ask", "close", "minimize"])
+        )
+        
         # 将配置项添加到qconfig
         self.config_items = [
-            self.debugModeConfig, self.alwaysOnTopConfig, self.greetingConfig,
+            self.debugModeConfig, self.greetingConfig,
             self.languageConfig, self.themeConfig, self.zoomConfig, self.threadsConfig,
-            self.saveLogsConfig, self.autoOpenConfig, self.avatarConfig
+            self.saveLogsConfig, self.autoOpenConfig, self.avatarConfig, self.closeBehaviorConfig
         ]
         
         # 从config_manager加载初始值
         if self.config_manager:
             qconfig.set(self.debugModeConfig, self.config_manager.get("debug_mode", False))
-            qconfig.set(self.alwaysOnTopConfig, self.config_manager.get("always_on_top", False))
             qconfig.set(self.greetingConfig, self.config_manager.get("greeting_enabled", True))
             qconfig.set(self.saveLogsConfig, self.config_manager.get("save_logs", False))
             qconfig.set(self.autoOpenConfig, self.config_manager.get("auto_open_output_dir", True))
             qconfig.set(self.avatarConfig, self.config_manager.get("disable_avatar_auto_update", False))
             qconfig.set(self.threadsConfig, self.config_manager.get("threads", default_threads))
+            qconfig.set(self.closeBehaviorConfig, self.config_manager.get("close_behavior", "ask"))
             
             # 加载语言配置项
             current_language_display = self._get_language_display_name(self.config_manager.get("language", "auto"))
@@ -366,15 +376,7 @@ class SettingsInterface(QWidget, InterfaceThemeMixin):
         
         group.addSettingCard(crash_logs_card)
         
-        # 总是置顶设置
-        always_on_top_card = SwitchSettingCard(
-            FluentIcon.PIN,
-            self.get_text("always_on_top"),
-            self.get_text("always_on_top_description"),
-            self.alwaysOnTopConfig
-        )
-        always_on_top_card.checkedChanged.connect(self.onAlwaysOnTopChanged)
-        group.addSettingCard(always_on_top_card)
+
         
         # 问候语设置
         greeting_card = SwitchSettingCard(
@@ -399,6 +401,17 @@ class SettingsInterface(QWidget, InterfaceThemeMixin):
                 print(f"添加启动文件卡片时出错: {e}")
                 if hasattr(self, 'settingsLogHandler'):
                     self.settingsLogHandler.error(f"添加启动文件卡片时出错: {e}")
+        
+        # 关闭行为设置
+        close_behavior_card = OptionsSettingCard(
+            self.closeBehaviorConfig,
+            FluentIcon.CLOSE,
+            self.get_text("close_behavior_settings"),
+            self.get_text("close_behavior_settings_desc"),
+            self._get_close_behavior_options()
+        )
+        close_behavior_card.optionChanged.connect(self.onCloseBehaviorChanged)
+        group.addSettingCard(close_behavior_card)
     
     def createUISettingsCards(self, group):
         """创建界面设置卡片"""
@@ -607,14 +620,6 @@ class SettingsInterface(QWidget, InterfaceThemeMixin):
             if hasattr(self, 'settingsLogHandler'):
                 self.settingsLogHandler.info(f"调试模式: {'启用' if isChecked else '禁用'}")
     
-    def onAlwaysOnTopChanged(self, isChecked):
-        """总是置顶改变事件"""
-        if self.config_manager:
-            self.config_manager.set("always_on_top", isChecked)
-            
-            # 调用父窗口的方法来应用设置
-            if self._parent_window and hasattr(self._parent_window, 'applyAlwaysOnTop'):
-                self._parent_window.applyAlwaysOnTop(isChecked)
     
     def onGreetingChanged(self, isChecked):
         """问候语设置改变事件"""
@@ -787,6 +792,28 @@ class SettingsInterface(QWidget, InterfaceThemeMixin):
             if hasattr(self, 'settingsLogHandler'):
                 status_text = self.get_text('enabled') if isChecked else self.get_text('disabled')
                 self.settingsLogHandler.info(f"{self.get_text('avatar_auto_update_setting')}: {status_text}")
+
+    def onCloseBehaviorChanged(self, config_item):
+        """关闭行为改变事件"""
+        if self.config_manager:
+            # 获取选中的关闭行为
+            selected_behavior = qconfig.get(config_item)
+            
+            # 保存到配置管理器（确保兼容性）
+            self.config_manager.set("close_behavior", selected_behavior)
+            self.config_manager.set("first_close_behavior_chosen", True)
+            
+            # 显示成功消息
+            if hasattr(self, 'settingsLogHandler'):
+                behavior_text = ""
+                if selected_behavior == "ask":
+                    behavior_text = self.get_text("close_behavior_ask")
+                elif selected_behavior == "close":
+                    behavior_text = self.get_text("close_behavior_close")
+                elif selected_behavior == "minimize":
+                    behavior_text = self.get_text("close_behavior_minimize")
+                
+                self.settingsLogHandler.success(f"{self.get_text('close_behavior_saved')}: {behavior_text}")
 
     def updateLaunchFile(self, path):
         """更新启动文件路径"""

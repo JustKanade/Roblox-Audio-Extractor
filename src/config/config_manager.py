@@ -110,9 +110,12 @@ class AppConfig(QConfig):
     autoClearCacheEnabled = ConfigItem("Features", "AutoClearCacheEnabled", False, BoolValidator())
     
     # 窗口配置
-    alwaysOnTop = ConfigItem("Window", "AlwaysOnTop", False, BoolValidator())
     debugMode = ConfigItem("Debug", "Enabled", False, BoolValidator())
     autoCheckUpdate = ConfigItem("Update", "AutoCheck", True, BoolValidator())
+
+    # 关闭行为配置
+    firstCloseBehaviorChosen = ConfigItem("Window", "FirstCloseBehaviorChosen", False, BoolValidator())
+    closeBehavior = OptionsConfigItem("Window", "CloseBehavior", "ask", OptionsValidator(["ask", "close", "minimize"]))
 
     # UI配置
     disableAvatarAutoUpdate = ConfigItem("UI", "DisableAvatarAutoUpdate", False, BoolValidator())
@@ -230,7 +233,6 @@ class ConfigManager:
                 "classification_method": self.cfg.classificationMethod,
                 "save_logs": self.cfg.saveLogs,
                 "auto_open_output_dir": self.cfg.autoOpenOutputDir,
-                "always_on_top": self.cfg.alwaysOnTop,
                 "debug_mode": self.cfg.debugMode,
                 "auto_check_update": self.cfg.autoCheckUpdate,
                 "greeting_enabled": self.cfg.greetingEnabled,
@@ -329,7 +331,6 @@ class ConfigManager:
                 "classification_method": self.cfg.classificationMethod,
                 "save_logs": self.cfg.saveLogs,
                 "auto_open_output_dir": self.cfg.autoOpenOutputDir,
-                "always_on_top": self.cfg.alwaysOnTop,
                 "debug_mode": self.cfg.debugMode,
                 "debug_mode_enabled": self.cfg.debugMode,  # 别名
                 "auto_check_update": self.cfg.autoCheckUpdate,
@@ -337,6 +338,9 @@ class ConfigManager:
                 "greeting_enabled": self.cfg.greetingEnabled,
                 "disable_avatar_auto_update": self.cfg.disableAvatarAutoUpdate,
                 "log_card_height": self.cfg.logCardHeight,
+                # 关闭行为配置
+                "first_close_behavior_chosen": self.cfg.firstCloseBehaviorChosen,
+                "close_behavior": self.cfg.closeBehavior,
                 # 音频转换配置
                 "convert_audio_enabled": self.cfg.convertAudioEnabled,
                 "convert_audio_format": self.cfg.convertAudioFormat,
@@ -410,7 +414,6 @@ class ConfigManager:
                 "classification_method": self.cfg.classificationMethod,
                 "save_logs": self.cfg.saveLogs,
                 "auto_open_output_dir": self.cfg.autoOpenOutputDir,
-                "always_on_top": self.cfg.alwaysOnTop,
                 "debug_mode": self.cfg.debugMode,
                 "debug_mode_enabled": self.cfg.debugMode,  # 别名
                 "auto_check_update": self.cfg.autoCheckUpdate,
@@ -418,6 +421,9 @@ class ConfigManager:
                 "greeting_enabled": self.cfg.greetingEnabled,
                 "disable_avatar_auto_update": self.cfg.disableAvatarAutoUpdate,
                 "log_card_height": self.cfg.logCardHeight,
+                # 关闭行为配置
+                "first_close_behavior_chosen": self.cfg.firstCloseBehaviorChosen,
+                "close_behavior": self.cfg.closeBehavior,
                 # 音频转换配置
                 "convert_audio_enabled": self.cfg.convertAudioEnabled,
                 "convert_audio_format": self.cfg.convertAudioFormat,

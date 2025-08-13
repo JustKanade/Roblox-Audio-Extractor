@@ -105,32 +105,6 @@ def get_translations():
                 ENGLISH: "Greeting notifications will no longer be shown when the program starts"
             },
             
-            # 总是置顶窗口相关
-            "always_on_top": {
-                CHINESE: "总是置顶程序窗口",
-                ENGLISH: "Always On Top"
-            },
-            "always_on_top_description": {
-                CHINESE: "保持程序窗口始终显示在最前面",
-                ENGLISH: "Keep the program window always on top of other windows"
-            },
-            "always_on_top_enabled": {
-                CHINESE: "窗口置顶已启用",
-                ENGLISH: "Window Pin Enabled"
-            },
-            "always_on_top_disabled": {
-                CHINESE: "窗口置顶已禁用",
-                ENGLISH: "Window Pin Disabled"
-            },
-            "always_on_top_enabled_tip": {
-                CHINESE: "程序窗口将始终显示在最前面",
-                ENGLISH: "The program window will always stay on top of other windows"
-            },
-            "always_on_top_disabled_tip": {
-                CHINESE: "程序窗口将不再置顶",
-                ENGLISH: "The program window will no longer stay on top"
-            },
-            
             "app_name": {
                 CHINESE: "Roblox音频提取器",
                 ENGLISH: "Roblox Audio Extractor"
@@ -2438,6 +2412,72 @@ def get_translations():
             "donation_confirm_message": {
                 ENGLISH: "This program is maintained and developed by me alone. Development is not easy. Would you consider donating?",
                 CHINESE: "本程序仅由我一人维护和开发，开发不易，是否考虑捐款？"
+            },
+
+            # 系统托盘相关翻译
+            "show_main_window": {
+                ENGLISH: "Show Main Window",
+                CHINESE: "显示主窗口"
+            },
+            "exit_program": {
+                ENGLISH: "Exit Program",
+                CHINESE: "退出程序"
+            },
+            "tray_tooltip": {
+                ENGLISH: "Roblox Audio Extractor",
+                CHINESE: "Roblox 音频提取器"
+            },
+
+            # 首次关闭窗口对话框相关翻译
+            "close_behavior_dialog_title": {
+                ENGLISH: "Close Window Behavior",
+                CHINESE: "关闭窗口行为"
+            },
+            "close_behavior_dialog_message": {
+                ENGLISH: "What would you like to do when clicking the close button?",
+                CHINESE: "当点击关闭按钮时，您希望执行什么操作？"
+            },
+            "close_program_directly": {
+                ENGLISH: "Close Program Directly",
+                CHINESE: "直接关闭程序"
+            },
+            "minimize_to_tray": {
+                ENGLISH: "Minimize to System Tray",
+                CHINESE: "最小化到系统托盘"
+            },
+            "remember_choice": {
+                ENGLISH: "Remember my choice",
+                CHINESE: "记住我的选择"
+            },
+            "close_behavior_saved": {
+                ENGLISH: "Close behavior preference saved",
+                CHINESE: "关闭行为偏好已保存"
+            },
+            "ok": {
+                ENGLISH: "OK",
+                CHINESE: "确定"
+            },
+
+            # 关闭行为设置相关翻译
+            "close_behavior_settings": {
+                ENGLISH: "Close Behavior Settings",
+                CHINESE: "关闭行为设置"
+            },
+            "close_behavior_settings_desc": {
+                ENGLISH: "Configure how the program behaves when the close button is clicked",
+                CHINESE: "配置点击关闭按钮时程序的行为方式"
+            },
+            "close_behavior_ask": {
+                ENGLISH: "Ask every time",
+                CHINESE: "每次询问"
+            },
+            "close_behavior_close": {
+                ENGLISH: "Close program directly",
+                CHINESE: "直接关闭程序"
+            },
+            "close_behavior_minimize": {
+                ENGLISH: "Minimize to system tray",
+                CHINESE: "最小化到系统托盘"
             }
 
         }

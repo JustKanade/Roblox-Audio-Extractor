@@ -41,7 +41,7 @@ from src.management.cache_management.cache_cleaner import CacheClearWorker
 from src.components.ui.responsive_components import ResponsiveFeatureItem
 
 from src.management.window_management.responsive_handler import apply_responsive_handler
-from src.management.window_management.window_utils import apply_always_on_top
+
 
 from src.management.theme_management.theme_manager import apply_theme_from_config, apply_theme_change, _pre_cache_theme_styles
 
@@ -60,7 +60,7 @@ from src.components.cards.Settings.avatar_setting_card import AvatarSettingCard
 
 from src.components.cards.Settings.debug_mode_card import DebugModeCard
 
-from src.components.cards.Settings.always_on_top_card import AlwaysOnTopCard
+
 
 from src.components.cards.Settings.greeting_setting_card import GreetingSettingCard
 
@@ -74,7 +74,8 @@ if hasattr(sys, '_MEIPASS'):
 
 from PyQt5.QtWidgets import (
     QApplication, QWidget, QVBoxLayout, QHBoxLayout,QButtonGroup,
-    QFileDialog, QLabel, QFrame, QSizePolicy, QGridLayout
+    QFileDialog, QLabel, QFrame, QSizePolicy, QGridLayout,
+    QSystemTrayIcon
 )
 from PyQt5.QtCore import Qt, QTimer, QThread, pyqtSignal, QSize
 from PyQt5.QtGui import QIcon, QPixmap, QFont, QColor
@@ -89,7 +90,8 @@ from qfluentwidgets import (
     StrongBodyLabel, SubtitleLabel, DisplayLabel,
     HyperlinkButton, TransparentPushButton, ScrollArea,
     IconWidget, SpinBox, LineEdit, PillPushButton, FlowLayout,
-    SplashScreen, setThemeColor, SwitchButton  
+    SplashScreen, setThemeColor, SwitchButton,
+    SystemTrayMenu, Action, MessageBoxBase
 )
 
 # 导入自定义图标系统
@@ -158,6 +160,9 @@ class MainWindow(FluentWindow):
         
         # 响应式处理器应用
         apply_responsive_handler(self, self._adjust_responsive_layout)
+        
+        # 系统托盘初始化
+        self.initSystemTray()
 
 
 
@@ -182,14 +187,7 @@ class MainWindow(FluentWindow):
         except Exception as e:
             print(f"无法设置窗口图标: {e}")
 
-        # 置顶设置
-        always_on_top = self.config_manager.get("always_on_top", False)
-        if always_on_top:
-            apply_always_on_top(self, True)
-            
-            # 调试信息
-            if self.config_manager.get("debug_mode_enabled", False):
-                print("窗口初始化时设置置顶")
+
 
 
     def applyThemeFromConfig(self):
@@ -1117,13 +1115,7 @@ class MainWindow(FluentWindow):
             if hasattr(self, 'settingsInterface') and hasattr(self.settingsInterface, 'settingsLogHandler'):
                 self.settingsInterface.settingsLogHandler.error(lang.get("path_manager_not_available", "路径管理器不可用"))
 
-    def applyAlwaysOnTop(self, is_top):
-        """应用总是置顶设置"""
-        apply_always_on_top(self, is_top)
-        
-        
-        if hasattr(self, 'settingsInterface') and hasattr(self.settingsInterface, 'settingsLogHandler'):
-            self.settingsInterface.settingsLogHandler.info(self.lang.get("always_on_top_toggled"))
+
 
     def copyPathToClipboard(self, path):
         """复制路径到剪贴板并显示提示"""
@@ -1218,6 +1210,245 @@ class MainWindow(FluentWindow):
         if confirm_box.exec():
             # 用户确认后切换到捐款界面
             self.switchTo(self.donationInterface)
+
+    def initSystemTray(self):
+        """初始化系统托盘"""
+        try:
+            # 检查系统是否支持系统托盘
+            if not QSystemTrayIcon.isSystemTrayAvailable():
+                print("系统托盘不可用")
+                return
+            
+            # 创建系统托盘图标
+            self.tray_icon = QSystemTrayIcon(self)
+            
+            # 设置托盘图标
+            try:
+                icon_path = resource_path(os.path.join("res", "icons", "logo.png"))
+                if os.path.exists(icon_path):
+                    self.tray_icon.setIcon(QIcon(icon_path))
+                else:
+                    # 如果图标文件不存在，使用应用程序的窗口图标
+                    self.tray_icon.setIcon(self.windowIcon())
+            except Exception as e:
+                print(f"设置托盘图标失败: {e}")
+                # 使用应用程序的窗口图标作为备选
+                self.tray_icon.setIcon(self.windowIcon())
+            
+            # 设置提示信息
+            self.tray_icon.setToolTip(lang.get("tray_tooltip"))
+            
+            # 创建托盘菜单
+            self.createTrayMenu()
+            
+            # 连接托盘图标的点击事件
+            self.tray_icon.activated.connect(self.onTrayIconActivated)
+            
+            # 显示托盘图标
+            self.tray_icon.show()
+            
+        except Exception as e:
+            print(f"初始化系统托盘失败: {e}")
+
+    def createTrayMenu(self):
+        """创建托盘右键菜单"""
+        try:
+            # 创建菜单 - 使用 PyQt-Fluent-Widgets 的 SystemTrayMenu
+            self.tray_menu = SystemTrayMenu(parent=self)
+            
+            # 创建菜单动作
+            self.tray_menu.addActions([
+                Action(lang.get("show_main_window"), triggered=self.showMainWindow),
+                Action(lang.get("exit_program"), triggered=self.exitApplication),
+            ])
+            
+            # 设置托盘菜单
+            self.tray_icon.setContextMenu(self.tray_menu)
+            
+        except Exception as e:
+            print(f"创建托盘菜单失败: {e}")
+
+    def onTrayIconActivated(self, reason):
+        """托盘图标激活事件处理"""
+        try:
+            if reason == QSystemTrayIcon.DoubleClick:
+                # 双击托盘图标显示主窗口
+                self.showMainWindow()
+        except Exception as e:
+            print(f"托盘图标激活事件处理失败: {e}")
+
+    def showMainWindow(self):
+        """显示主窗口"""
+        try:
+            # 显示窗口
+            self.show()
+            # 激活窗口
+            self.activateWindow()
+            # 将窗口置于前台
+            self.raise_()
+        except Exception as e:
+            print(f"显示主窗口失败: {e}")
+
+    def exitApplication(self):
+        """退出应用程序"""
+        try:
+            # 隐藏托盘图标
+            if hasattr(self, 'tray_icon'):
+                self.tray_icon.hide()
+            # 退出应用程序
+            QApplication.quit()
+        except Exception as e:
+            print(f"退出应用程序失败: {e}")
+
+    def closeEvent(self, event):
+        """窗口关闭事件处理"""
+        try:
+            # 检查系统托盘是否可用
+            if not QSystemTrayIcon.isSystemTrayAvailable():
+                # 如果系统托盘不可用，直接关闭程序
+                event.accept()
+                return
+            
+            # 获取关闭行为配置
+            first_chosen = self.config_manager.get("first_close_behavior_chosen", False)
+            close_behavior = self.config_manager.get("close_behavior", "ask")
+            
+            # 如果是首次关闭或者设置为每次询问
+            if not first_chosen or close_behavior == "ask":
+                # 显示选择对话框
+                self.showCloseBehaviorDialog(event)
+            elif close_behavior == "close":
+                # 直接关闭程序
+                if hasattr(self, 'tray_icon'):
+                    self.tray_icon.hide()
+                event.accept()
+            elif close_behavior == "minimize":
+                # 最小化到托盘
+                event.ignore()
+                self.hide()
+                
+        except Exception as e:
+            print(f"处理窗口关闭事件失败: {e}")
+            # 发生错误时直接关闭程序
+            event.accept()
+
+    def showCloseBehaviorDialog(self, event):
+        """显示关闭行为选择对话框"""
+        try:
+            # 使用 PyQt-Fluent-Widgets 的 MessageBoxBase 来创建自定义对话框
+            from PyQt5.QtWidgets import QVBoxLayout, QWidget
+            from PyQt5.QtCore import Qt
+            
+            # 创建自定义对话框类
+            class CloseBehaviorDialog(MessageBoxBase):
+                def __init__(self, parent=None):
+                    super().__init__(parent)
+                    self.setupUI()
+                
+                def setupUI(self):
+                    # 设置窗口标题
+                    self.setWindowTitle(lang.get("close_behavior_dialog_title"))
+                    
+                    # 创建内容容器
+                    content_widget = QWidget()
+                    content_layout = QVBoxLayout(content_widget)
+                    content_layout.setSpacing(15)
+                    content_layout.setContentsMargins(0, 0, 0, 20)
+                    
+                    # 添加描述文字
+                    desc_label = BodyLabel(lang.get("close_behavior_dialog_message"))
+                    desc_label.setWordWrap(True)
+                    content_layout.addWidget(desc_label)
+                    
+                    # 选择选项
+                    self.close_radio = RadioButton(lang.get("close_program_directly"))
+                    self.minimize_radio = RadioButton(lang.get("minimize_to_tray"))
+                    self.close_radio.setChecked(True)  # 默认选择关闭程序
+                    
+                    content_layout.addWidget(self.close_radio)
+                    content_layout.addWidget(self.minimize_radio)
+                    
+                    # 记住选择复选框
+                    self.remember_checkbox = CheckBox(lang.get("remember_choice"))
+                    content_layout.addWidget(self.remember_checkbox)
+                    
+                    # 将内容添加到对话框
+                    self.viewLayout.addWidget(content_widget)
+                    
+                    # 修改按钮文本
+                    self.yesButton.setText(lang.get("ok", "确定"))
+                    self.cancelButton.setText(lang.get("cancel"))
+                    
+                    # 设置对话框大小
+                    self.widget.setFixedSize(420, 280)
+            
+            # 创建并显示对话框
+            dialog = CloseBehaviorDialog(self)
+            
+            # 保存引用以便在处理方法中访问
+            self.close_radio = dialog.close_radio
+            self.minimize_radio = dialog.minimize_radio
+            self.remember_checkbox = dialog.remember_checkbox
+            
+            # 显示对话框并处理结果
+            if dialog.exec():
+                self.handleCloseBehaviorChoice(event)
+            else:
+                self.handleCloseBehaviorCancel(event)
+            
+        except Exception as e:
+            print(f"显示关闭行为对话框失败: {e}")
+            # 发生错误时直接关闭程序
+            event.accept()
+
+    def handleCloseBehaviorChoice(self, event):
+        """处理关闭行为选择"""
+        try:
+            # 获取用户选择
+            if self.close_radio.isChecked():
+                behavior = "close"
+            else:
+                behavior = "minimize"
+            
+            # 如果用户勾选了记住选择
+            if self.remember_checkbox.isChecked():
+                self.config_manager.set("first_close_behavior_chosen", True)
+                self.config_manager.set("close_behavior", behavior)
+                
+                # 显示保存成功提示
+                InfoBar.success(
+                    title=lang.get("saved"),
+                    content=lang.get("close_behavior_saved"),
+                    orient=Qt.Horizontal,
+                    isClosable=True,
+                    position=InfoBarPosition.TOP,
+                    duration=3000,
+                    parent=self
+                )
+            
+            # 执行相应操作
+            if behavior == "close":
+                # 关闭程序
+                if hasattr(self, 'tray_icon'):
+                    self.tray_icon.hide()
+                event.accept()
+            else:
+                # 最小化到托盘
+                event.ignore()
+                self.hide()
+                
+        except Exception as e:
+            print(f"处理关闭行为选择失败: {e}")
+            event.accept()
+
+    def handleCloseBehaviorCancel(self, event):
+        """处理关闭行为对话框取消"""
+        try:
+            # 忽略关闭事件，保持窗口打开
+            event.ignore()
+        except Exception as e:
+            print(f"处理取消操作失败: {e}")
+            event.ignore()
 
 
 def main():
