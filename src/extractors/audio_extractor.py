@@ -45,6 +45,7 @@ class ClassificationMethod(Enum):
     """音频分类方法枚举"""
     DURATION = auto()  # 按时长分类
     SIZE = auto()  # 按大小分类
+    NONE = auto()  # 无分类
 
 
 def _process_file_worker(file_path: str, config: ProcessingConfig) -> Dict[str, Any]:
@@ -282,7 +283,7 @@ def _get_category_worker(file_path: str, file_content: bytes, config: Processing
             return "long_60-300s"
         else:
             return "ultra_long_300s+"
-    else:
+    elif config.classification_method == ClassificationMethod.SIZE:
         # 按大小分类
         size = len(file_content)
         if size < 50 * 1024:
@@ -295,6 +296,9 @@ def _get_category_worker(file_path: str, file_content: bytes, config: Processing
             return "large_1MB-5MB"
         else:
             return "ultra_large_5MB+"
+    else:
+        # 无分类 - 直接输出到根目录
+        return ""
 
 
 # 注意：ExtractedHistory 和 ContentHashCache 类已移动到 src/utils/history_manager.py 模块中

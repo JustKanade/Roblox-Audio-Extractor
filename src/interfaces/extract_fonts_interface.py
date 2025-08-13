@@ -35,7 +35,8 @@ class ExtractFontsInterface(BaseExtractInterface):
         return [
             self.get_text("by_font_family", "按字体家族"),
             self.get_text("by_font_style", "按字体样式"),
-            self.get_text("by_size", "按文件大小")
+            self.get_text("by_size", "按文件大小"),
+            self.get_text("no_classification", "无分类")
         ]
         
     def getClassificationMethodKey(self) -> str:
@@ -75,6 +76,8 @@ class ExtractFontsInterface(BaseExtractInterface):
             self.classification_combo.setCurrentIndex(1)
         elif saved_method == "size":
             self.classification_combo.setCurrentIndex(2)
+        elif saved_method == "none":
+            self.classification_combo.setCurrentIndex(3)
         else:
             self.classification_combo.setCurrentIndex(0)
         
@@ -85,8 +88,10 @@ class ExtractFontsInterface(BaseExtractInterface):
             self.classification_card.contentLabel.setText(self.get_text("info_font_family_categories", "按字体家族分类"))
         elif current_index == 1:  # by style
             self.classification_card.contentLabel.setText(self.get_text("info_font_style_categories", "按字体样式分类"))
-        else:  # by size
+        elif current_index == 2:  # by size
             self.classification_card.contentLabel.setText(self.get_text("info_font_size_categories", "按文件大小分类"))
+        else:  # no classification
+            self.classification_card.contentLabel.setText(self.get_text("info_no_classification", "文件将直接输出到主目录，无需分类"))
         
     def getExtractionParameters(self):
         """获取提取参数"""
@@ -97,7 +102,8 @@ class ExtractFontsInterface(BaseExtractInterface):
         classification_method_map = {
             0: FontClassificationMethod.FAMILY,
             1: FontClassificationMethod.STYLE, 
-            2: FontClassificationMethod.SIZE
+            2: FontClassificationMethod.SIZE,
+            3: FontClassificationMethod.NONE
         }
         classification_method = classification_method_map[self.classification_combo.currentIndex()]
         
@@ -143,6 +149,6 @@ class ExtractFontsInterface(BaseExtractInterface):
         
         if self.config_manager:
             # 保存分类方法
-            method_map = {0: "family", 1: "style", 2: "size"}
+            method_map = {0: "family", 1: "style", 2: "size", 3: "none"}
             method = method_map[self.classification_combo.currentIndex()]
             self.config_manager.set("font_classification_method", method) 

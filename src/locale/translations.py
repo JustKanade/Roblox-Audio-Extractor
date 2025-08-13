@@ -1,7 +1,7 @@
 from enum import Enum, auto
 
 # 统一的版本号常量
-VERSION = "0.17.1"
+VERSION = "0.17.2"
 
 class Language(Enum):
     """支持的语言枚举类"""
@@ -510,6 +510,10 @@ def get_translations():
                 ENGLISH: "Automatically download font files referenced in FontList JSON files",
                 CHINESE: "自动下载FontList JSON文件中引用的字体文件"
             },
+            "audio_classification_method": {
+                ENGLISH: "Audio Classification Method",
+                CHINESE: "音频分类方法"
+            },
             "font_classification_method": {
                 ENGLISH: "Font Classification Method",
                 CHINESE: "字体分类方法"
@@ -543,6 +547,10 @@ def get_translations():
                 ENGLISH: "Extract Audio Files",
                 CHINESE: "提取音频文件"
             },
+            "extract_font_title": {
+                ENGLISH: "Extract Font Files",
+                CHINESE: "提取字体文件"
+            },
             "extract_fonts_title": {
                 ENGLISH: "Extract Font Files",
                 CHINESE: "提取字体文件"
@@ -574,6 +582,10 @@ def get_translations():
             "by_font_style": {
                 ENGLISH: "By Font Style", 
                 CHINESE: "按字体样式"
+            },
+            "no_classification": {
+                ENGLISH: "No Classification",
+                CHINESE: "无分类"
             },
             "threads": {
                 ENGLISH: "Threads:",
@@ -652,6 +664,18 @@ def get_translations():
             "info_font_size_categories": {
                 ENGLISH: "Fonts will be sorted into folders by file size",
                 CHINESE: "字体将按文件大小分类到不同文件夹"
+            },
+            "info_no_classification": {
+                ENGLISH: "Files will be output directly to the main directory without classification",
+                CHINESE: "文件将直接输出到主目录，无需分类"
+            },
+            "info_audio_default_category": {
+                ENGLISH: "Select audio classification method",
+                CHINESE: "选择音频分类方法"
+            },
+            "info_font_default_category": {
+                ENGLISH: "Select font classification method", 
+                CHINESE: "选择字体分类方法"
             },
             # 新增分类方法相关翻译
             "classification_method": {
@@ -953,7 +977,7 @@ def get_translations():
                 ENGLISH: "Extracting font files...",
                 CHINESE: "正在提取字体文件..."
             },
-            "extraction_completed": {
+            "font_extraction_completed": {
                 ENGLISH: "Font extraction completed! Found {} font lists, successfully downloaded {} font files (took {:.1f} seconds)",
                 CHINESE: "字体提取完成! 发现{}个字体列表，成功下载{}个字体文件 (耗时{:.1f}秒)"
             },

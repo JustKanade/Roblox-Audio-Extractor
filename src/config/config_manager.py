@@ -68,6 +68,8 @@ class AppConfig(QConfig):
     customOutputDir = ConfigItem("Paths", "CustomOutputDir", "", FolderValidator())
     globalInputPath = ConfigItem("Paths", "GlobalInputPath", "", FolderValidator())  # 将在运行时设置为Roblox默认路径
     lastInputDir = ConfigItem("Paths", "LastInputDir", "", FolderValidator())
+    lastAudioInputDir = ConfigItem("Paths", "LastAudioInputDir", "", FolderValidator())
+    lastFontInputDir = ConfigItem("Paths", "LastFontInputDir", "", FolderValidator())
     launchFile = ConfigItem("Paths", "LaunchFile", "")
     
     # 性能配置
@@ -214,6 +216,8 @@ class ConfigManager:
                 "custom_output_dir": self.cfg.customOutputDir,
                 "global_input_path": self.cfg.globalInputPath,
                 "last_input_dir": self.cfg.lastInputDir,
+                "last_audio_input_dir": self.cfg.lastAudioInputDir,
+                "last_font_input_dir": self.cfg.lastFontInputDir,
                 "launch_file": self.cfg.launchFile, # 新增迁移
                 "dpi_scale": self.cfg.dpiScale,  # 添加DPI缩放配置迁移
                 "threads": self.cfg.threads,
@@ -310,6 +314,8 @@ class ConfigManager:
                 "custom_output_dir": self.cfg.customOutputDir,
                 "global_input_path": self.cfg.globalInputPath,
                 "last_input_dir": self.cfg.lastInputDir,
+                "last_audio_input_dir": self.cfg.lastAudioInputDir,
+                "last_font_input_dir": self.cfg.lastFontInputDir,
                 "launch_file": self.cfg.launchFile,
                 "threads": self.cfg.threads,
                 "useMultiprocessing": self.cfg.useMultiprocessing,
@@ -386,6 +392,8 @@ class ConfigManager:
                 "custom_output_dir": self.cfg.customOutputDir,
                 "global_input_path": self.cfg.globalInputPath,
                 "last_input_dir": self.cfg.lastInputDir,
+                "last_audio_input_dir": self.cfg.lastAudioInputDir,
+                "last_font_input_dir": self.cfg.lastFontInputDir,
                 "launch_file": self.cfg.launchFile,
                 "threads": self.cfg.threads,
                 "useMultiprocessing": self.cfg.useMultiprocessing,

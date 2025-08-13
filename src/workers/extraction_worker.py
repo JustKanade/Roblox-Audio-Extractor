@@ -72,7 +72,10 @@ class ExtractionWorker(QThread):
             scan_duration = time.time() - start_time
             self.total_files = len(files_to_process)
 
-            self.logMessage.emit(self._get_lang('found_files', self.total_files, scan_duration), 'info')
+            # 使用特殊分隔符传递参数给主线程翻译系统
+            separator = chr(31)
+            message = f"found_files|{separator}|{self.total_files}{separator}{scan_duration:.2f}"
+            self.logMessage.emit(message, 'info')
 
             if not files_to_process:
                 self.logMessage.emit(self._get_lang('no_files_found'), 'warning')
@@ -90,7 +93,9 @@ class ExtractionWorker(QThread):
 
             # 如果使用多进程，发送预处理消息
             if self.use_multiprocessing:
-                self.logMessage.emit(self._get_lang('multiprocess_preprocessing', self.extractor.num_processes), 'info')
+                separator = chr(31)
+                message = f"multiprocess_preprocessing|{separator}|{self.extractor.num_processes}"
+                self.logMessage.emit(message, 'info')
                 self.logMessage.emit(self._get_lang('preprocessing_files'), 'info')
 
             # 创建一个用于更新进度的函数
@@ -117,7 +122,9 @@ class ExtractionWorker(QThread):
             self.extractor.process_file = process_file_with_progress
 
             # 处理文件
-            self.logMessage.emit(self._get_lang('processing_with_threads', self.num_threads), 'info')
+            separator = chr(31)
+            message = f"processing_with_threads|{separator}|{self.num_threads}"
+            self.logMessage.emit(message, 'info')
 
             # 进行处理
             extraction_result = self.extractor.process_files()
@@ -155,7 +162,9 @@ class ExtractionWorker(QThread):
             self.finished.emit(extraction_result)
 
         except Exception as e:
-            self.logMessage.emit(self._get_lang('error_occurred', str(e)), 'error')
+            separator = chr(31)
+            message = f"error_occurred|{separator}|{str(e)}"
+            self.logMessage.emit(message, 'error')
             traceback.print_exc()
             self.finished.emit({"success": False, "error": str(e)})
 

@@ -42,6 +42,7 @@ class FontClassificationMethod(Enum):
     FAMILY = auto()     # 按字体家族分类
     STYLE = auto()      # 按字体样式分类  
     SIZE = auto()       # 按文件大小分类
+    NONE = auto()       # 无分类
 
 class FontProcessingStats:
     """字体处理统计类 - 线程安全"""
@@ -455,7 +456,7 @@ class FontListProcessor:
                     safe_name = "".join(c for c in safe_name if c.isalnum() or c == "_")
                     return safe_name or "Other"
                     
-        else:  # FontClassificationMethod.SIZE
+        elif self.classification_method == FontClassificationMethod.SIZE:
             # 按文件大小分类 - 使用与音频相同的阈值
             if file_size < 50 * 1024:
                 return "ultra_small_0-50KB"
@@ -467,6 +468,9 @@ class FontListProcessor:
                 return "large_1MB-5MB"
             else:
                 return "ultra_large_5MB+"
+        else:
+            # 无分类 - 直接输出到根目录
+            return ""
 
     def _download_font_face(self, font_name: str, face: Dict[str, Any]) -> str:
         """
@@ -1077,9 +1081,7 @@ class RobloxFontExtractor:
         """获取缓存信息"""
         return self.cache_scanner.get_cache_info()
 
-# 保持兼容性的别名
-# 向后兼容的别名
-BloxDumpStyleFontExtractor = RobloxFontExtractor
+
 
 # 便捷函数
 def extract_roblox_fonts(output_dir: Optional[str] = None,
@@ -1113,5 +1115,3 @@ def extract_roblox_fonts(output_dir: Optional[str] = None,
     )    
     return extractor.extract_fonts(progress_callback, cache_path)
 
-# 向后兼容的函数别名
-extract_fonts_bloxdump_style = extract_roblox_fonts 

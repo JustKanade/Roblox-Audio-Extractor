@@ -340,9 +340,7 @@ class ClearCacheInterface(QWidget, InterfaceThemeMixin):
         # 获取文本样式
         text_styles = self.get_text_styles()
         
-        # 设置日志文本编辑器样式
-        if hasattr(self, 'logText'):
-            self.logText.setStyleSheet(text_styles['log_text'])
+
             
     def updateProgressBar(self, value):
         """更新进度条"""

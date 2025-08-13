@@ -127,10 +127,10 @@ class FontExtractionWorker(QThread):
                 stats = result.get('stats', {})
                 fontlist_found = stats.get('fontlist_found', 0)
                 fonts_downloaded = stats.get('fonts_downloaded', 0)
-                self.logMessage.emit(
-                    self._get_lang('extraction_completed', fontlist_found, fonts_downloaded, duration),
-                    'success'
-                )
+                # 使用特殊分隔符传递参数给主线程翻译系统
+                separator = chr(31)
+                message = f"font_extraction_completed|{separator}|{fontlist_found}{separator}{fonts_downloaded}{separator}{duration:.1f}"
+                self.logMessage.emit(message, 'success')
             else:
                 error_msg = result.get('error', self._get_lang('unknown_error'))
                 self.logMessage.emit(
@@ -142,9 +142,11 @@ class FontExtractionWorker(QThread):
             self.finished.emit(result)
             
         except Exception as e:
-            error_msg = self._get_lang('extraction_error', str(e))
-            self.logMessage.emit(error_msg, 'error')
-            self.logMessage.emit(self._get_lang('error_details', traceback.format_exc()), 'debug')
+            separator = chr(31)
+            error_message = f"extraction_error|{separator}|{str(e)}"
+            self.logMessage.emit(error_message, 'error')
+            debug_message = f"error_details|{separator}|{traceback.format_exc()}"
+            self.logMessage.emit(debug_message, 'debug')
             
             self.finished.emit({
                 "success": False,
@@ -219,7 +221,7 @@ class FontExtractionWorker(QThread):
             'cache_info': 'Cache info: Path={}, Type={}',
             'cache_path_not_found': 'Roblox cache path not found or inaccessible',
             'extracting_fonts': 'Extracting font files...',
-            'extraction_completed': 'Font extraction completed! Found {} font lists, successfully downloaded {} font files (took {:.1f} seconds)',
+            'font_extraction_completed': 'Font extraction completed! Found {} font lists, successfully downloaded {} font files (took {:.1f} seconds)',
             'extraction_failed': 'Font extraction failed: {}',
             'extraction_error': 'Error occurred during font extraction: {}',
             'error_details': 'Error details: {}',

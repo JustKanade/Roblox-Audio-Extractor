@@ -34,7 +34,8 @@ class ExtractAudioInterface(BaseExtractInterface):
         """获取分类方法列表"""
         return [
             self.get_text("by_duration", "按时长分类"),
-            self.get_text("by_size", "按文件大小")
+            self.get_text("by_size", "按文件大小"),
+            self.get_text("no_classification", "无分类")
         ]
         
     def getClassificationMethodKey(self) -> str:
@@ -67,10 +68,9 @@ class ExtractAudioInterface(BaseExtractInterface):
         ffmpeg_available = is_ffmpeg_available()
         self.convert_card.setEnabled(ffmpeg_available)
         
+        # 如果FFmpeg不可用，显示提示信息
         if not ffmpeg_available:
-            self.convert_card.contentLabel.setText(
-                self.get_text("ffmpeg_not_available", "FFmpeg不可用，无法进行格式转换")
-            )
+            self.convert_card.setToolTip(self.get_text("ffmpeg_not_available", "FFmpeg不可用，无法进行格式转换"))
         
         # 从配置中读取转换开关状态
         convert_enabled = self.config_manager.get("convert_enabled", False) if self.config_manager else False
@@ -145,6 +145,8 @@ class ExtractAudioInterface(BaseExtractInterface):
             saved_method = self.config_manager.get("classification_method", "duration")
         if saved_method == "size":
             self.classification_combo.setCurrentIndex(1)
+        elif saved_method == "none":
+            self.classification_combo.setCurrentIndex(2)
         else:
             self.classification_combo.setCurrentIndex(0)
         
@@ -153,8 +155,10 @@ class ExtractAudioInterface(BaseExtractInterface):
         current_index = self.classification_combo.currentIndex()
         if current_index == 0:  # by duration
             self.classification_card.contentLabel.setText(self.get_text("info_duration_categories", "按音频时长分类"))
-        else:  # by size
+        elif current_index == 1:  # by size
             self.classification_card.contentLabel.setText(self.get_text("info_size_categories", "按文件大小分类"))
+        else:  # no classification
+            self.classification_card.contentLabel.setText(self.get_text("info_no_classification", "文件将直接输出到主目录，无需分类"))
         
     def getExtractionParameters(self):
         """获取提取参数"""
@@ -164,7 +168,8 @@ class ExtractAudioInterface(BaseExtractInterface):
         # 获取分类方法
         classification_method_map = {
             0: ClassificationMethod.DURATION,
-            1: ClassificationMethod.SIZE
+            1: ClassificationMethod.SIZE,
+            2: ClassificationMethod.NONE
         }
         classification_method = classification_method_map[self.classification_combo.currentIndex()]
         
@@ -213,7 +218,7 @@ class ExtractAudioInterface(BaseExtractInterface):
         
         if self.config_manager:
             # 保存分类方法
-            method_map = {0: "duration", 1: "size"}
+            method_map = {0: "duration", 1: "size", 2: "none"}
             method = method_map[self.classification_combo.currentIndex()]
             self.config_manager.set("classification_method", method)
             
