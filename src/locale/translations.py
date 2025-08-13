@@ -66,9 +66,9 @@ def get_translations():
                 ENGLISH: "Note: Acrylic effect works best on Windows"
             },
             
-            # 云母修效果设置相关
+            # 云母效果设置相关
             "mica_effect": {
-                CHINESE: "云母修效果",
+                CHINESE: "云母效果",
                 ENGLISH: "Mica Effect"
             },
             "mica_effect_desc": {
@@ -76,7 +76,7 @@ def get_translations():
                 ENGLISH: "Apply semi-transparent mica material effect to window background"
             },
             "mica_effect_windows11_only": {
-                CHINESE: "注意：云母修效果仅在 Windows 11 上可用",
+                CHINESE: "注意：云母效果仅在 Windows 11 上可用",
                 ENGLISH: "Note: Mica effect is only available on Windows 11"
             },
             "enabled": {
@@ -1654,7 +1654,7 @@ def get_translations():
             },
             "error_clearing_logs": {
                 ENGLISH: "Error clearing logs: {}",
-                CHINESE: "清空日志时出错：{}"
+                CHINESE: "清空日志时发生错误: {}"
             },
             "save_log_file": {
                 ENGLISH: "Save Log File",
@@ -2396,5 +2396,48 @@ def get_translations():
                 ENGLISH: "Translation files saved",
                 CHINESE: "保存翻译文件"
             },
+            
+            # 捐款相关翻译
+            "donation": {
+                ENGLISH: "Donation",
+                CHINESE: "捐款"
+            },
+            "donation_title": {
+                ENGLISH: "Support Development",
+                CHINESE: "支持开发"
+            },
+            "donation_description": {
+                ENGLISH: "If this tool has been helpful to you, consider supporting development through donation.",
+                CHINESE: "如果这个工具对您有帮助，请考虑通过捐款支持开发。"
+            },
+            "wechat_pay": {
+                ENGLISH: "WeChat Pay",
+                CHINESE: "微信支付"
+            },
+            "scan_qr_code": {
+                ENGLISH: "Scan QR Code to Donate",
+                CHINESE: "扫描二维码进行捐款"
+            },
+            "support_development": {
+                ENGLISH: "Support Development",
+                CHINESE: "支持开发"
+            },
+            "donation_thanks": {
+                ENGLISH: "Thank you for your support!",
+                CHINESE: "感谢您的支持！"
+            },
+            "donation_note": {
+                ENGLISH: "Your donation helps maintain and improve this free tool.",
+                CHINESE: "您的捐款有助于维护和改进这个免费工具。"
+            },
+            # 捐款确认对话框相关翻译
+            "donation_confirm_title": {
+                ENGLISH: "Support Development",
+                CHINESE: "支持开发"
+            },
+            "donation_confirm_message": {
+                ENGLISH: "This program is maintained and developed by me alone. Development is not easy. Would you consider donating?",
+                CHINESE: "本程序仅由我一人维护和开发，开发不易，是否考虑捐款？"
+            }
 
         }

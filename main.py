@@ -66,7 +66,7 @@ from src.components.cards.Settings.greeting_setting_card import GreetingSettingC
 
 from src.config import ConfigManager
 
-from src.interfaces import HomeInterface, AboutInterface, ExtractImagesInterface, ExtractTexturesInterface, ClearCacheInterface, HistoryInterface, ExtractAudioInterface, ExtractFontsInterface, ExtractTranslationsInterface, SettingsInterface
+from src.interfaces import HomeInterface, AboutInterface, ExtractImagesInterface, ExtractTexturesInterface, ClearCacheInterface, HistoryInterface, ExtractAudioInterface, ExtractFontsInterface, ExtractTranslationsInterface, SettingsInterface, DonationInterface
 
 
 if hasattr(sys, '_MEIPASS'):
@@ -91,6 +91,9 @@ from qfluentwidgets import (
     IconWidget, SpinBox, LineEdit, PillPushButton, FlowLayout,
     SplashScreen, setThemeColor, SwitchButton  
 )
+
+# 导入自定义图标系统
+from src.common.custom_icon import CustomIcon
 
 
 logging.basicConfig(level=logging.INFO, format='%(message)s')
@@ -283,6 +286,15 @@ class MainWindow(FluentWindow):
         )
 
         
+        self.donationInterface = DonationInterface(
+                parent=self,
+                config_manager=self.config_manager,
+                lang=lang
+        )
+
+        # 手动添加捐款界面到stackedWidget，因为使用的是addItem而不是addSubInterface
+        self.stackedWidget.addWidget(self.donationInterface)
+        
         self.addSubInterface(self.homeInterface, FluentIcon.HOME, lang.get("home"))
         
         
@@ -398,6 +410,15 @@ class MainWindow(FluentWindow):
             position=NavigationItemPosition.BOTTOM
         )
      
+        # 
+        self.navigationInterface.addItem(
+            routeKey="donation",
+            icon=CustomIcon.PRICE,
+            text=lang.get("donation"),
+            onClick=self.onDonationButtonClicked,
+            selectable=False,
+            position=NavigationItemPosition.BOTTOM
+        )
         self.addSubInterface(self.settingsInterface, FluentIcon.SETTING, lang.get("settings"),
                              position=NavigationItemPosition.BOTTOM)
         self.addSubInterface(self.aboutInterface, FluentIcon.INFO, lang.get("about"),
@@ -1185,8 +1206,18 @@ class MainWindow(FluentWindow):
                 duration=5000,
                 parent=self
             )
-
-
+    
+    def onDonationButtonClicked(self):
+        """捐款按钮点击事件处理"""
+        # 创建确认对话框
+        title = lang.get("donation_confirm_title")
+        content = lang.get("donation_confirm_message")
+        
+        # 显示确认对话框
+        confirm_box = MessageBox(title, content, self)
+        if confirm_box.exec():
+            # 用户确认后切换到捐款界面
+            self.switchTo(self.donationInterface)
 
 
 def main():

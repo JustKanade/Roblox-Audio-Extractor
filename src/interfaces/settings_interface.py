@@ -452,7 +452,7 @@ class SettingsInterface(QWidget, InterfaceThemeMixin):
         group.addSettingCard(acrylic_card)
         self.acrylicCard = acrylic_card
         
-        # 云母修效果设置 - 仅在 Windows 11 上启用
+        # 云母效果设置 - 仅在 Windows 11 上启用
         mica_card = SwitchSettingCard(
             FluentIcon.BACKGROUND_FILL,
             self.get_text("mica_effect"),
@@ -833,7 +833,7 @@ class SettingsInterface(QWidget, InterfaceThemeMixin):
                 self.settingsLogHandler.info(f"{self.get_text('acrylic_effect')}: {status}")
 
     def onMicaToggled(self, isChecked):
-        """云母修效果设置改变事件"""
+        """云母效果设置改变事件"""
         if self.config_manager:
             # 保存到配置
             self.config_manager.cfg.set(self.config_manager.cfg.micaEnabled, isChecked)
