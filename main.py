@@ -170,7 +170,7 @@ class MainWindow(FluentWindow):
         """初始化窗口设置"""
         # 窗口标题和尺寸设置
         self.setWindowTitle(lang.get("title"))
-        self.resize(750, 630)
+        self.resize(1020, 650)
 
         # 最小尺寸设置
         self.setMinimumSize(750, 380)
@@ -181,7 +181,7 @@ class MainWindow(FluentWindow):
 
         # 窗口图标设置
         try:
-            icon_path = resource_path(os.path.join("res", "icons", "title.png"))
+            icon_path = resource_path(os.path.join("res", "icons", "logo.png"))
             if os.path.exists(icon_path):
                 self.setWindowIcon(QIcon(icon_path))
         except Exception as e:
@@ -1311,10 +1311,10 @@ class MainWindow(FluentWindow):
             
             # 获取关闭行为配置
             first_chosen = self.config_manager.get("first_close_behavior_chosen", False)
-            close_behavior = self.config_manager.get("close_behavior", "ask")
+            close_behavior = self.config_manager.get("close_behavior", "close")
             
-            # 如果是首次关闭或者设置为每次询问
-            if not first_chosen or close_behavior == "ask":
+            # 如果是首次关闭，显示选择对话框
+            if not first_chosen:
                 # 显示选择对话框
                 self.showCloseBehaviorDialog(event)
             elif close_behavior == "close":

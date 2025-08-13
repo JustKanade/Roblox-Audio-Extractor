@@ -115,7 +115,7 @@ class AppConfig(QConfig):
 
     # 关闭行为配置
     firstCloseBehaviorChosen = ConfigItem("Window", "FirstCloseBehaviorChosen", False, BoolValidator())
-    closeBehavior = OptionsConfigItem("Window", "CloseBehavior", "ask", OptionsValidator(["ask", "close", "minimize"]))
+    closeBehavior = OptionsConfigItem("Window", "CloseBehavior", "close", OptionsValidator(["close", "minimize"]))
 
     # UI配置
     disableAvatarAutoUpdate = ConfigItem("UI", "DisableAvatarAutoUpdate", False, BoolValidator())

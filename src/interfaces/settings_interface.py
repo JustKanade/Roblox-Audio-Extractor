@@ -136,7 +136,6 @@ class SettingsInterface(QWidget, InterfaceThemeMixin):
     def _get_close_behavior_options(self):
         """获取关闭行为选项的翻译文本"""
         return [
-            self.get_text("close_behavior_ask"),
             self.get_text("close_behavior_close"),
             self.get_text("close_behavior_minimize")
         ]
@@ -196,7 +195,7 @@ class SettingsInterface(QWidget, InterfaceThemeMixin):
         
         # 关闭行为配置项
         self.closeBehaviorConfig = OptionsConfigItem(
-            "Window", "CloseBehavior", "ask", OptionsValidator(["ask", "close", "minimize"])
+            "Window", "CloseBehavior", "close", OptionsValidator(["close", "minimize"])
         )
         
         # 将配置项添加到qconfig
@@ -214,7 +213,7 @@ class SettingsInterface(QWidget, InterfaceThemeMixin):
             qconfig.set(self.autoOpenConfig, self.config_manager.get("auto_open_output_dir", True))
             qconfig.set(self.avatarConfig, self.config_manager.get("disable_avatar_auto_update", False))
             qconfig.set(self.threadsConfig, self.config_manager.get("threads", default_threads))
-            qconfig.set(self.closeBehaviorConfig, self.config_manager.get("close_behavior", "ask"))
+            qconfig.set(self.closeBehaviorConfig, self.config_manager.get("close_behavior", "close"))
             
             # 加载语言配置项
             current_language_display = self._get_language_display_name(self.config_manager.get("language", "auto"))
@@ -806,9 +805,7 @@ class SettingsInterface(QWidget, InterfaceThemeMixin):
             # 显示成功消息
             if hasattr(self, 'settingsLogHandler'):
                 behavior_text = ""
-                if selected_behavior == "ask":
-                    behavior_text = self.get_text("close_behavior_ask")
-                elif selected_behavior == "close":
+                if selected_behavior == "close":
                     behavior_text = self.get_text("close_behavior_close")
                 elif selected_behavior == "minimize":
                     behavior_text = self.get_text("close_behavior_minimize")
