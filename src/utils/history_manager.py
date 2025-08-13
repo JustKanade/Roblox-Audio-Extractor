@@ -24,7 +24,8 @@ class ExtractedHistory:
         # 不同类型资源的哈希集合
         self.history_records = {
             'audio': {'file_hashes': set(), 'content_hashes': set()},
-            'font': {'file_hashes': set(), 'content_hashes': set()},  # 新增字体类型
+            'font': {'file_hashes': set(), 'content_hashes': set()},  # 字体类型
+            'translation': {'file_hashes': set(), 'content_hashes': set()},  # 翻译文件类型
             'image': {'file_hashes': set(), 'content_hashes': set()},
             'texture': {'file_hashes': set(), 'content_hashes': set()},
             'model': {'file_hashes': set(), 'content_hashes': set()},

@@ -515,7 +515,17 @@ class HistoryInterface(QWidget, InterfaceThemeMixin):
                     for record_type in record_types:
                         count = self.download_history.get_history_size(record_type)
                         if count > 0:
-                            display_name = f"{record_type.capitalize()} ({count})"
+                            # 为不同类型提供更好的显示名称
+                            type_names = {
+                                'audio': self.get_text("audio_history", "音频文件"),
+                                'font': self.get_text("font_history", "字体文件"), 
+                                'translation': self.get_text("translation_history", "翻译文件"),
+                                'image': self.get_text("image_history", "图片文件"),
+                                'texture': self.get_text("texture_history", "纹理文件"),
+                                'model': self.get_text("model_history", "模型文件"),
+                                'other': self.get_text("other_history", "其他文件")
+                            }
+                            display_name = f"{type_names.get(record_type, record_type.capitalize())} ({count})"
                             self.recordTypeComboBox.addItem(display_name, record_type)
                 
                 # 尝试恢复先前的选择
@@ -577,8 +587,17 @@ class HistoryInterface(QWidget, InterfaceThemeMixin):
                 for record_type in record_types:
                     records_count = self.download_history.get_history_size(record_type)
                     if records_count > 0:
-                        # 首字母大写，并添加记录数
-                        display_name = f"{record_type.capitalize()} ({records_count})"
+                        # 为不同类型提供更好的显示名称
+                        type_names = {
+                            'audio': self.get_text("audio_history", "音频文件"),
+                            'font': self.get_text("font_history", "字体文件"), 
+                            'translation': self.get_text("translation_history", "翻译文件"),
+                            'image': self.get_text("image_history", "图片文件"),
+                            'texture': self.get_text("texture_history", "纹理文件"),
+                            'model': self.get_text("model_history", "模型文件"),
+                            'other': self.get_text("other_history", "其他文件")
+                        }
+                        display_name = f"{type_names.get(record_type, record_type.capitalize())} ({records_count})"
                         # 使用固定参数值创建函数，避免闭包问题
                         def create_callback(rt=record_type):
                             return lambda: self._callParentClearHistory(rt)

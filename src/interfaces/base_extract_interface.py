@@ -199,7 +199,7 @@ class BaseExtractInterface(QWidget, InterfaceThemeMixin, metaclass=QWidgetMeta):
         
         self.browse_button = PushButton(self.get_text("browse", "Browse"))
         self.browse_button.setIcon(FluentIcon.FOLDER_ADD)
-        self.browse_button.setFixedSize(100, 32)
+        self.browse_button.setFixedSize(120, 32)
         self.browse_button.clicked.connect(self.browseDirectory)
         path_layout.addWidget(self.browse_button)
         
@@ -229,7 +229,15 @@ class BaseExtractInterface(QWidget, InterfaceThemeMixin, metaclass=QWidgetMeta):
         # 设置默认选项
         self.loadClassificationMethod()
         
-        self.classification_combo.setFixedSize(140 if extraction_type == "font" else 120, 32)
+        # 根据不同提取器类型设置合适的按钮宽度
+        if extraction_type == "font":
+            button_width = 160
+        elif extraction_type == "translation":
+            button_width = 190 # 翻译选项文本较长，需要更宽的按钮
+        else:  # audio 和其他类型
+            button_width = 140  # 比原来的120像素更宽一些
+        
+        self.classification_combo.setFixedSize(button_width, 32)
         self.classification_combo.currentIndexChanged.connect(self.updateClassificationInfo)
         
         classification_layout.addStretch()
@@ -450,6 +458,13 @@ class BaseExtractInterface(QWidget, InterfaceThemeMixin, metaclass=QWidgetMeta):
         # 启动工作线程
         self.extraction_worker.start()
 
+    def updateThreadsValue(self):
+        """更新线程数设置值（从配置中同步）"""
+        if self.config_manager and hasattr(self, 'threads_spin'):
+            default_threads = min(32, multiprocessing.cpu_count() * 2)
+            saved_threads = self.config_manager.get(self.getThreadsConfigKey(), default_threads)
+            self.threads_spin.setValue(saved_threads)
+
     def saveConfiguration(self, input_dir):
         """保存配置"""
         if self.config_manager:
@@ -589,6 +604,14 @@ class BaseExtractInterface(QWidget, InterfaceThemeMixin, metaclass=QWidgetMeta):
                 subfolder_name = self.get_text("fonts_folder", "Fonts folder")
             else:
                 subfolder_name = self.get_text("fonts_category", "Font files")
+                
+        elif extraction_type == "translation":
+            translations_dir = os.path.join(final_dir, "Translations")
+            if os.path.exists(translations_dir):
+                target_dir = translations_dir
+                subfolder_name = self.get_text("translations_folder", "Translations folder")
+            else:
+                subfolder_name = self.get_text("translations_category", "Translation files")
         
         # 尝试打开目录
         open_success = open_directory(target_dir)
@@ -663,6 +686,29 @@ class BaseExtractInterface(QWidget, InterfaceThemeMixin, metaclass=QWidgetMeta):
                 self.extractLogHandler.info(self.get_text("time_spent", "Time spent: {:.2f} seconds").format(duration))
                 speed = result.get('files_per_second', 0)
                 self.extractLogHandler.info(self.get_text("files_per_sec", "Processing speed: {:.2f} files/second").format(speed))
+                output_path = result.get('output_dir', '')
+                self.extractLogHandler.info(self.get_text("output_dir", "Output directory: {}").format(output_path))
+            else:
+                self.extractLogHandler.warning(self.get_text("no_files_processed", "No files were processed"))
+                
+        elif extraction_type == "translation":
+            # 翻译文件提取的统计信息
+            stats = result.get('stats', {})
+            translation_saved = stats.get('translation_saved', 0)
+            
+            if translation_saved > 0:
+                self.extractLogHandler.success(self.get_text("extraction_complete", "Extraction completed successfully!"))
+                translation_found = stats.get('translation_found', 0)
+                self.extractLogHandler.info(f"{self.get_text('translation_found', 'Translation files found')}: {translation_found}")
+                self.extractLogHandler.info(f"{self.get_text('translation_saved', 'Translation files saved')}: {translation_saved}")
+                already_processed = stats.get('already_processed', 0)
+                self.extractLogHandler.info(self.get_text("skipped_already_processed", "Skipped already processed: {} files").format(already_processed))
+                duplicate_skipped = stats.get('duplicate_skipped', 0)
+                self.extractLogHandler.info(self.get_text("skipped_duplicates", "Skipped duplicates: {} files").format(duplicate_skipped))
+                processing_errors = stats.get('processing_errors', 0)
+                self.extractLogHandler.info(self.get_text("errors", "Errors: {} files").format(processing_errors))
+                duration = result.get('duration', 0)
+                self.extractLogHandler.info(self.get_text("time_spent", "Time spent: {:.2f} seconds").format(duration))
                 output_path = result.get('output_dir', '')
                 self.extractLogHandler.info(self.get_text("output_dir", "Output directory: {}").format(output_path))
             else:

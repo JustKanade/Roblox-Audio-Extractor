@@ -854,11 +854,19 @@ class SettingsInterface(QWidget, InterfaceThemeMixin):
             if hasattr(self, 'settingsLogHandler'):
                 self.settingsLogHandler.info(self.get_text("saved", f"{self.get_text('default_threads')}: {value}"))
             
-            # 同步更新提取界面的线程数设置
-            if self._parent_window and hasattr(self._parent_window, 'extractInterface'):
-                extract_interface = self._parent_window.extractInterface
-                if hasattr(extract_interface, 'updateThreadsValue'):
-                    extract_interface.updateThreadsValue()
+            # 同步更新所有提取界面的线程数设置
+            if self._parent_window:
+                # 更新音频提取界面
+                if hasattr(self._parent_window, 'extractInterface'):
+                    extract_interface = self._parent_window.extractInterface
+                    if hasattr(extract_interface, 'updateThreadsValue'):
+                        extract_interface.updateThreadsValue()
+                
+                # 更新字体提取界面
+                if hasattr(self._parent_window, 'extractFontsInterface'):
+                    fonts_interface = self._parent_window.extractFontsInterface
+                    if hasattr(fonts_interface, 'updateThreadsValue'):
+                        fonts_interface.updateThreadsValue()
     
     def saveMultiprocessingConfig(self, value):
         """保存多进程启用配置"""

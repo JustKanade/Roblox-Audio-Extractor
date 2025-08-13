@@ -498,8 +498,8 @@ def get_translations():
                 CHINESE: "扫描Roblox数据库"
             },
             "scan_database_info": {
-                ENGLISH: "Enable to scan Roblox client database for audio metadata and enhanced file information",
-                CHINESE: "启用后将扫描Roblox客户端数据库以获取音频元数据和增强文件信息"
+                ENGLISH: "Enable to scan Roblox client SQLite database ",
+                CHINESE: "启用扫描Roblox 客户端 SQLite 数据库"
             },
             # 字体下载相关翻译
             "download_fonts": {
@@ -2256,9 +2256,145 @@ def get_translations():
                 ENGLISH: "Extract Fonts",
                 CHINESE: "提取字体"
             },
+            # Translation提取相关翻译
+            "extract_translations": {
+                ENGLISH: "Extract Translations",
+                CHINESE: "提取翻译文件"
+            },
+            "extract_translations_menu_item": {
+                ENGLISH: "Extract Translations",
+                CHINESE: "提取翻译文件"
+            },
+            "extract_translation_title": {
+                ENGLISH: "Translation Extraction Settings",
+                CHINESE: "翻译文件提取设置"
+            },
+            "extract_translations_title": {
+                ENGLISH: "Extract Translation Files",
+                CHINESE: "提取翻译文件"
+            },
+            "extract_translations_description": {
+                ENGLISH: "Extract translation files from Roblox cache for localization analysis",
+                CHINESE: "从 Roblox 缓存中提取翻译文件用于本地化分析"
+            },
+            # Translation分类方法相关
+            "by_locale": {
+                ENGLISH: "By Locale",
+                CHINESE: "按语言区域"
+            },
+            "by_content_type": {
+                ENGLISH: "Content Type",
+                CHINESE: "按内容类型"
+            },
+            "combined_classification": {
+                ENGLISH: "Combined Classification",
+                CHINESE: "组合分类"
+            },
+            "translation_classification_method": {
+                ENGLISH: "Translation Classification Method",
+                CHINESE: "翻译文件分类方法"
+            },
+            # Translation处理选项相关
+            "enable_translation_processing": {
+                ENGLISH: "Enable Translation Processing",
+                CHINESE: "启用翻译文件处理"
+            },
+            "process_translation_files": {
+                ENGLISH: "Process and save discovered translation files",
+                CHINESE: "处理和保存发现的翻译文件"
+            },
+            # Translation分类说明相关
+            "info_locale_classification": {
+                ENGLISH: "Translation files will be classified by language locale, such as zh-cn",
+                CHINESE: "翻译文件将按语言区域分类存储，如 zh-cn"
+            },
+            "info_content_type_classification": {
+                ENGLISH: "Translation files will be classified by content type",
+                CHINESE: "翻译文件将按内容类型分类存储"
+            },
+            "info_combined_classification": {
+                ENGLISH: "Translation files will be classified by both language locale and content type",
+                CHINESE: "翻译文件将按语言区域和内容类型组合分类存储"
+            },
+            # Translation输出目录相关
+            "translations_folder": {
+                ENGLISH: "Translations folder",
+                CHINESE: "翻译文件总文件夹"
+            },
+            "translations_category": {
+                ENGLISH: "Translation files",
+                CHINESE: "翻译文件"
+            },
+            # Translation提取器日志相关
+            "initializing_translation_extractor": {
+                ENGLISH: "Initializing translation extractor...",
+                CHINESE: "正在初始化翻译文件提取器..."
+            },
+            "starting_translation_extraction": {
+                ENGLISH: "Starting translation extraction...",
+                CHINESE: "开始翻译文件提取..."
+            },
+            "processing_translation": {
+                ENGLISH: "Processing translation file: {} ({})",
+                CHINESE: "处理翻译文件: {} ({})"
+            },
+            "translation_save_success": {
+                ENGLISH: "Successfully saved translation file: {}",
+                CHINESE: "成功保存翻译文件: {}"
+            },
+            "saving_translation_history": {
+                ENGLISH: "Saving translation extraction history...",
+                CHINESE: "正在保存翻译文件提取历史记录..."
+            },
+            "translation_extraction_complete": {
+                ENGLISH: "Translation extraction complete! Found {} translation files, successfully saved {} files (took {:.1f} seconds)",
+                CHINESE: "翻译文件提取完成! 发现{}个翻译文件，成功保存{}个文件 (耗时{:.1f}秒)"
+            },
+            "translation_extraction_failed": {
+                ENGLISH: "Translation extraction failed: {}",
+                CHINESE: "翻译文件提取失败: {}"
+            },
             "processing": {
                 ENGLISH: "Processing...",
                 CHINESE: "处理中..."
+            },
+            # 历史记录类型显示名称
+            "audio_history": {
+                ENGLISH: "Audio Files",
+                CHINESE: "音频文件"
+            },
+            "font_history": {
+                ENGLISH: "Font Files",
+                CHINESE: "字体文件"
+            },
+            "translation_history": {
+                ENGLISH: "Translation Files",
+                CHINESE: "翻译文件"
+            },
+            "image_history": {
+                ENGLISH: "Image Files",
+                CHINESE: "图片文件"
+            },
+            "texture_history": {
+                ENGLISH: "Texture Files",
+                CHINESE: "纹理文件"
+            },
+            "model_history": {
+                ENGLISH: "Model Files",
+                CHINESE: "模型文件"
+            },
+            "other_history": {
+                ENGLISH: "Other Files",
+                CHINESE: "其他文件"
+            },
+            # 翻译文件提取统计信息
+            "translation_found": {
+                ENGLISH: "Translation files found",
+                CHINESE: "发现翻译文件"
+            },
+            "translation_saved": {
+                ENGLISH: "Translation files saved",
+                CHINESE: "保存翻译文件"
             },
 
         }

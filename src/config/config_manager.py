@@ -94,6 +94,12 @@ class AppConfig(QConfig):
         "Fonts", "FontThreads", min(4, multiprocessing.cpu_count()), 
         RangeValidator(1, 16))
     
+    # 翻译文件配置
+    translationClassificationMethod = OptionsConfigItem(
+        "Translations", "TranslationClassificationMethod", "locale",
+        OptionsValidator(["locale", "content_type", "combined", "none"]))
+    translationProcessingEnabled = ConfigItem("Translations", "TranslationProcessingEnabled", True, BoolValidator())
+    
     # 音频转换配置
     convertAudioEnabled = ConfigItem("Features", "ConvertAudioEnabled", False, BoolValidator())
     convertAudioFormat = OptionsConfigItem(
@@ -340,6 +346,9 @@ class ConfigManager:
                 # 字体配置
                 "font_classification_method": self.cfg.fontClassificationMethod,
                 "font_threads": self.cfg.fontThreads,
+                # 翻译文件配置
+                "translation_classification_method": self.cfg.translationClassificationMethod,
+                "translation_processing_enabled": self.cfg.translationProcessingEnabled,
             }
             
             if key in key_mapping:
@@ -418,6 +427,9 @@ class ConfigManager:
                 # 字体配置
                 "font_classification_method": self.cfg.fontClassificationMethod,
                 "font_threads": self.cfg.fontThreads,
+                # 翻译文件配置
+                "translation_classification_method": self.cfg.translationClassificationMethod,
+                "translation_processing_enabled": self.cfg.translationProcessingEnabled,
             }
             
             if key in key_mapping:

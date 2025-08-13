@@ -23,6 +23,15 @@ from .font_extractor import (
     extract_roblox_fonts
 )
 
+# 导出Roblox翻译文件提取器及相关组件
+from .translation_extractor import (
+    RobloxTranslationExtractor,
+    TranslationClassificationMethod,
+    TranslationProcessingStats,
+    TranslationProcessor,
+    extract_roblox_translations
+)
+
 # 导出RBXH解析器
 from .rbxh_parser import (
     RBXHParser,
@@ -55,32 +64,34 @@ __all__ = [
     # 音频提取器
     'RobloxAudioExtractor',
     'AudioClassificationMethod',
-    'AudioProcessingStats', 
+    'AudioProcessingStats',
     'AudioContentHashCache',
-    # 'AudioExtractedHistory',  # 已移动到 src.utils.history_manager
     
-    # Roblox字体提取器
+    # 字体提取器
     'RobloxFontExtractor',
     'FontClassificationMethod',
     'FontProcessingStats',
     'FontListProcessor',
     'extract_roblox_fonts',
     
-    # RBXH解析器
+    # 翻译文件提取器
+    'RobloxTranslationExtractor',
+    'TranslationClassificationMethod',
+    'TranslationProcessingStats',
+    'TranslationProcessor',
+    'extract_roblox_translations',
+    
+    # 核心组件
     'RBXHParser',
     'ParsedCache',
     'parse_cache_file',
     'parse_cache_data',
     'get_parser',
-    
-    # 内容识别器
     'ContentIdentifier',
     'AssetType',
-    'IdentifiedContent', 
+    'IdentifiedContent',
     'identify_content',
     'get_identifier',
-    
-    # 缓存扫描器
     'RobloxCacheScanner',
     'CacheItem',
     'CacheType',

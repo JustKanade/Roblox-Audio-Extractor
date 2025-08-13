@@ -318,6 +318,14 @@ class ExtractMenuCard(SettingCard):
         )
         self.menu.addAction(self.fonts_action)
         
+        # 添加翻译文件提取菜单项
+        self.translations_action = Action(
+            FluentIcon.LANGUAGE,
+            self.get_text("extract_translations_menu_item", "Extract Translations"),
+            parent=self.menu
+        )
+        self.menu.addAction(self.translations_action)
+        
         # 创建下拉按钮
         self.extract_dropdown_btn = PrimaryDropDownPushButton(
             FluentIcon.DOWNLOAD,
@@ -338,4 +346,8 @@ class ExtractMenuCard(SettingCard):
     
     def get_fonts_action(self):
         """获取字体提取动作"""
-        return self.fonts_action 
+        return self.fonts_action
+    
+    def get_translations_action(self):
+        """获取翻译文件提取动作"""
+        return self.translations_action 

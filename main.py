@@ -66,7 +66,7 @@ from src.components.cards.Settings.greeting_setting_card import GreetingSettingC
 
 from src.config import ConfigManager
 
-from src.interfaces import HomeInterface, AboutInterface, ExtractImagesInterface, ExtractTexturesInterface, ClearCacheInterface, HistoryInterface, ExtractAudioInterface, ExtractFontsInterface, SettingsInterface
+from src.interfaces import HomeInterface, AboutInterface, ExtractImagesInterface, ExtractTexturesInterface, ClearCacheInterface, HistoryInterface, ExtractAudioInterface, ExtractFontsInterface, ExtractTranslationsInterface, SettingsInterface
 
 
 if hasattr(sys, '_MEIPASS'):
@@ -229,6 +229,15 @@ class MainWindow(FluentWindow):
         )
 
         
+        self.extractTranslationsInterface = ExtractTranslationsInterface(
+            parent=self,
+            config_manager=self.config_manager,
+            lang=lang,
+            default_dir=self.default_dir,
+            download_history=self.download_history
+        )
+
+        
         self.extractImagesInterface = ExtractImagesInterface(
             parent=self,
             config_manager=self.config_manager,
@@ -312,6 +321,20 @@ class MainWindow(FluentWindow):
             icon=FluentIcon.FONT,
             text=lang.get("extract_fonts"),
             onClick=lambda: self.switchTo(self.extractFontsInterface),
+            selectable=True,
+            position=NavigationItemPosition.SCROLL,
+            parentRouteKey="extract"
+        )
+        
+        
+        self.stackedWidget.addWidget(self.extractTranslationsInterface)
+        
+        
+        self.navigationInterface.addItem(
+            routeKey=self.extractTranslationsInterface.objectName(),
+            icon=FluentIcon.LANGUAGE,
+            text=lang.get("extract_translations"),
+            onClick=lambda: self.switchTo(self.extractTranslationsInterface),
             selectable=True,
             position=NavigationItemPosition.SCROLL,
             parentRouteKey="extract"
@@ -430,6 +453,9 @@ class MainWindow(FluentWindow):
                 self.historyInterface.refreshHistoryInterface()
             
             elif current_widget == self.extractInterface:
+                if hasattr(current_widget, 'updateThreadsValue'):
+                    current_widget.updateThreadsValue()
+            elif current_widget == self.extractFontsInterface:
                 if hasattr(current_widget, 'updateThreadsValue'):
                     current_widget.updateThreadsValue()
         except Exception as e:

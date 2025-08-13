@@ -189,8 +189,12 @@ class ContributorsTableCard(QWidget):
                     link_text = "Email"
                 elif "bilibili.com" in link_url.lower():
                     link_text = "BiliBili"
+                elif "roblox.com" in link_url.lower():
+                    link_text = "Roblox"
                 else:
                     link_text = "Website"
+
+
                     
                 link_item = QTableWidgetItem(link_text)
                 link_item.setFlags(link_item.flags() & ~Qt.ItemIsEditable)
