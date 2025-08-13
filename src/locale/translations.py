@@ -2266,8 +2266,8 @@ def get_translations():
                 CHINESE: "提取翻译文件"
             },
             "extract_translation_title": {
-                ENGLISH: "Translation Extraction Settings",
-                CHINESE: "翻译文件提取设置"
+                ENGLISH: "Extract Translations",
+                CHINESE: "提取翻译文件"
             },
             "extract_translations_title": {
                 ENGLISH: "Extract Translation Files",
