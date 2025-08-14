@@ -2482,6 +2482,36 @@ def get_translations():
             "close_behavior_minimize": {
                 ENGLISH: "Minimize to system tray",
                 CHINESE: "最小化到系统托盘"
+            },
+            
+            # SafeStateTooltipManager 相关翻译
+            "tooltip_create_failed": {
+                ENGLISH: "Failed to create status tooltip",
+                CHINESE: "状态提示创建失败"
+            },
+            "tooltip_update_failed": {
+                ENGLISH: "Failed to update status tooltip",
+                CHINESE: "状态提示更新失败"
+            },
+            "tooltip_close_failed": {
+                ENGLISH: "Failed to close status tooltip",
+                CHINESE: "状态提示关闭失败"
+            },
+            "tooltip_object_deleted": {
+                ENGLISH: "Status tooltip was cleaned up by system",
+                CHINESE: "状态提示已被系统清理"
+            },
+            "tooltip_unknown_error": {
+                ENGLISH: "Unknown error occurred with status tooltip",
+                CHINESE: "状态提示发生未知错误"
+            },
+            "warning": {
+                ENGLISH: "Warning",
+                CHINESE: "警告"
+            },
+            "cancelling": {
+                ENGLISH: "Cancelling...",
+                CHINESE: "正在取消..."
             }
 
         }

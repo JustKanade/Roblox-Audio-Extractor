@@ -28,6 +28,7 @@ from functools import partial
 from abc import ABCMeta, abstractmethod
 
 from src.utils.log_utils import LogHandler
+from src.utils.safe_tooltip_manager import SafeStateTooltipManager
 
 from src.management.theme_management.interface_theme_mixin import InterfaceThemeMixin
 
@@ -73,6 +74,9 @@ class BaseExtractInterface(QWidget, InterfaceThemeMixin, metaclass=QWidgetMeta):
         else:
             # 使用lang对象的get方法
             self.get_text = self.lang.get
+        
+        # 初始化安全状态提示管理器
+        self.tooltip_manager = SafeStateTooltipManager(self, self.get_text)
         
         # 初始化界面
         self.initUI()
@@ -443,12 +447,8 @@ class BaseExtractInterface(QWidget, InterfaceThemeMixin, metaclass=QWidgetMeta):
         task_running_text = self.get_text("task_running", "Task Running")
         processing_text = self.get_text("processing", "Processing")
         
-        self.extractionStateTooltip = StateToolTip(
-            task_running_text,
-            processing_text,
-            self.window() or self
-        )
-        self.extractionStateTooltip.show()
+        # 使用安全的tooltip管理器创建tooltip
+        self.tooltip_manager.create_tooltip(task_running_text, processing_text)
         
         # 创建定时器以定期更新UI
         self.update_timer = QTimer(self)
@@ -483,13 +483,15 @@ class BaseExtractInterface(QWidget, InterfaceThemeMixin, metaclass=QWidgetMeta):
             self.extraction_worker.cancel()
             self.updateProgressLabel(self.get_text("cancelling", "Cancelling..."))
             
-            # 更新左上角进度通知为取消状态
-            if hasattr(self, 'extractionStateTooltip'):
-                self.extractionStateTooltip.setContent(self.get_text("task_canceled", "Task Canceled"))
-                self.extractionStateTooltip.setState(True)
-                
-                # 2秒后关闭通知
-                QTimer.singleShot(2000, self.extractionStateTooltip.close)
+            # 使用安全的tooltip管理器更新取消状态
+            cancel_text = self.get_text("task_canceled", "Task Canceled")
+            self.tooltip_manager.update_cancel_tooltip(cancel_text, 2000)
+            
+            # 恢复UI状态
+            self.showExtractButton(True)
+            self.showCancelButton(False)
+            self.updateProgressBar(0)
+            self.updateProgressLabel(self.get_text("ready", "Ready"))
 
     def updateExtractionProgress(self, current, total, elapsed_time, speed):
         """更新提取进度"""
@@ -501,9 +503,8 @@ class BaseExtractInterface(QWidget, InterfaceThemeMixin, metaclass=QWidgetMeta):
             progress_text = f"{current}/{total} ({progress}%) - {speed_text}"
             self.updateProgressLabel(progress_text)
             
-            # 更新左上角进度通知
-            if hasattr(self, 'extractionStateTooltip'):
-                self.extractionStateTooltip.setContent(progress_text)
+            # 使用安全的tooltip管理器更新进度
+            self.tooltip_manager.update_progress_tooltip(progress_text)
 
     def extractionFinished(self, result):
         """提取完成处理"""
@@ -529,12 +530,9 @@ class BaseExtractInterface(QWidget, InterfaceThemeMixin, metaclass=QWidgetMeta):
             # 处理自动打开输出目录
             self._handleAutoOpenOutputDir(result, extraction_type)
             
-            # 更新左上角进度通知为完成状态
-            if hasattr(self, 'extractionStateTooltip'):
-                self.extractionStateTooltip.setContent(self.get_text("extraction_completed", "Extraction completed"))
-                self.extractionStateTooltip.setState(True)
-                # 3秒后关闭通知
-                QTimer.singleShot(3000, self.extractionStateTooltip.close)
+            # 使用安全的tooltip管理器更新完成状态
+            completion_text = self.get_text("extraction_completed", "Extraction completed")
+            self.tooltip_manager.update_completion_tooltip(completion_text, 3000)
             
             # 显示成功信息
             InfoBar.success(
@@ -553,12 +551,9 @@ class BaseExtractInterface(QWidget, InterfaceThemeMixin, metaclass=QWidgetMeta):
             # 显示错误日志
             self.extractLogHandler.error(self.get_text("error_occurred", f"{self.get_text('extraction_failed', 'Extraction failed')}: {error_msg}"))
             
-            # 更新左上角进度通知为错误状态
-            if hasattr(self, 'extractionStateTooltip'):
-                self.extractionStateTooltip.setContent(self.get_text("extraction_failed", "Extraction failed"))
-                self.extractionStateTooltip.setState(True)
-                # 5秒后关闭通知
-                QTimer.singleShot(5000, self.extractionStateTooltip.close)
+            # 使用安全的tooltip管理器更新错误状态
+            error_text = self.get_text("extraction_failed", "Extraction failed")
+            self.tooltip_manager.update_completion_tooltip(error_text, 5000)
             
             # 显示错误信息
             InfoBar.error(
@@ -878,4 +873,36 @@ class BaseExtractInterface(QWidget, InterfaceThemeMixin, metaclass=QWidgetMeta):
         
         # 合并样式
         combined_styles = self.get_common_interface_styles() + specific_styles
-        self.setStyleSheet(combined_styles) 
+        self.setStyleSheet(combined_styles)
+        
+    def closeEvent(self, event):
+        """窗口关闭事件处理"""
+        try:
+            # 清理tooltip管理器
+            if hasattr(self, 'tooltip_manager'):
+                self.tooltip_manager.cleanup()
+                
+            # 停止任何正在运行的提取工作
+            if hasattr(self, 'extraction_worker') and self.extraction_worker:
+                if self.extraction_worker.isRunning():
+                    self.extraction_worker.cancel()
+                    self.extraction_worker.wait(1000)  # 等待1秒
+                    
+            # 停止定时器
+            if hasattr(self, 'update_timer') and self.update_timer:
+                self.update_timer.stop()
+                
+        except Exception as e:
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.error(f"关闭BaseExtractInterface时发生错误: {e}")
+        finally:
+            super().closeEvent(event)
+    
+    def __del__(self):
+        """析构函数，确保资源清理"""
+        try:
+            if hasattr(self, 'tooltip_manager'):
+                self.tooltip_manager.cleanup()
+        except Exception:
+            pass 

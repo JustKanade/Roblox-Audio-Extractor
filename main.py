@@ -26,6 +26,7 @@ from src.utils.history_manager import ExtractedHistory, ContentHashCache
 from src.utils.file_utils import resource_path
 from src.utils.log_utils import LogHandler, setup_basic_logging, save_log_to_file
 from src.utils.import_utils import import_libs
+from src.utils.safe_tooltip_manager import SafeStateTooltipManager
 
 
 from src.locale import Language, initialize_lang
@@ -127,6 +128,9 @@ class MainWindow(FluentWindow):
         global lang
         lang = initialize_lang(self.config_manager)
         self.lang = lang  
+        
+        # 初始化安全状态提示管理器
+        self.tooltip_manager = SafeStateTooltipManager(self, self.lang.get)
 
         # 日志处理器初始化
         CentralLogHandler.getInstance().init_with_config(self.config_manager)
@@ -531,140 +535,7 @@ class MainWindow(FluentWindow):
         if hasattr(self, 'settingsInterface') and hasattr(self.settingsInterface, 'settingsLogHandler'):
             self.settingsInterface.settingsLogHandler.info(lang.get("saved", f"{lang.get('default_threads')}: {value}"))
 
-    def startExtraction(self):
-        """开始提取音频"""
-        
-        global_input_path = self.config_manager.get("global_input_path", "")
-        
-        
-        selected_dir = global_input_path if global_input_path else self.dirInput.text()
-        
-        
-        if global_input_path and self.dirInput.text() != global_input_path:
-            self.dirInput.setText(global_input_path)
-            self.extractLogHandler.info(lang.get("using_global_input_path", "使用全局输入路径") + f": {global_input_path}")
 
-        
-        if not os.path.exists(selected_dir):
-            result = MessageBox(
-                lang.get("create_dir_prompt"),
-                lang.get("dir_not_exist", selected_dir),
-                self
-            )
-
-            if result.exec():
-                try:
-                    os.makedirs(selected_dir, exist_ok=True)
-                    self.extractLogHandler.success(lang.get("dir_created", selected_dir))
-                except Exception as e:
-                    self.extractLogHandler.error(lang.get("dir_create_failed", str(e)))
-                    return
-            else:
-                self.extractLogHandler.warning(lang.get("operation_cancelled"))
-                return
-
-        
-        try:
-            num_threads = self.threadsSpinBox.value()
-            if num_threads < 1:
-                self.extractLogHandler.warning(lang.get("threads_min_error"))
-                num_threads = min(32, multiprocessing.cpu_count() * 2)
-                self.threadsSpinBox.setValue(num_threads)
-
-            if num_threads > 64:
-                result = MessageBox(
-                    lang.get("confirm_high_threads"),
-                    lang.get("threads_high_warning"),
-                    self
-                )
-
-                if not result.exec():
-                    num_threads = min(32, multiprocessing.cpu_count() * 2)
-                    self.threadsSpinBox.setValue(num_threads)
-                    self.extractLogHandler.info(lang.get("threads_adjusted", num_threads))
-        except ValueError:
-            self.extractLogHandler.warning(lang.get("input_invalid"))
-            num_threads = min(32, multiprocessing.cpu_count() * 2)
-            self.threadsSpinBox.setValue(num_threads)
-
-        
-        classification_method = ClassificationMethod.DURATION if self.durationRadio.isChecked() else ClassificationMethod.SIZE
-
-        
-        if classification_method == ClassificationMethod.DURATION and not is_ffmpeg_available():
-            result = MessageBox(
-                lang.get("confirm"),
-                lang.get("ffmpeg_not_installed"),
-                self
-            )
-
-            if not result.exec():
-                self.extractLogHandler.warning(lang.get("operation_cancelled"))
-                return
-
-        
-        custom_output_dir = self.config_manager.get("custom_output_dir", "")
-        
-        
-        # 获取多进程配置
-        use_multiprocessing = self.config_manager.get("useMultiprocessing", False)
-        conservative_multiprocessing = self.config_manager.get("conservativeMultiprocessing", True)
-        
-        self.extraction_worker = ExtractionWorker(
-            selected_dir,
-            num_threads,
-            self.download_history,
-            classification_method,
-            custom_output_dir,
-            True,  # scan_db 默认为True
-            False,  # convert_enabled 默认为False  
-            "MP3",  # convert_format 默认为MP3
-            use_multiprocessing,
-            conservative_multiprocessing
-        )
-
-        
-        self.extraction_worker.progressUpdated.connect(self.updateExtractionProgress)
-        self.extraction_worker.finished.connect(self.extractionFinished)
-        self.extraction_worker.logMessage.connect(self.handleExtractionLog)
-
-        
-        self.extractButton.hide()
-        self.cancelButton.show()
-        self.progressBar.setValue(0)
-        self.progressLabel.setText(lang.get("processing"))
-
-        
-        self.extractionStateTooltip = StateToolTip(
-            lang.get("task_running"),
-            lang.get("processing"),
-            self
-        )
-        self.extractionStateTooltip.show()
-
-        
-        self.extraction_worker.start()
-    def cancelExtraction(self):
-        """取消提取操作"""
-        if self.extraction_worker and self.extraction_worker.isRunning():
-            self.extraction_worker.cancel()
-
-            
-            if hasattr(self, 'extractionStateTooltip'):
-                self.extractionStateTooltip.setContent(lang.get("task_canceled"))
-                self.extractionStateTooltip.setState(True)
-                
-                QTimer.singleShot(2000, self.extractionStateTooltip.close)
-
-            
-            self.cancelButton.hide()
-            self.extractButton.show()
-
-            
-            self.progressBar.setValue(0)
-            self.progressLabel.setText(lang.get("ready"))
-
-            self.handleExtractionLog(lang.get("canceled_by_user"), "warning")
 
     def updateExtractionProgress(self, current, total, elapsed, speed):
         """更新提取进度"""
@@ -682,8 +553,8 @@ class MainWindow(FluentWindow):
         self.progressBar.setValue(progress)
         self.progressLabel.setText(status_text)
         
-        if hasattr(self, 'extractionStateTooltip'):
-            self.extractionStateTooltip.setContent(status_text)
+        # 使用安全的tooltip管理器更新进度
+        self.tooltip_manager.update_progress_tooltip(status_text)
 
     def extractionFinished(self, result):
         """提取完成处理"""
@@ -724,11 +595,9 @@ class MainWindow(FluentWindow):
                     self.extractInterface.config_manager = original_config_manager
 
                 
-                if hasattr(self, 'extractionStateTooltip'):
-                    self.extractionStateTooltip.setContent(lang.get("extraction_complete"))
-                    self.extractionStateTooltip.setState(True)
-                    
-                    QTimer.singleShot(2000, self.extractionStateTooltip.close)
+                # 使用安全的tooltip管理器更新完成状态
+                completion_text = lang.get("extraction_complete")
+                self.tooltip_manager.update_completion_tooltip(completion_text, 2000)
 
                 
                 InfoBar.success(
@@ -747,21 +616,17 @@ class MainWindow(FluentWindow):
                 self.extractLogHandler.warning(lang.get("no_files_processed"))
 
                 
-                if hasattr(self, 'extractionStateTooltip'):
-                    self.extractionStateTooltip.setContent(lang.get("no_files_processed"))
-                    self.extractionStateTooltip.setState(True)
-                    
-                    QTimer.singleShot(2000, self.extractionStateTooltip.close)
+                # 使用安全的tooltip管理器更新无文件处理状态
+                no_files_text = lang.get("no_files_processed")
+                self.tooltip_manager.update_completion_tooltip(no_files_text, 2000)
         else:
             
             self.extractLogHandler.error(lang.get("error_occurred", result.get('error', '')))
 
             
-            if hasattr(self, 'extractionStateTooltip'):
-                self.extractionStateTooltip.setContent(lang.get("task_failed"))
-                self.extractionStateTooltip.setState(False)
-                
-                QTimer.singleShot(2000, self.extractionStateTooltip.close)
+            # 使用安全的tooltip管理器更新失败状态
+            failed_text = lang.get("task_failed")
+            self.tooltip_manager.update_completion_tooltip(failed_text, 2000)
 
             
             InfoBar.error(
