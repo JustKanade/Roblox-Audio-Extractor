@@ -14,7 +14,7 @@ from PyQt5.QtCore import Qt, QTimer, QPoint
 from qfluentwidgets import (
     CardWidget, BodyLabel, StrongBodyLabel,
     ScrollArea, PushButton, PrimaryPushButton, 
-    FluentIcon, CaptionLabel, ProgressBar, RadioButton,
+    FluentIcon, CaptionLabel, ProgressBar, IndeterminateProgressBar, RadioButton,
     TextEdit, IconWidget, SpinBox, LineEdit, InfoBar,
     MessageBox, StateToolTip, InfoBarPosition, ComboBox, CheckBox,
     RoundMenu, Action, DropDownPushButton, TransparentPushButton,
@@ -28,7 +28,6 @@ from functools import partial
 from abc import ABCMeta, abstractmethod
 
 from src.utils.log_utils import LogHandler
-from src.utils.safe_tooltip_manager import SafeStateTooltipManager
 
 from src.management.theme_management.interface_theme_mixin import InterfaceThemeMixin
 
@@ -74,9 +73,6 @@ class BaseExtractInterface(QWidget, InterfaceThemeMixin, metaclass=QWidgetMeta):
         else:
             # 使用lang对象的get方法
             self.get_text = self.lang.get
-        
-        # 初始化安全状态提示管理器
-        self.tooltip_manager = SafeStateTooltipManager(self, self.get_text)
         
         # 初始化界面
         self.initUI()
@@ -293,11 +289,20 @@ class BaseExtractInterface(QWidget, InterfaceThemeMixin, metaclass=QWidgetMeta):
 
         # 进度显示
         progress_layout = QVBoxLayout()
+        
+        # 不定进度条 - 用于初始化/扫描阶段
+        self.indeterminateProgressBar = IndeterminateProgressBar()
+        self.indeterminateProgressBar.hide()  # 默认隐藏
+        
+        # 确定进度条 - 用于文件处理阶段
         self.progressBar = ProgressBar()
         self.progressBar.setValue(0)
         self.progressBar.setTextVisible(True)
+        
         self.progressLabel = CaptionLabel(self.get_text("ready", "Ready"))
         self.progressLabel.setAlignment(Qt.AlignCenter)
+        
+        progress_layout.addWidget(self.indeterminateProgressBar)
         progress_layout.addWidget(self.progressBar)
         progress_layout.addWidget(self.progressLabel)
 
@@ -427,7 +432,9 @@ class BaseExtractInterface(QWidget, InterfaceThemeMixin, metaclass=QWidgetMeta):
         # 更新UI状态
         self.showExtractButton(False)
         self.showCancelButton(True)
-        self.updateProgressBar(0)
+        
+        # 显示不定进度条，用于初始化/扫描阶段
+        self.showIndeterminateProgress(True)
         self.updateProgressLabel(self.get_text("preparing", "Preparing"))
         
         # 获取提取参数
@@ -447,8 +454,12 @@ class BaseExtractInterface(QWidget, InterfaceThemeMixin, metaclass=QWidgetMeta):
         task_running_text = self.get_text("task_running", "Task Running")
         processing_text = self.get_text("processing", "Processing")
         
-        # 使用安全的tooltip管理器创建tooltip
-        self.tooltip_manager.create_tooltip(task_running_text, processing_text)
+        self.extractionStateTooltip = StateToolTip(
+            task_running_text,
+            processing_text,
+            self.window() or self
+        )
+        self.extractionStateTooltip.show()
         
         # 创建定时器以定期更新UI
         self.update_timer = QTimer(self)
@@ -481,21 +492,28 @@ class BaseExtractInterface(QWidget, InterfaceThemeMixin, metaclass=QWidgetMeta):
         """取消提取"""
         if self.extraction_worker and self.extraction_worker.isRunning():
             self.extraction_worker.cancel()
+            
+            # 停止进度条动画
+            self.showIndeterminateProgress(False)
+            self.showDeterminateProgress(True)
+            
             self.updateProgressLabel(self.get_text("cancelling", "Cancelling..."))
             
-            # 使用安全的tooltip管理器更新取消状态
-            cancel_text = self.get_text("task_canceled", "Task Canceled")
-            self.tooltip_manager.update_cancel_tooltip(cancel_text, 2000)
-            
-            # 恢复UI状态
-            self.showExtractButton(True)
-            self.showCancelButton(False)
-            self.updateProgressBar(0)
-            self.updateProgressLabel(self.get_text("ready", "Ready"))
+            # 更新左上角进度通知为取消状态
+            if hasattr(self, 'extractionStateTooltip'):
+                self.extractionStateTooltip.setContent(self.get_text("task_canceled", "Task Canceled"))
+                self.extractionStateTooltip.setState(True)
+                
+                # 2秒后关闭通知
+                QTimer.singleShot(2000, self.extractionStateTooltip.close)
 
     def updateExtractionProgress(self, current, total, elapsed_time, speed):
         """更新提取进度"""
         if total > 0:
+            # 切换到确定进度条（如果尚未切换）
+            if self.indeterminateProgressBar.isVisible():
+                self.showDeterminateProgress(True)
+            
             progress = int((current / total) * 100)
             self.progressBar.setValue(progress)
             
@@ -503,8 +521,9 @@ class BaseExtractInterface(QWidget, InterfaceThemeMixin, metaclass=QWidgetMeta):
             progress_text = f"{current}/{total} ({progress}%) - {speed_text}"
             self.updateProgressLabel(progress_text)
             
-            # 使用安全的tooltip管理器更新进度
-            self.tooltip_manager.update_progress_tooltip(progress_text)
+            # 更新左上角进度通知
+            if hasattr(self, 'extractionStateTooltip'):
+                self.extractionStateTooltip.setContent(progress_text)
 
     def extractionFinished(self, result):
         """提取完成处理"""
@@ -521,6 +540,8 @@ class BaseExtractInterface(QWidget, InterfaceThemeMixin, metaclass=QWidgetMeta):
         extraction_type = self.getExtractionType()
         
         if success:
+            # 停止不定进度条并显示确定进度条为100%
+            self.showDeterminateProgress(True)
             self.updateProgressBar(100)
             self.updateProgressLabel(self.get_text("extraction_completed", "Extraction completed"))
             
@@ -530,9 +551,12 @@ class BaseExtractInterface(QWidget, InterfaceThemeMixin, metaclass=QWidgetMeta):
             # 处理自动打开输出目录
             self._handleAutoOpenOutputDir(result, extraction_type)
             
-            # 使用安全的tooltip管理器更新完成状态
-            completion_text = self.get_text("extraction_completed", "Extraction completed")
-            self.tooltip_manager.update_completion_tooltip(completion_text, 3000)
+            # 更新左上角进度通知为完成状态
+            if hasattr(self, 'extractionStateTooltip'):
+                self.extractionStateTooltip.setContent(self.get_text("extraction_completed", "Extraction completed"))
+                self.extractionStateTooltip.setState(True)
+                # 3秒后关闭通知
+                QTimer.singleShot(3000, self.extractionStateTooltip.close)
             
             # 显示成功信息
             InfoBar.success(
@@ -545,15 +569,21 @@ class BaseExtractInterface(QWidget, InterfaceThemeMixin, metaclass=QWidgetMeta):
                 parent=self
             )
         else:
+            # 停止不定进度条并显示确定进度条
+            self.showDeterminateProgress(True)
+            
             error_msg = result.get("error", self.get_text("unknown_error", "Unknown error"))
             self.updateProgressLabel(f"{self.get_text('extraction_failed', 'Extraction failed')}: {error_msg}")
             
             # 显示错误日志
             self.extractLogHandler.error(self.get_text("error_occurred", f"{self.get_text('extraction_failed', 'Extraction failed')}: {error_msg}"))
             
-            # 使用安全的tooltip管理器更新错误状态
-            error_text = self.get_text("extraction_failed", "Extraction failed")
-            self.tooltip_manager.update_completion_tooltip(error_text, 5000)
+            # 更新左上角进度通知为错误状态
+            if hasattr(self, 'extractionStateTooltip'):
+                self.extractionStateTooltip.setContent(self.get_text("extraction_failed", "Extraction failed"))
+                self.extractionStateTooltip.setState(True)
+                # 5秒后关闭通知
+                QTimer.singleShot(5000, self.extractionStateTooltip.close)
             
             # 显示错误信息
             InfoBar.error(
@@ -844,6 +874,28 @@ class BaseExtractInterface(QWidget, InterfaceThemeMixin, metaclass=QWidgetMeta):
     def updateProgressLabel(self, text):
         """更新进度标签"""
         self.progressLabel.setText(text)
+    
+    def showIndeterminateProgress(self, show=True):
+        """显示/隐藏不定进度条"""
+        if show:
+            self.indeterminateProgressBar.show()
+            self.progressBar.hide()
+            if not self.indeterminateProgressBar.isStarted():
+                self.indeterminateProgressBar.start()
+        else:
+            self.indeterminateProgressBar.hide()
+            if self.indeterminateProgressBar.isStarted():
+                self.indeterminateProgressBar.pause()
+    
+    def showDeterminateProgress(self, show=True):
+        """显示/隐藏确定进度条"""
+        if show:
+            self.progressBar.show()
+            self.indeterminateProgressBar.hide()
+            if self.indeterminateProgressBar.isStarted():
+                self.indeterminateProgressBar.pause()
+        else:
+            self.progressBar.hide()
 
     def setInterfaceStyles(self):
         """设置提取界面样式"""
@@ -873,36 +925,4 @@ class BaseExtractInterface(QWidget, InterfaceThemeMixin, metaclass=QWidgetMeta):
         
         # 合并样式
         combined_styles = self.get_common_interface_styles() + specific_styles
-        self.setStyleSheet(combined_styles)
-        
-    def closeEvent(self, event):
-        """窗口关闭事件处理"""
-        try:
-            # 清理tooltip管理器
-            if hasattr(self, 'tooltip_manager'):
-                self.tooltip_manager.cleanup()
-                
-            # 停止任何正在运行的提取工作
-            if hasattr(self, 'extraction_worker') and self.extraction_worker:
-                if self.extraction_worker.isRunning():
-                    self.extraction_worker.cancel()
-                    self.extraction_worker.wait(1000)  # 等待1秒
-                    
-            # 停止定时器
-            if hasattr(self, 'update_timer') and self.update_timer:
-                self.update_timer.stop()
-                
-        except Exception as e:
-            import logging
-            logger = logging.getLogger(__name__)
-            logger.error(f"关闭BaseExtractInterface时发生错误: {e}")
-        finally:
-            super().closeEvent(event)
-    
-    def __del__(self):
-        """析构函数，确保资源清理"""
-        try:
-            if hasattr(self, 'tooltip_manager'):
-                self.tooltip_manager.cleanup()
-        except Exception:
-            pass 
+        self.setStyleSheet(combined_styles) 
