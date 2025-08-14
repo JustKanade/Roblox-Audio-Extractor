@@ -2849,6 +2849,32 @@ def get_translations():
             "database_fallback_details": {
                 ENGLISH: "Original path: {0} → Backup path: {1}",
                 CHINESE: "原始路径: {0} → 备用路径: {1}"
+            },
+            
+            # 视频格式转换相关
+            "video_format_conversion": {
+                ENGLISH: "Video Format Conversion",
+                CHINESE: "视频格式转换"
+            },
+            "convert_video_format": {
+                ENGLISH: "Convert Video Format",
+                CHINESE: "转换视频格式"
+            },
+            "convert_video_format_desc": {
+                ENGLISH: "Convert videos to specified format using FFmpeg",
+                CHINESE: "使用FFmpeg将视频转换为指定格式"
+            },
+            "output_video_format": {
+                ENGLISH: "Output Video Format",
+                CHINESE: "输出视频格式"
+            },
+            "select_output_video_format": {
+                ENGLISH: "Select the output video format",
+                CHINESE: "选择输出视频格式"
+            },
+            "video_conversion_ffmpeg_warning": {
+                ENGLISH: "⚠ FFmpeg is required for video format conversion. Please install FFmpeg to enable this feature.",
+                CHINESE: "⚠ 视频格式转换需要FFmpeg。请安装FFmpeg以启用此功能。"
             }
 
         }

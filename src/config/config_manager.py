@@ -69,8 +69,10 @@ class AppConfig(QConfig):
     globalInputPath = ConfigItem("Paths", "GlobalInputPath", "", FolderValidator())  # 将在运行时设置为Roblox默认路径
     lastInputDir = ConfigItem("Paths", "LastInputDir", "", FolderValidator())
     lastAudioInputDir = ConfigItem("Paths", "LastAudioInputDir", "", FolderValidator())
+    lastVideoInputDir = ConfigItem("Paths", "LastVideoInputDir", "", FolderValidator())
     lastFontInputDir = ConfigItem("Paths", "LastFontInputDir", "", FolderValidator())
     launchFile = ConfigItem("Paths", "LaunchFile", "")
+    ffmpegPath = ConfigItem("Paths", "FfmpegPath", "")
     
     # 性能配置
     threads = RangeConfigItem(
@@ -110,6 +112,12 @@ class AppConfig(QConfig):
     videoTimestampRepair = ConfigItem("Videos", "VideoTimestampRepair", True, BoolValidator())
     videoConcurrentDownloads = ConfigItem("Videos", "VideoConcurrentDownloads", True, BoolValidator())
     videoAutoCleanup = ConfigItem("Videos", "VideoAutoCleanup", True, BoolValidator())
+    
+    # 视频转换配置
+    convertVideoEnabled = ConfigItem("Videos", "ConvertVideoEnabled", False, BoolValidator())
+    convertVideoFormat = OptionsConfigItem(
+        "Videos", "ConvertVideoFormat", "MP4", 
+        OptionsValidator(["MP4", "AVI", "MKV", "MOV", "WEBM"]))
     
     # 音频转换配置
     convertAudioEnabled = ConfigItem("Features", "ConvertAudioEnabled", False, BoolValidator())
@@ -341,8 +349,10 @@ class ConfigManager:
                 "global_input_path": self.cfg.globalInputPath,
                 "last_input_dir": self.cfg.lastInputDir,
                 "last_audio_input_dir": self.cfg.lastAudioInputDir,
+                "last_video_input_dir": self.cfg.lastVideoInputDir,
                 "last_font_input_dir": self.cfg.lastFontInputDir,
                 "launch_file": self.cfg.launchFile,
+                "ffmpeg_path": self.cfg.ffmpegPath,
                 "threads": self.cfg.threads,
                 "useMultiprocessing": self.cfg.useMultiprocessing,
                 "conservativeMultiprocessing": self.cfg.conservativeMultiprocessing,
@@ -377,6 +387,9 @@ class ConfigManager:
                 "video_timestamp_repair": self.cfg.videoTimestampRepair,
                 "video_concurrent_downloads": self.cfg.videoConcurrentDownloads,
                 "video_auto_cleanup": self.cfg.videoAutoCleanup,
+                # 视频转换配置
+                "convert_video_enabled": self.cfg.convertVideoEnabled,
+                "convert_video_format": self.cfg.convertVideoFormat,
             }
             
             if key in key_mapping:
@@ -430,8 +443,10 @@ class ConfigManager:
                 "global_input_path": self.cfg.globalInputPath,
                 "last_input_dir": self.cfg.lastInputDir,
                 "last_audio_input_dir": self.cfg.lastAudioInputDir,
+                "last_video_input_dir": self.cfg.lastVideoInputDir,
                 "last_font_input_dir": self.cfg.lastFontInputDir,
                 "launch_file": self.cfg.launchFile,
+                "ffmpeg_path": self.cfg.ffmpegPath,
                 "threads": self.cfg.threads,
                 "useMultiprocessing": self.cfg.useMultiprocessing,
                 "conservativeMultiprocessing": self.cfg.conservativeMultiprocessing,
@@ -466,6 +481,9 @@ class ConfigManager:
                 "video_timestamp_repair": self.cfg.videoTimestampRepair,
                 "video_concurrent_downloads": self.cfg.videoConcurrentDownloads,
                 "video_auto_cleanup": self.cfg.videoAutoCleanup,
+                # 视频转换配置
+                "convert_video_enabled": self.cfg.convertVideoEnabled,
+                "convert_video_format": self.cfg.convertVideoFormat,
             }
             
             if key in key_mapping:

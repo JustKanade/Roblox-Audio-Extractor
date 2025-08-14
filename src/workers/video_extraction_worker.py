@@ -25,7 +25,7 @@ class VideoExtractionWorker(QThread):
                  custom_output_dir=None, scan_db=True, use_multiprocessing=False, 
                  conservative_multiprocessing=True, concurrent_downloads=True, 
                  auto_cleanup=True, ffmpeg_path=None, quality_preference=None, 
-                 timestamp_repair=True):
+                 timestamp_repair=True, convert_enabled=False, convert_format="MP4"):
         """
         初始化视频提取工作线程
         
@@ -41,6 +41,8 @@ class VideoExtractionWorker(QThread):
             concurrent_downloads: 并发下载
             auto_cleanup: 自动清理
             ffmpeg_path: FFmpeg路径
+            convert_enabled: 是否启用格式转换
+            convert_format: 转换格式
         """
         super().__init__()
         self.base_dir = base_dir
@@ -56,6 +58,8 @@ class VideoExtractionWorker(QThread):
         self.ffmpeg_path = ffmpeg_path
         self.quality_preference = quality_preference
         self.timestamp_repair = timestamp_repair
+        self.convert_enabled = convert_enabled
+        self.convert_format = convert_format
         self.extractor = None
         self._stop_requested = False
     

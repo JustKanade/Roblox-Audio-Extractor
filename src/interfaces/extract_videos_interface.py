@@ -76,6 +76,9 @@ class ExtractVideosInterface(BaseExtractInterface):
         
         # 存储清理设置卡片
         self.createStorageSettingsCard(settings_group)
+        
+        # 格式转换设置卡片
+        self.createFormatConversionCard(settings_group)
     
     def createFFmpegWarningCard(self, parent_group):
         """创建FFmpeg警告卡片"""
@@ -224,6 +227,118 @@ class ExtractVideosInterface(BaseExtractInterface):
         storage_group.addSettingCard(self.auto_cleanup_card)
         parent_group.addSettingCard(storage_group)
     
+    def createFormatConversionCard(self, parent_group):
+        """创建格式转换设置卡片组"""
+        # 检查FFmpeg是否可用
+        import shutil
+        ffmpeg_available = shutil.which('ffmpeg') is not None
+        
+        conversion_group = SettingCardGroup(
+            self.get_text("video_format_conversion", "Video Format Conversion")
+        )
+        
+        # 格式转换开关卡片
+        self.convert_card = SwitchSettingCard(
+            FluentIcon.MOVIE,
+            self.get_text("convert_video_format", "Convert Video Format"),
+            self.get_text("convert_video_format_desc", "Convert videos to specified format using FFmpeg")
+        )
+        
+        # 读取配置
+        convert_enabled = self.config_manager.get("convert_video_enabled", False) if self.config_manager else False
+        self.convert_card.setChecked(convert_enabled and ffmpeg_available)
+        
+        # 如果FFmpeg不可用，禁用开关
+        if not ffmpeg_available:
+            self.convert_card.setEnabled(False)
+            self.convert_card.setChecked(False)
+        
+        self.convert_card.checkedChanged.connect(self.onVideoConvertToggled)
+        conversion_group.addSettingCard(self.convert_card)
+        
+        # 格式选择卡片
+        self.createVideoFormatCard(conversion_group, ffmpeg_available)
+        
+        # 如果FFmpeg不可用，显示警告
+        if not ffmpeg_available:
+            warning_label = BodyLabel(
+                self.get_text("video_conversion_ffmpeg_warning", 
+                    "⚠ FFmpeg is required for video format conversion. Please install FFmpeg to enable this feature.")
+            )
+            warning_label.setWordWrap(True)
+            conversion_group.addSettingCard(warning_label)
+        
+        parent_group.addSettingCard(conversion_group)
+    
+    def createVideoFormatCard(self, parent_group, ffmpeg_available):
+        """创建视频格式选择卡片"""
+        self.format_card = SettingCard(
+            FluentIcon.VIDEO,
+            self.get_text("output_video_format", "Output Video Format"),
+            self.get_text("select_output_video_format", "Select the output video format")
+        )
+        
+        # 创建格式选择控件容器
+        format_widget = QWidget()
+        format_layout = QHBoxLayout(format_widget)
+        format_layout.setContentsMargins(0, 0, 20, 0)
+        format_layout.setSpacing(8)
+        
+        self.format_combo = ComboBox()
+        self.format_combo.addItems(["MP4", "AVI", "MKV", "MOV", "WEBM"])
+        
+        # 设置默认格式
+        saved_format = "MP4"
+        if self.config_manager:
+            saved_format = self.config_manager.get("convert_video_format", "MP4")
+        
+        format_index = 0
+        for i, fmt in enumerate(["MP4", "AVI", "MKV", "MOV", "WEBM"]):
+            if fmt == saved_format:
+                format_index = i
+                break
+        self.format_combo.setCurrentIndex(format_index)
+        self.format_combo.setFixedSize(120, 32)
+        
+        # 保存格式变化
+        self.format_combo.currentTextChanged.connect(self.onVideoFormatChanged)
+        
+        format_layout.addStretch()
+        format_layout.addWidget(self.format_combo)
+        
+        # 将格式选择控件添加到卡片
+        self.format_card.hBoxLayout.addWidget(format_widget)
+        
+        # 根据转换开关和FFmpeg可用性设置启用状态
+        convert_enabled = self.config_manager.get("convert_video_enabled", False) if self.config_manager else False
+        self.format_card.setEnabled(convert_enabled and ffmpeg_available)
+        
+        parent_group.addSettingCard(self.format_card)
+    
+    def onVideoConvertToggled(self, isChecked):
+        """视频格式转换开关变化事件"""
+        # 启用/禁用格式选择卡片
+        if hasattr(self, 'format_card'):
+            self.format_card.setEnabled(isChecked)
+        if hasattr(self, 'format_combo'):
+            self.format_combo.setEnabled(isChecked)
+            
+        # 保存设置
+        if self.config_manager:
+            self.config_manager.set("convert_video_enabled", isChecked)
+            self.config_manager.save_config()
+            
+        # 记录状态变化
+        if hasattr(self, 'extractLogHandler'):
+            status = self.get_text("enabled", "已启用") if isChecked else self.get_text("disabled", "已禁用")
+            self.extractLogHandler.info(f"{self.get_text('video_format_conversion', '视频格式转换')}: {status}")
+    
+    def onVideoFormatChanged(self, format_text):
+        """视频格式选择变化事件"""
+        if self.config_manager:
+            self.config_manager.set("convert_video_format", format_text)
+            self.config_manager.save_config()
+    
     def onConcurrentDownloadsChanged(self, checked):
         """处理并发下载设置变更"""
         if self.config_manager:
@@ -357,6 +472,15 @@ class ExtractVideosInterface(BaseExtractInterface):
         # 获取时间戳修复设置
         timestamp_repair = self.config_manager.get("video_timestamp_repair", True) if self.config_manager else True
         
+        # 获取格式转换设置
+        convert_enabled = False
+        convert_format = "MP4"
+        if hasattr(self, 'convert_card') and hasattr(self, 'format_combo'):
+            import shutil
+            ffmpeg_available = shutil.which('ffmpeg') is not None
+            convert_enabled = self.convert_card.isChecked() and ffmpeg_available
+            convert_format = self.format_combo.currentText()
+        
         return (
             input_dir,
             num_threads,
@@ -370,7 +494,9 @@ class ExtractVideosInterface(BaseExtractInterface):
             auto_cleanup,
             ffmpeg_path,
             quality_preference,
-            timestamp_repair
+            timestamp_repair,
+            convert_enabled,
+            convert_format
         )
     
     def getSelectedClassificationMethod(self):
@@ -505,6 +631,13 @@ class ExtractVideosInterface(BaseExtractInterface):
             # 保存自动清理设置
             if hasattr(self, 'auto_cleanup_card'):
                 self.config_manager.set("video_auto_cleanup", self.auto_cleanup_card.isChecked())
+            
+            # 保存格式转换设置
+            if hasattr(self, 'convert_card'):
+                self.config_manager.set("convert_video_enabled", self.convert_card.isChecked())
+            
+            if hasattr(self, 'format_combo'):
+                self.config_manager.set("convert_video_format", self.format_combo.currentText())
             
             # 确保配置保存到文件
             self.config_manager.save_config() 
