@@ -24,6 +24,7 @@ class AssetType(Enum):
     Translation = auto()
     FontList = auto()
     WebP = auto()
+    Video = auto()  # 视频文件类型
 
 @dataclass
 class IdentifiedContent:
@@ -162,10 +163,14 @@ class ContentIdentifier:
         if magic == 0xFD2FB528:
             return IdentifiedContent(AssetType.Ignored, "", "Zstandard compressed data (likely FFlags)", "")
         
-        # VideoFrame段
+        # VideoFrame段 - 改为识别为视频类型
         if (len(content) >= 4 and content[0] == 0x1A and content[1] == 0x45 and 
             content[2] == 0xDF and content[3] == 0xA3):
-            return IdentifiedContent(AssetType.Ignored, "", "VideoFrame segment", "")
+            return IdentifiedContent(AssetType.Video, "webm", "VideoFrame", "Videos")
+        
+        # WebM视频文件
+        if begin.startswith("RIFF") and "WEBM" in begin.upper():
+            return IdentifiedContent(AssetType.Video, "webm", "WebM", "Videos")
         
         # 未知类型
         return IdentifiedContent(AssetType.Unknown, begin, "", "")

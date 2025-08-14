@@ -408,7 +408,7 @@ class SettingsInterface(QWidget, InterfaceThemeMixin):
         # 关闭行为设置
         close_behavior_card = OptionsSettingCard(
             self.closeBehaviorConfig,
-            FluentIcon.CLOSE,
+            FluentIcon.POWER_BUTTON,
             self.get_text("close_behavior_settings"),
             self.get_text("close_behavior_settings_desc"),
             self._get_close_behavior_options()
@@ -907,7 +907,7 @@ class SettingsInterface(QWidget, InterfaceThemeMixin):
             # 记录日志
             if hasattr(self, 'settingsLogHandler'):
                 status = self.get_text("enabled") if isChecked else self.get_text("disabled")
-                width_info = " (最小宽度: 1025px)" if isChecked else " (最小宽度: 750px)"
+                width_info = "" if isChecked else ""
                 self.settingsLogHandler.info(f"{self.get_text('sidebar_expand_setting')}: {status}{width_info}")
 
     def saveThreadsConfig(self, value):

@@ -14,6 +14,7 @@ from src.interfaces.history_interface import HistoryInterface
 from src.interfaces.extract_audio_interface import ExtractAudioInterface
 from src.interfaces.extract_fonts_interface import ExtractFontsInterface
 from src.interfaces.extract_translations_interface import ExtractTranslationsInterface
+from src.interfaces.extract_videos_interface import ExtractVideosInterface
 from src.interfaces.settings_interface import SettingsInterface
 from src.interfaces.donation_interface import DonationInterface
 
@@ -27,6 +28,7 @@ __all__ = [
     'ExtractAudioInterface',
     'ExtractFontsInterface',
     'ExtractTranslationsInterface',
+    'ExtractVideosInterface',
     'SettingsInterface',
     'DonationInterface'
 ] 

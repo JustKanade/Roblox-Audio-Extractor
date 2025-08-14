@@ -32,6 +32,16 @@ from .translation_extractor import (
     extract_roblox_translations
 )
 
+# 导出Roblox视频提取器及相关组件
+from .video_extractor import (
+    RobloxVideoExtractor,
+    VideoClassificationMethod,
+    VideoQualityPreference,
+    VideoProcessingStats,
+    VideoProcessor,
+    extract_roblox_videos
+)
+
 # 导出RBXH解析器
 from .rbxh_parser import (
     RBXHParser,

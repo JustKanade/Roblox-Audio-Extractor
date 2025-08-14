@@ -287,7 +287,7 @@ class DonationInterface(QWidget, InterfaceThemeMixin):
         # 调用父类的通用样式设置
         super().setInterfaceStyles()
         
-        # 获取文本样式
+        # 获取文本样
         text_styles = self.get_text_styles()
         
         # 应用特定的捐款页面样式

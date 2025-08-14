@@ -10,9 +10,11 @@ Workers Module - Contains worker threads for audio extractor
 from .extraction_worker import ExtractionWorker
 from .font_extraction_worker import FontExtractionWorker
 from .translation_extraction_worker import TranslationExtractionWorker
+from .video_extraction_worker import VideoExtractionWorker
 
 __all__ = [
     'ExtractionWorker',
     'FontExtractionWorker', 
-    'TranslationExtractionWorker'
+    'TranslationExtractionWorker',
+    'VideoExtractionWorker'
 ] 

@@ -100,6 +100,17 @@ class AppConfig(QConfig):
         OptionsValidator(["locale", "content_type", "combined", "none"]))
     translationProcessingEnabled = ConfigItem("Translations", "TranslationProcessingEnabled", True, BoolValidator())
     
+    # 视频配置
+    videoClassificationMethod = OptionsConfigItem(
+        "Videos", "VideoClassificationMethod", "resolution",
+        OptionsValidator(["resolution", "size", "duration", "none"]))
+    videoQualityPreference = OptionsConfigItem(
+        "Videos", "VideoQualityPreference", "auto",
+        OptionsValidator(["auto", "1080p", "720p", "480p", "lowest"]))
+    videoTimestampRepair = ConfigItem("Videos", "VideoTimestampRepair", True, BoolValidator())
+    videoConcurrentDownloads = ConfigItem("Videos", "VideoConcurrentDownloads", True, BoolValidator())
+    videoAutoCleanup = ConfigItem("Videos", "VideoAutoCleanup", True, BoolValidator())
+    
     # 音频转换配置
     convertAudioEnabled = ConfigItem("Features", "ConvertAudioEnabled", False, BoolValidator())
     convertAudioFormat = OptionsConfigItem(
@@ -238,6 +249,12 @@ class ConfigManager:
                 "auto_check_update": self.cfg.autoCheckUpdate,
                 "greeting_enabled": self.cfg.greetingEnabled,
                 "disable_avatar_auto_update": self.cfg.disableAvatarAutoUpdate,
+                # 视频配置迁移
+                "video_classification_method": self.cfg.videoClassificationMethod,
+                "video_quality_preference": self.cfg.videoQualityPreference,
+                "video_timestamp_repair": self.cfg.videoTimestampRepair,
+                "video_concurrent_downloads": self.cfg.videoConcurrentDownloads,
+                "video_auto_cleanup": self.cfg.videoAutoCleanup,
             }
             
             for old_key, config_item in config_mapping.items():
@@ -354,6 +371,12 @@ class ConfigManager:
                 # 翻译文件配置
                 "translation_classification_method": self.cfg.translationClassificationMethod,
                 "translation_processing_enabled": self.cfg.translationProcessingEnabled,
+                # 视频配置
+                "video_classification_method": self.cfg.videoClassificationMethod,
+                "video_quality_preference": self.cfg.videoQualityPreference,
+                "video_timestamp_repair": self.cfg.videoTimestampRepair,
+                "video_concurrent_downloads": self.cfg.videoConcurrentDownloads,
+                "video_auto_cleanup": self.cfg.videoAutoCleanup,
             }
             
             if key in key_mapping:
@@ -437,6 +460,12 @@ class ConfigManager:
                 # 翻译文件配置
                 "translation_classification_method": self.cfg.translationClassificationMethod,
                 "translation_processing_enabled": self.cfg.translationProcessingEnabled,
+                # 视频配置
+                "video_classification_method": self.cfg.videoClassificationMethod,
+                "video_quality_preference": self.cfg.videoQualityPreference,
+                "video_timestamp_repair": self.cfg.videoTimestampRepair,
+                "video_concurrent_downloads": self.cfg.videoConcurrentDownloads,
+                "video_auto_cleanup": self.cfg.videoAutoCleanup,
             }
             
             if key in key_mapping:

@@ -141,8 +141,8 @@ def get_translations():
                 ENGLISH: "Roblox Audio Extractor"
             },
             "title": {
-                ENGLISH: f"Roblox-Audio-Extractor v{VERSION}",
-                CHINESE: f"Roblox-Audio-Extractor v{VERSION}"
+                ENGLISH: f"Roblox-Audio-Extractor-v{VERSION}-Beta",
+                CHINESE: f"Roblox-Audio-Extractor-v{VERSION}-Beta"
             },
             "welcome_message": {
                 ENGLISH: "Welcome to Roblox Audio Extractor!",
@@ -523,6 +523,10 @@ def get_translations():
                 ENGLISH: "Font Classification Method",
                 CHINESE: "字体分类方法"
             },
+            "video_classification_method": {
+                ENGLISH: "Video Classification Method",
+                CHINESE: "视频分类方法"
+            },
             # 音频格式转换相关翻译
             "convert_audio_format": {
                 ENGLISH: "Convert Audio Format",
@@ -560,6 +564,14 @@ def get_translations():
                 ENGLISH: "Extract Font Files",
                 CHINESE: "提取字体文件"
             },
+            "extract_video_title": {
+                ENGLISH: "Extract Video Files",
+                CHINESE: "提取视频文件"
+            },
+            "extract_videos_title": {
+                ENGLISH: "Extract Video Files",
+                CHINESE: "提取视频文件"
+            },
             "input_dir": {
                 ENGLISH: "Input Directory:",
                 CHINESE: "输入目录:"
@@ -587,6 +599,10 @@ def get_translations():
             "by_font_style": {
                 ENGLISH: "By Font Style", 
                 CHINESE: "按字体样式"
+            },
+            "by_resolution": {
+                ENGLISH: "By Resolution",
+                CHINESE: "按分辨率"
             },
             "no_classification": {
                 ENGLISH: "No Classification",
@@ -681,6 +697,14 @@ def get_translations():
             "info_font_default_category": {
                 ENGLISH: "Select font classification method", 
                 CHINESE: "选择字体分类方法"
+            },
+            "info_resolution_categories": {
+                ENGLISH: "Videos will be sorted into folders by resolution (e.g., 720p, 1080p)",
+                CHINESE: "视频将按分辨率分类到不同文件夹 (如720p、1080p等)"
+            },
+            "info_video_default_category": {
+                ENGLISH: "Select video classification method",
+                CHINESE: "选择视频分类方法"
             },
             # 新增分类方法相关翻译
             "classification_method": {
@@ -2263,15 +2287,19 @@ def get_translations():
             },
             # Translation提取相关翻译
             "extract_translations": {
-                ENGLISH: "Extract Translations",
+                ENGLISH: "Extract Translations Files",
                 CHINESE: "提取翻译文件"
             },
             "extract_translations_menu_item": {
-                ENGLISH: "Extract Translations",
+                ENGLISH: "Extract Translations Files",
                 CHINESE: "提取翻译文件"
             },
+            "extract_videos_menu_item": {
+                ENGLISH: "Extract Videos",
+                CHINESE: "提取视频"
+            },
             "extract_translation_title": {
-                ENGLISH: "Extract Translations",
+                ENGLISH: "Extract Translations Files",
                 CHINESE: "提取翻译文件"
             },
             "extract_translations_title": {
@@ -2543,6 +2571,251 @@ def get_translations():
             "cancelling": {
                 ENGLISH: "Cancelling...",
                 CHINESE: "正在取消..."
+            },
+            
+            # 视频提取相关翻译键
+            "videos_folder": {
+                ENGLISH: "Videos folder",
+                CHINESE: "视频总文件夹"
+            },
+            "videos_category": {
+                ENGLISH: "Video files",
+                CHINESE: "视频文件"
+            },
+            "video_extraction_complete": {
+                ENGLISH: "Video extraction completed!",
+                CHINESE: "视频提取完成！"
+            },
+            "videos_processed": {
+                ENGLISH: "Videos processed",
+                CHINESE: "处理视频"
+            },
+            "segments_downloaded": {
+                ENGLISH: "Segments downloaded",
+                CHINESE: "下载片段"
+            },
+            "videos_merged": {
+                ENGLISH: "Videos merged",
+                CHINESE: "合并视频"
+            },
+            "duplicate_videos": {
+                ENGLISH: "Duplicate videos skipped",
+                CHINESE: "跳过重复视频"
+            },
+            "download_failures": {
+                ENGLISH: "Download failures",
+                CHINESE: "下载失败"
+            },
+            "ffmpeg_required": {
+                ENGLISH: "FFmpeg Required",
+                CHINESE: "需要FFmpeg"
+            },
+            "video_ffmpeg_warning": {
+                ENGLISH: "⚠ FFmpeg is required for video processing. Please install FFmpeg to enable video merging functionality.",
+                CHINESE: "⚠ 视频处理需要FFmpeg。请安装FFmpeg以启用视频合并功能"
+            },
+            "network_settings": {
+                ENGLISH: "Network Settings",
+                CHINESE: "网络设置"
+            },
+            "storage_settings": {
+                ENGLISH: "Storage Settings",
+                CHINESE: "存储设置"
+            },
+            "concurrent_downloads": {
+                ENGLISH: "Concurrent Segment Downloads",
+                CHINESE: "并发片段下载"
+            },
+            "concurrent_downloads_desc": {
+                ENGLISH: "Enable parallel downloading of video segments for faster processing",
+                CHINESE: "启用并行下载视频片段以提高处理速度"
+            },
+            "concurrent_downloads_enabled": {
+                ENGLISH: "Concurrent downloads enabled",
+                CHINESE: "已启用并发下载"
+            },
+            "concurrent_downloads_disabled": {
+                ENGLISH: "Concurrent downloads disabled",
+                CHINESE: "已禁用并发下载"
+            },
+            "auto_cleanup_temp": {
+                ENGLISH: "Auto Clean Temporary Files",
+                CHINESE: "自动清理临时文件"
+            },
+            "auto_cleanup_temp_desc": {
+                ENGLISH: "Automatically clean up temporary segment files after video processing",
+                CHINESE: "视频处理完成后自动清理临时片段文件"
+            },
+            "auto_cleanup_enabled": {
+                ENGLISH: "Auto cleanup enabled",
+                CHINESE: "已启用自动清理"
+            },
+            "auto_cleanup_disabled": {
+                ENGLISH: "Auto cleanup disabled",
+                CHINESE: "已禁用自动清理"
+            },
+            "settings_updated": {
+                ENGLISH: "Settings Updated",
+                CHINESE: "设置已更新"
+            },
+            "seconds": {
+                ENGLISH: "seconds",
+                CHINESE: "秒"
+            },
+            # 视频提取过程相关翻译
+            "video_initializing_extractor": {
+                ENGLISH: "Initializing video extractor...",
+                CHINESE: "初始化视频提取器..."
+            },
+            "video_scanning_cache": {
+                ENGLISH: "Scanning video cache...",
+                CHINESE: "开始扫描视频缓存..."
+            },
+            "video_extraction_cancelled": {
+                ENGLISH: "Video extraction cancelled",
+                CHINESE: "视频提取已取消"
+            },
+            "video_processing_complete": {
+                ENGLISH: "Video processing complete!",
+                CHINESE: "视频处理完成！"
+            },
+            "video_extraction_failed": {
+                ENGLISH: "Video extraction failed",
+                CHINESE: "视频提取失败"
+            },
+            "video_extraction_error": {
+                ENGLISH: "Error occurred during video extraction: {}",
+                CHINESE: "视频提取过程中发生错误：{}"
+            },
+            "video_error_details": {
+                ENGLISH: "Error details: {}",
+                CHINESE: "错误详情：{}"
+            },
+            "video_cancelling": {
+                ENGLISH: "Cancelling video extraction...",
+                CHINESE: "正在取消视频提取..."
+            },
+            "video_total_duration": {
+                ENGLISH: "Total duration: {:.2f} seconds",
+                CHINESE: "总耗时：{:.2f} 秒"
+            },
+            "video_output_directory": {
+                ENGLISH: "Output directory: {}",
+                CHINESE: "输出目录：{}"
+            },
+            "video_processed_count": {
+                ENGLISH: "Videos processed: {} items",
+                CHINESE: "处理视频：{} 个"
+            },
+            "video_segments_downloaded": {
+                ENGLISH: "Segments downloaded: {} items",
+                CHINESE: "下载片段：{} 个"
+            },
+            "video_merged_count": {
+                ENGLISH: "Videos merged: {} items",
+                CHINESE: "合并视频：{} 个"
+            },
+            "video_duplicates_skipped": {
+                ENGLISH: "Duplicates skipped: {} items",
+                CHINESE: "跳过重复：{} 个"
+            },
+            "video_download_failures": {
+                ENGLISH: "Download failures: {} items",
+                CHINESE: "下载失败：{} 个"
+            },
+            "video_progress_update": {
+                ENGLISH: "Processing progress: {}/{} ({}%)",
+                CHINESE: "处理进度：{}/{} ({}%)"
+            },
+            # 视频扫描和识别相关
+            "video_scanning_cache_start": {
+                ENGLISH: "Starting video cache scan...",
+                CHINESE: "开始扫描视频缓存..."
+            },
+            "video_no_cache_items": {
+                ENGLISH: "No cache items found",
+                CHINESE: "未找到缓存项"
+            },
+            "video_cache_items_found": {
+                ENGLISH: "Found {} cache items",
+                CHINESE: "找到 {} 个缓存项"
+            },
+            "video_playlists_found": {
+                ENGLISH: "Found {} video playlists",
+                CHINESE: "找到 {} 个视频播放列表"
+            },
+            "video_no_content_found": {
+                ENGLISH: "No video content found",
+                CHINESE: "未找到视频内容"
+            },
+            # 视频质量选择相关
+            "video_quality_selection": {
+                ENGLISH: "Video Quality Selection",
+                CHINESE: "视频质量选择"
+            },
+            "video_quality_auto": {
+                ENGLISH: "Auto (Best Quality)",
+                CHINESE: "自动（最佳质量）"
+            },
+            "video_quality_1080p": {
+                ENGLISH: "1080p",
+                CHINESE: "1080p"
+            },
+            "video_quality_720p": {
+                ENGLISH: "720p",
+                CHINESE: "720p"
+            },
+            "video_quality_480p": {
+                ENGLISH: "480p",
+                CHINESE: "480p"
+            },
+            "video_quality_lowest": {
+                ENGLISH: "Lowest Available",
+                CHINESE: "最低可用质量"
+            },
+            "video_quality_desc": {
+                ENGLISH: "Select preferred video quality for extraction. ",
+                CHINESE: "选择视频提取的首选质量"
+            },
+            "video_timestamp_repair": {
+                ENGLISH: "Video Timestamp Repair",
+                CHINESE: "视频时间戳修复"
+            },
+            "video_timestamp_repair_desc": {
+                ENGLISH: "Automatically repair video segment timestamps for smooth playback (requires FFmpeg)",
+                CHINESE: "自动修复视频片段时间戳以确保流畅播放（需要FFmpeg）"
+            },
+            "video_timestamp_repair_enabled": {
+                ENGLISH: "Timestamp repair enabled",
+                CHINESE: "已启用时间戳修复"
+            },
+            "video_timestamp_repair_disabled": {
+                ENGLISH: "Timestamp repair disabled",
+                CHINESE: "已禁用时间戳修复"
+            },
+            "video_repairing_segment": {
+                ENGLISH: "Repairing video segment: {}",
+                CHINESE: "修复视频片段：{}"
+            },
+            "video_repair_failed": {
+                ENGLISH: "Video segment repair failed: {}",
+                CHINESE: "视频片段修复失败：{}"
+            },
+            "video_repair_complete": {
+                ENGLISH: "Video segment repair completed",
+                CHINESE: "视频片段修复完成"
+            },
+            "video_selected_quality": {
+                ENGLISH: "Selected video quality: {}",
+                CHINESE: "选择的视频质量：{}"
+            },
+            "video_quality_not_available": {
+                ENGLISH: "Requested quality {} not available, using: {}",
+                CHINESE: "请求的质量 {} 不可用，使用：{}"
+            },
+            "video_processing_settings": {
+                ENGLISH: "Video Processing",
+                CHINESE: "视频处理"
             }
 
         }

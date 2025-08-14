@@ -75,6 +75,7 @@ class HomeInterface(QWidget, InterfaceThemeMixin):
         self.extractMenuCard.get_audio_action().triggered.connect(lambda: self.switchToInterface("extractInterface"))
         self.extractMenuCard.get_fonts_action().triggered.connect(lambda: self.switchToInterface("extractFontsInterface"))
         self.extractMenuCard.get_translations_action().triggered.connect(lambda: self.switchToInterface("extractTranslationsInterface"))
+        self.extractMenuCard.get_videos_action().triggered.connect(lambda: self.switchToInterface("extractVideosInterface"))
         self.quickActionsGroup.addSettingCard(self.extractMenuCard)
         
         # 清理缓存独立卡片

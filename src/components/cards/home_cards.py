@@ -326,6 +326,14 @@ class ExtractMenuCard(SettingCard):
         )
         self.menu.addAction(self.translations_action)
         
+        # 添加视频提取菜单项
+        self.videos_action = Action(
+            FluentIcon.VIDEO,
+            self.get_text("extract_videos_menu_item", "Extract Videos"),
+            parent=self.menu
+        )
+        self.menu.addAction(self.videos_action)
+        
         # 创建下拉按钮
         self.extract_dropdown_btn = PrimaryDropDownPushButton(
             FluentIcon.DOWNLOAD,
@@ -351,3 +359,7 @@ class ExtractMenuCard(SettingCard):
     def get_translations_action(self):
         """获取翻译文件提取动作"""
         return self.translations_action 
+    
+    def get_videos_action(self):
+        """获取视频提取动作"""
+        return self.videos_action 

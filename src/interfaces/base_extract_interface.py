@@ -328,7 +328,7 @@ class BaseExtractInterface(QWidget, InterfaceThemeMixin, metaclass=QWidgetMeta):
         self.extractButton = PrimaryPushButton(
             self.get_text(f"extract")
         )
-        self.extractButton.setIcon(FluentIcon.PLAY)
+        self.extractButton.setIcon(FluentIcon.DOWNLOAD)
         self.extractButton.setFixedSize(130, 35)
         self.extractButton.clicked.connect(self.startExtraction)
         button_layout.addWidget(self.extractButton)
