@@ -2392,6 +2392,10 @@ def get_translations():
                 ENGLISH: "Scan QR Code to Donate",
                 CHINESE: "扫描二维码进行捐款"
             },
+            "view_qr_code": {
+                ENGLISH: "View QR Code",
+                CHINESE: "查看二维码"
+            },
             "support_development": {
                 ENGLISH: "Support Development",
                 CHINESE: "支持开发"
