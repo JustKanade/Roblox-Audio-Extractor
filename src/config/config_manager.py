@@ -120,6 +120,7 @@ class AppConfig(QConfig):
     # UI配置
     disableAvatarAutoUpdate = ConfigItem("UI", "DisableAvatarAutoUpdate", False, BoolValidator())
     greetingEnabled = ConfigItem("UI", "GreetingEnabled", True, BoolValidator())
+    sidebarForceExpand = ConfigItem("UI", "SidebarForceExpand", True, BoolValidator())
     logCardHeight = RangeConfigItem("UI", "LogCardHeight", 250, RangeValidator(150, 600))
     
 

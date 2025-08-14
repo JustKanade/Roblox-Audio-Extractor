@@ -48,7 +48,7 @@ def get_translations():
                 ENGLISH: "Greeting Settings"
             },
             "greeting_setting_description": {
-                CHINESE: "启用或禁用程序启动时的问候通知。",
+                CHINESE: "启用或禁用程序启动时的问候通知",
                 ENGLISH: "Enable or disable greeting notifications when the program starts."
             },
             
@@ -79,6 +79,37 @@ def get_translations():
                 CHINESE: "注意：云母效果仅在 Windows 11 上可用",
                 ENGLISH: "Note: Mica effect is only available on Windows 11"
             },
+            
+            # 侧边栏展开设置相关
+            "sidebar_expand_setting": {
+                CHINESE: "侧边栏展开设置",
+                ENGLISH: "Sidebar Expand Settings"
+            },
+            "sidebar_expand_setting_description": {
+                CHINESE: "控制侧边栏是否总是保持展开状态",
+                ENGLISH: "Control whether the sidebar is always kept in expanded state"
+            },
+            "sidebar_force_expand": {
+                CHINESE: "强制侧边栏展开",
+                ENGLISH: "Force Sidebar Expand"
+            },
+            "sidebar_expand_enabled": {
+                CHINESE: "侧边栏已设置为总是展开",
+                ENGLISH: "Sidebar set to always expand"
+            },
+            "sidebar_expand_disabled": {
+                CHINESE: "侧边栏恢复可折叠状态",
+                ENGLISH: "Sidebar restored to collapsible state"
+            },
+            "sidebar_expand_enabled_desc": {
+                CHINESE: "侧边栏将不能被折叠，始终保持展开状态",
+                ENGLISH: "Sidebar cannot be collapsed and will always remain expanded"
+            },
+            "sidebar_expand_disabled_desc": {
+                CHINESE: "侧边栏可以通过菜单按钮进行折叠和展开",
+                ENGLISH: "Sidebar can be collapsed and expanded using the menu button"
+            },
+            
             "enabled": {
                 CHINESE: "已启用",
                 ENGLISH: "Enabled"
@@ -187,15 +218,15 @@ def get_translations():
             },
             'confirm_clear_cache': {
                 ENGLISH: "Are you sure you want to clear Roblox database and storage cache?\n\nThis operation cannot be undone.",
-                CHINESE: "确定要清除Roblox数据库和存储缓存吗？\n\n此操作无法撤销。"
+                CHINESE: "确定要清除Roblox数据库和存储缓存吗？\n\n此操作无法撤销"
             },
             'cache_cleared': {
                 ENGLISH: "Successfully cleared {0} of {1} cache items.",
-                CHINESE: "成功清除了 {0} 个缓存项，共 {1} 个。"
+                CHINESE: "成功清除了 {0} 个缓存项，共 {1} 个"
             },
             'no_cache_found': {
                 ENGLISH: "No cache items found.",
-                CHINESE: "未找到缓存项。"
+                CHINESE: "未找到缓存项"
             },
             'clear_cache_failed': {
                 ENGLISH: "Failed to clear cache: {0}",
@@ -375,11 +406,11 @@ def get_translations():
             },
             "confirm_clear_history": {
                 ENGLISH: "Are you sure you want to clear all extraction history?\n\nThis operation cannot be undone.",
-                CHINESE: "确定要清除所有提取历史吗？\n\n此操作无法撤销。"
+                CHINESE: "确定要清除所有提取历史吗？\n\n此操作无法撤销"
             },
             "confirm_clear_history_type": {
                 ENGLISH: "Are you sure you want to clear {} type extraction history?\n\nThis operation cannot be undone.",
-                CHINESE: "确定要清除 {} 类型的提取历史吗？\n\n此操作无法撤销。"
+                CHINESE: "确定要清除 {} 类型的提取历史吗？\n\n此操作无法撤销"
             },
             "history_not_available": {
                 ENGLISH: "History record is not available",
@@ -391,7 +422,7 @@ def get_translations():
             },
             "history_cleared": {
                 ENGLISH: "Extraction history has been cleared.",
-                CHINESE: "提取历史已清除。"
+                CHINESE: "提取历史已清除"
             },
             "select_history_type_to_clear": {
                 ENGLISH: "Select which history records to clear:",
@@ -451,7 +482,7 @@ def get_translations():
             },
             "operation_cancelled": {
                 ENGLISH: "Operation cancelled.",
-                CHINESE: "操作已取消。"
+                CHINESE: "操作已取消"
             },
             # 历史记录相关
             "history_size": {
@@ -666,7 +697,7 @@ def get_translations():
             },
             "ffmpeg_not_found_warning": {
                 ENGLISH: "⚠ FFmpeg not found. Duration classification may not work correctly.",
-                CHINESE: "⚠ 未找到 FFmpeg。按时长分类可能无法正常工作。"
+                CHINESE: "⚠ 未找到 FFmpeg按时长分类可能无法正常工作"
             },
             # 语言设置相关
             "restart_required": {
@@ -675,19 +706,19 @@ def get_translations():
             },
             "restart_message": {
                 ENGLISH: "The language change will take effect after restarting the application.\n\nWould you like to restart now?",
-                CHINESE: "语言更改将在重启应用程序后生效。\n\n您想要现在重启吗？"
+                CHINESE: "语言更改将在重启应用程序后生效\n\n您想要现在重启吗？"
             },
             "language_close_message": {
                 ENGLISH: "The language change will take effect after restarting the application.\n\nWould you like to close the application now?",
-                CHINESE: "语言更改将在重启应用程序后生效。\n\n您想要现在关闭应用程序吗？"
+                CHINESE: "语言更改将在重启应用程序后生效\n\n您想要现在关闭应用程序吗？"
             },
             "language_saved": {
                 ENGLISH: "Language setting saved. Please restart the application.",
-                CHINESE: "语言设置已保存。请重启应用程序。"
+                CHINESE: "语言设置已保存请重启应用程序"
             },
             "language_unchanged": {
                 ENGLISH: "Language setting unchanged.",
-                CHINESE: "语言设置未改变。"
+                CHINESE: "语言设置未改变"
             },
             "current_language": {
                 ENGLISH: "Current language",
@@ -801,7 +832,7 @@ def get_translations():
             },
             "about_description": {
                 ENGLISH: "An open-source tool for extracting resource files from Roblox cache.",
-                CHINESE: "一个用于从 Roblox 缓存中提取缓存资源的开源工具。"
+                CHINESE: "一个用于从 Roblox 缓存中提取缓存资源的开源工具"
             },
             "features": {
                 ENGLISH: "Features",
@@ -1150,7 +1181,7 @@ def get_translations():
             },
             "ffmpeg_not_installed": {
                 ENGLISH: "FFmpeg is not installed. Please install FFmpeg to convert files and get duration information.",
-                CHINESE: "未安装 FFmpeg。请安装 FFmpeg 以转换文件并获取时长信息。"
+                CHINESE: "未安装 FFmpeg请安装 FFmpeg 以转换文件并获取时长信息"
             },
             "no_ogg_files": {
                 ENGLISH: "No OGG files found to convert",
@@ -1567,7 +1598,7 @@ def get_translations():
             # API和网络相关翻译
             "api_rate_limit": {
                 ENGLISH: "GitHub API rate limit exceeded. Please try again later.",
-                CHINESE: "GitHub API调用次数限制，请稍后再试。"
+                CHINESE: "GitHub API调用次数限制，请稍后再试"
             },
             "repository_not_found": {
                 ENGLISH: "Repository not found",
@@ -1612,7 +1643,7 @@ def get_translations():
             },
             "confirm_clear_logs_message": {
                 ENGLISH: "Are you sure you want to clear all logs? This operation cannot be undone.",
-                CHINESE: "确定要清空所有日志吗？此操作无法撤销。"
+                CHINESE: "确定要清空所有日志吗？此操作无法撤销"
             },
             "logs_cleared": {
                 ENGLISH: "All logs have been cleared",
@@ -1693,7 +1724,7 @@ def get_translations():
             },
             "ffmpeg_available_message": {
                 ENGLISH: "FFmpeg is installed. Duration classification feature can work properly.",
-                CHINESE: "FFmpeg 已安装，按时长分类功能可以正常工作。"
+                CHINESE: "FFmpeg 已安装，按时长分类功能可以正常工作"
             },
             "ffmpeg_not_available": {
                 ENGLISH: "FFmpeg Not Available",
@@ -1701,15 +1732,15 @@ def get_translations():
             },
             "ffmpeg_not_available_message": {
                 ENGLISH: "FFmpeg not detected. Duration classification may not work properly. Please click 'Browse FFmpeg' to set manually.",
-                CHINESE: "未检测到 FFmpeg，按时长分类功能可能无法正常工作。请点击'浏览 FFmpeg'手动设置。"
+                CHINESE: "未检测到 FFmpeg，按时长分类功能可能无法正常工作请点击'浏览 FFmpeg'手动设置"
             },
             "ffmpeg_available_info": {
                 ENGLISH: "FFmpeg is available. Duration classification feature can work properly.",
-                CHINESE: "FFmpeg 可用，按时长分类功能可以正常工作。"
+                CHINESE: "FFmpeg 可用，按时长分类功能可以正常工作"
             },
             "ffmpeg_available_info_path": {
                 ENGLISH: "FFmpeg is available at: {}. Duration classification feature can work properly.",
-                CHINESE: "FFmpeg 可用，路径：{}。按时长分类功能可以正常工作。"
+                CHINESE: "FFmpeg 可用，路径：{}按时长分类功能可以正常工作"
             },
             "success": {
                 ENGLISH: "Success",
@@ -1929,7 +1960,7 @@ def get_translations():
             },
             "ffmpeg_install_instruction": {
                 ENGLISH: "Please install FFmpeg to enable audio duration classification. You can manually specify FFmpeg path",
-                CHINESE: "请安装FFmpeg以启用音频时长分类功能。您可以手动指定FFmpeg路径"
+                CHINESE: "请安装FFmpeg以启用音频时长分类功能您可以手动指定FFmpeg路径"
             },
             "ffmpeg_custom_path": {
                 ENGLISH: "Custom path",
@@ -2009,7 +2040,7 @@ def get_translations():
             },
             "no_launch_file_set": {
                 ENGLISH: "No launch file configured. Please set one in Settings.",
-                CHINESE: "未配置启动文件。请在设置中配置。"
+                CHINESE: "未配置启动文件请在设置中配置"
             },
             "launch_error": {
                 ENGLISH: "Error launching file: {}",
@@ -2085,11 +2116,11 @@ def get_translations():
             },
             "zoom_restart_message": {
                 ENGLISH: "The interface zoom change will take effect after restarting the application.\n\nWould you like to close the application now?",
-                CHINESE: "界面缩放更改将在重启应用程序后生效。\n\n您想要现在关闭应用程序吗？"
+                CHINESE: "界面缩放更改将在重启应用程序后生效\n\n您想要现在关闭应用程序吗？"
             },
             "zoom_setting_saved": {
                 ENGLISH: "Interface zoom setting saved. Please restart the application.",
-                CHINESE: "界面缩放设置已保存。请重启应用程序。"
+                CHINESE: "界面缩放设置已保存请重启应用程序"
             },
             
             "theme_color_settings": {
@@ -2176,7 +2207,7 @@ def get_translations():
             },
             "multiprocessing_warning_message": {
                 ENGLISH: "Multiprocessing mode is an experimental feature that may:\n\n• Consume more system resources\n• Potentially cause instability\n• Require more memory\n\nThis feature aims to improve performance for large-scale extraction tasks.\n\nAre you sure you want to enable multiprocessing mode?",
-                CHINESE: "多进程模式是一个实验性功能，可能会：\n\n• 消耗更多系统资源\n• 可能导致不稳定\n• 需要更多内存\n\n此功能旨在提升大规模提取任务的性能。\n\n您确定要启用多进程模式吗？"
+                CHINESE: "多进程模式是一个实验性功能，可能会：\n\n• 消耗更多系统资源\n• 可能导致不稳定\n• 需要更多内存\n\n此功能旨在提升大规模提取任务的性能\n\n您确定要启用多进程模式吗？"
             },
             "enable_multiprocessing": {
                 ENGLISH: "Enable",
@@ -2382,7 +2413,7 @@ def get_translations():
             },
             "donation_description": {
                 ENGLISH: "If this tool has been helpful to you, consider supporting development through donation.",
-                CHINESE: "如果这个工具对您有帮助，请考虑通过捐款支持开发。"
+                CHINESE: "如果这个工具对您有帮助，请考虑通过捐款支持开发"
             },
             "wechat_pay": {
                 ENGLISH: "WeChat Pay",
@@ -2406,7 +2437,7 @@ def get_translations():
             },
             "donation_note": {
                 ENGLISH: "Your donation helps maintain and improve this free tool.",
-                CHINESE: "您的捐款有助于维护和改进这个免费工具。"
+                CHINESE: "您的捐款有助于维护和改进这个免费工具"
             },
             # 捐款确认对话框相关翻译
             "donation_confirm_title": {

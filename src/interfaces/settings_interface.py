@@ -82,6 +82,8 @@ try:
 except ImportError:
     LaunchFileCard = None
 
+
+
 class SettingsInterface(QWidget, InterfaceThemeMixin):
     """设置界面类"""
     
@@ -197,6 +199,8 @@ class SettingsInterface(QWidget, InterfaceThemeMixin):
         self.closeBehaviorConfig = OptionsConfigItem(
             "Window", "CloseBehavior", "close", OptionsValidator(["close", "minimize"])
         )
+        
+
         
         # 将配置项添加到qconfig
         self.config_items = [
@@ -479,6 +483,17 @@ class SettingsInterface(QWidget, InterfaceThemeMixin):
         # 如果不是 Windows 11，显示提示信息
         if not isWin11():
             mica_card.setToolTip(self.get_text("mica_effect_windows11_only"))
+        
+        # 侧边栏强制展开设置
+        sidebar_expand_card = SwitchSettingCard(
+            FluentIcon.MINIMIZE,
+            self.get_text("sidebar_expand_setting"),
+            self.get_text("sidebar_expand_setting_description"),
+            self.config_manager.cfg.sidebarForceExpand if self.config_manager else None
+        )
+        sidebar_expand_card.checkedChanged.connect(self.onSidebarExpandChanged)
+        group.addSettingCard(sidebar_expand_card)
+        self.sidebarExpandCard = sidebar_expand_card
     
     def createPerformanceSettingsCards(self, group):
         """创建性能设置卡片"""
@@ -870,6 +885,30 @@ class SettingsInterface(QWidget, InterfaceThemeMixin):
             if hasattr(self, 'settingsLogHandler'):
                 status = self.get_text("enabled") if isChecked else self.get_text("disabled")
                 self.settingsLogHandler.info(f"{self.get_text('mica_effect')}: {status}")
+
+    def onSidebarExpandChanged(self, isChecked):
+        """侧边栏展开设置改变事件"""
+        if self.config_manager:
+            # 保存到配置 - 使用cfg系统
+            self.config_manager.cfg.set(self.config_manager.cfg.sidebarForceExpand, isChecked)
+            
+            # 立即应用到主窗口的侧边栏和窗口大小
+            if self._parent_window and hasattr(self._parent_window, 'navigationInterface'):
+                self._parent_window.navigationInterface.setCollapsible(not isChecked)
+                if isChecked:
+                    # 如果强制展开，确保侧边栏是展开状态
+                    self._parent_window.navigationInterface.expand(useAni=False)
+                    # 设置窗口最小宽度为1025
+                    self._parent_window.setMinimumWidth(1025)
+                else:
+                    # 如果禁用强制展开，恢复原来的最小宽度
+                    self._parent_window.setMinimumWidth(750)  # 恢复到原始最小宽度
+            
+            # 记录日志
+            if hasattr(self, 'settingsLogHandler'):
+                status = self.get_text("enabled") if isChecked else self.get_text("disabled")
+                width_info = " (最小宽度: 1025px)" if isChecked else " (最小宽度: 750px)"
+                self.settingsLogHandler.info(f"{self.get_text('sidebar_expand_setting')}: {status}{width_info}")
 
     def saveThreadsConfig(self, value):
         """保存线程数配置"""
