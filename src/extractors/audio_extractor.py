@@ -16,7 +16,7 @@ import queue
 import datetime
 import traceback
 import multiprocessing
-from typing import Dict, List, Any, Set, Optional, Tuple, Union
+from typing import Dict, List, Any, Set, Optional, Tuple, Union, Callable
 from enum import Enum, auto
 
 # 导入多进程工具
@@ -29,6 +29,9 @@ from src.utils.multiprocessing_utils import (
 
 # 导入历史管理模块
 from src.utils.history_manager import ExtractedHistory, ContentHashCache
+
+# 导入缓存扫描器
+from .cache_scanner import RobloxCacheScanner, CacheItem, CacheType
 
 # 统一的日志设置
 logger = logging.getLogger(__name__)
@@ -394,7 +397,8 @@ class RobloxAudioExtractor:
                  custom_output_dir: Optional[str] = None,
                  scan_db: bool = True,
                  use_multiprocessing: bool = False,
-                 conservative_multiprocessing: bool = True):
+                 conservative_multiprocessing: bool = True,
+                 log_callback: Optional[Callable[[str, str], None]] = None):
         """初始化提取器"""
         self.base_dir = os.path.abspath(base_dir)
         self.use_multiprocessing = use_multiprocessing
@@ -415,6 +419,7 @@ class RobloxAudioExtractor:
         self.cancelled = False
         self._cancel_check_fn = None  # 用于存储外部取消检查函数
         self.scan_db = scan_db  # 是否扫描数据库
+        self.log_callback = log_callback  # 日志回调函数
 
         # 初始化库相关属性
         self.gzip = None
@@ -484,27 +489,20 @@ class RobloxAudioExtractor:
             os.makedirs(path, exist_ok=True)
             self.category_dirs[category] = path
             
-        # 数据库相关
-        self.db_path = self._get_roblox_db_path()
-        self.db_storage_folder = self._get_roblox_db_storage_folder()
-        
-    def _get_roblox_db_path(self) -> str:
-        """获取Roblox数据库路径"""
-        local_appdata = os.environ.get('LOCALAPPDATA', '')
-        if not local_appdata:
-            return ""
-            
-        db_path = os.path.join(local_appdata, "Roblox", "rbx-storage.db")
-        return db_path if os.path.exists(db_path) else ""
-        
-    def _get_roblox_db_storage_folder(self) -> str:
-        """获取Roblox数据库存储文件夹路径"""
-        local_appdata = os.environ.get('LOCALAPPDATA', '')
-        if not local_appdata:
-            return ""
-            
-        storage_folder = os.path.join(local_appdata, "Roblox", "rbx-storage")
-        return storage_folder if os.path.isdir(storage_folder) else ""
+        # 初始化缓存扫描器
+        self.cache_scanner = RobloxCacheScanner(log_callback)
+    
+    def send_log(self, message_key: str, log_type: str, *args):
+        """发送日志消息到界面"""
+        if self.log_callback:
+            self.log_callback(message_key, log_type, *args)
+    
+    def set_log_callback(self, log_callback: Callable[[str, str], None]):
+        """设置日志回调函数"""
+        self.log_callback = log_callback
+        # 同时更新缓存扫描器的日志回调
+        if self.cache_scanner:
+            self.cache_scanner.set_log_callback(log_callback)
 
     def _import_libs(self):
         """按需导入库，减少启动时间和内存占用"""
@@ -542,155 +540,98 @@ class RobloxAudioExtractor:
         self._libs_imported = True
 
     def find_files_to_process(self) -> List[str]:
-        """查找需要处理的文件 - 使用os.scandir优化性能"""
+        """查找需要处理的文件 - 使用统一的缓存扫描器"""
         files_to_process = []
         output_path_norm = os.path.normpath(self.output_dir)
         audio_path_norm = os.path.normpath(self.audio_dir)
 
-        # 扫描文件系统
-        def scan_directory(dir_path):
-            """递归扫描目录"""
-            try:
-                with os.scandir(dir_path) as entries:
-                    for entry in entries:
-                        # 如果当前条目是目录
-                        if entry.is_dir():
-                            # 如果目录不是输出目录和Audio目录
-                            entry_path_norm = os.path.normpath(entry.path)
-                            if (output_path_norm not in entry_path_norm and 
-                                audio_path_norm not in entry_path_norm):
-                                scan_directory(entry.path)
-                        elif entry.is_file():
-                            # 检查是否已经是.ogg文件，跳过它们
-                            name = entry.name
-                            if name.endswith('.ogg'):
-                                continue
-                                
-                            # 直接处理所有文件，不进行关键字过滤
-                            # 使用stat获取文件大小
-                            try:
-                                stat_info = entry.stat()
-                                # 检查文件大小，确保不是空文件
-                                if stat_info.st_size >= 10:  # 如果文件大小至少为10字节
-                                    files_to_process.append(entry.path)
-                            except OSError:
-                                # 忽略无法访问的文件
-                                pass
-            except (PermissionError, OSError):
-                # 忽略无法访问的目录
-                pass
+        # 如果扫描数据库被禁用，只扫描指定的base_dir文件系统
+        if not self.scan_db:
+            def scan_directory(dir_path):
+                """递归扫描目录"""
+                try:
+                    with os.scandir(dir_path) as entries:
+                        for entry in entries:
+                            # 如果当前条目是目录
+                            if entry.is_dir():
+                                # 如果目录不是输出目录和Audio目录
+                                entry_path_norm = os.path.normpath(entry.path)
+                                if (output_path_norm not in entry_path_norm and 
+                                    audio_path_norm not in entry_path_norm):
+                                    scan_directory(entry.path)
+                            elif entry.is_file():
+                                # 检查是否已经是.ogg文件，跳过它们
+                                name = entry.name
+                                if name.endswith('.ogg'):
+                                    continue
+                                    
+                                # 直接处理所有文件，不进行关键字过滤
+                                # 使用stat获取文件大小
+                                try:
+                                    stat_info = entry.stat()
+                                    # 检查文件大小，确保不是空文件
+                                    if stat_info.st_size >= 10:  # 如果文件大小至少为10字节
+                                        files_to_process.append(entry.path)
+                                except OSError:
+                                    # 忽略无法访问的文件
+                                    pass
+                except (PermissionError, OSError):
+                    # 忽略无法访问的目录
+                    pass
 
-        # 开始扫描文件系统
-        scan_directory(self.base_dir)
-        
-        # 如果启用了数据库扫描且sqlite3可用且数据库路径存在
-        if self.scan_db and sqlite3 is not None and self.db_path and os.path.exists(self.db_path):
-            db_files = self.scan_roblox_database()
-            files_to_process.extend(db_files)
-        elif self.scan_db and (sqlite3 is None or not os.path.exists(self.db_path)):
-            print(f"! 数据库扫描已启用但无法执行: {'SQLite3模块不可用' if sqlite3 is None else f'数据库路径不存在: {self.db_path}'}")
+            # 开始扫描文件系统
+            scan_directory(self.base_dir)
+        else:
+            # 使用统一的缓存扫描器进行扫描
+            try:
+                # 如果base_dir不是默认的Roblox路径，设置为自定义路径
+                if self.base_dir:
+                    # 检测是否为数据库文件
+                    if self.base_dir.endswith('.db') and os.path.isfile(self.base_dir):
+                        is_database = True
+                        db_folder = os.path.splitext(self.base_dir)[0]  # 去掉.db后缀作为文件夹路径
+                        self.cache_scanner.set_custom_path(self.base_dir, is_database, db_folder)
+                    # 检查是否为Roblox标准数据库文件夹
+                    elif os.path.basename(self.base_dir) == 'rbx-storage' and os.path.isdir(self.base_dir):
+                        potential_db = self.base_dir + '.db'
+                        if os.path.isfile(potential_db):
+                            is_database = True
+                            db_folder = self.base_dir
+                            self.cache_scanner.set_custom_path(potential_db, is_database, db_folder)
+                        else:
+                            # 没有数据库文件，直接扫描文件夹
+                            self.cache_scanner.set_custom_path(self.base_dir, False, "")
+                    # 检查是否为目录
+                    elif os.path.isdir(self.base_dir):
+                        self.cache_scanner.set_custom_path(self.base_dir, False, "")
+                
+                # 扫描缓存项
+                cache_items = self.cache_scanner.scan_cache()
+                
+                # 转换缓存项为文件路径
+                for item in cache_items:
+                    if item.cache_type == CacheType.DATABASE and item.data:
+                        # 数据库内容，创建临时文件
+                        import tempfile
+                        db_scan_time = int(time.time())
+                        db_temp_dir = os.path.join(self.output_dir, f"db_temp_{db_scan_time}")
+                        os.makedirs(db_temp_dir, exist_ok=True)
+                        
+                        temp_file_path = os.path.join(db_temp_dir, f"{item.hash_id}")
+                        with open(temp_file_path, 'wb') as f:
+                            f.write(item.data)
+                        files_to_process.append(temp_file_path)
+                    elif item.path and os.path.exists(item.path):
+                        # 文件系统文件，直接使用路径
+                        files_to_process.append(item.path)
+                        
+                logger.info(f"通过缓存扫描器找到 {len(files_to_process)} 个文件")
+                
+            except Exception as e:
+                logger.error(f"缓存扫描失败: {e}")
+                print(f"! 缓存扫描失败: {e}")
             
         return files_to_process
-        
-    def scan_roblox_database(self) -> List[str]:
-        """扫描Roblox数据库获取缓存文件"""
-        db_files = []
-        
-        if not self.db_path or not os.path.exists(self.db_path):
-            print(f"! Roblox数据库路径不可用: {self.db_path}")
-            return db_files
-            
-        if sqlite3 is None:
-            print(f"! SQLite3模块不可用，无法扫描数据库")
-            return db_files
-            
-        try:
-            # 创建临时目录存储数据库内容，确保有唯一标识
-            db_scan_time = int(time.time())
-            db_temp_dir = os.path.join(self.output_dir, f"db_temp_{db_scan_time}")
-            os.makedirs(db_temp_dir, exist_ok=True)
-            
-            # 连接数据库
-            conn = sqlite3.connect(self.db_path)
-            cursor = conn.cursor()
-            
-            # 查询文件表
-            cursor.execute("SELECT id, content FROM files")
-            rows = cursor.fetchall()
-            
-            # 记录处理过的内容哈希，避免数据库中的重复
-            content_hashes = set()
-            skipped_count = 0
-            
-            for row in rows:
-                try:
-                    file_id, content = row
-                    
-                    if not file_id:
-                        continue
-                        
-                    # 将ID转换为十六进制字符串
-                    file_hash = ''.join([f'{b:02x}' for b in file_id])
-                    
-                    # 如果content为None，尝试从文件系统获取
-                    if content is None and self.db_storage_folder:
-                        # 获取前两个字符作为子目录
-                        subdir = file_hash[:2]
-                        file_path = os.path.join(self.db_storage_folder, subdir, file_hash)
-                        
-                        if os.path.exists(file_path):
-                            # 读取文件内容的前8KB用于哈希计算
-                            try:
-                                with open(file_path, 'rb') as f:
-                                    content_head = f.read(8192)
-                                if content_head:
-                                    content_hash = hashlib.md5(content_head).hexdigest()
-                                    # 检查是否已在历史记录中
-                                    if self.download_history and self._is_content_hash_in_history(content_hash):
-                                        skipped_count += 1
-                                        continue
-                            except Exception:
-                                pass
-                            
-                            db_files.append(file_path)
-                    elif content:
-                        # 计算内容哈希，避免重复提取
-                        content_hash = hashlib.md5(content[:8192]).hexdigest()  # 使用前8KB计算哈希
-                        
-                        # 检查是否已在历史记录中
-                        if self.download_history and self._is_content_hash_in_history(content_hash):
-                            skipped_count += 1
-                            continue
-                        
-                        if content_hash not in content_hashes:
-                            content_hashes.add(content_hash)
-                            
-                            # 创建临时文件路径，添加内容哈希以确保唯一性
-                            temp_file_path = os.path.join(db_temp_dir, f"{content_hash}_{file_hash}")
-                            
-                            # 将内容写入临时文件
-                            with open(temp_file_path, 'wb') as f:
-                                f.write(content)
-                            db_files.append(temp_file_path)
-                except Exception as e:
-                    self._log_error("db_scan", f"处理数据库记录时出错: {str(e)}")
-                    
-            conn.close()
-            print(f"✓ 从数据库中找到 {len(db_files)} 个文件，跳过 {skipped_count} 个已处理文件")
-            
-        except Exception as e:
-            self._log_error("db_scan", f"扫描数据库时出错: {str(e)}")
-            print(f"! 扫描数据库时出错: {str(e)}")
-            
-        return db_files
-        
-    def _is_content_hash_in_history(self, content_hash: str) -> bool:
-        """检查内容哈希是否已在历史记录中"""
-        if not self.download_history:
-            return False
-            
-        # 使用新的直接内容哈希检查
-        return self.download_history.is_content_processed(content_hash)
         
     def _calculate_content_hash_fast(self, file_path: str) -> Optional[str]:
         """快速计算文件内容哈希（只读前8KB）"""

@@ -46,6 +46,16 @@ class ExtractionWorker(QThread):
             # 更新状态
             self.logMessage.emit(self._get_lang('scanning_files'), 'info')
 
+            # 创建日志回调函数，将日志转发到工作线程的logMessage信号
+            def audio_log_callback(message_key: str, log_type: str, *args):
+                # 这里将翻译键和参数转发给主线程处理
+                separator = chr(31)
+                if args:
+                    message = f"{message_key}|{separator}|{'|'.join(map(str, args))}"
+                else:
+                    message = message_key
+                self.logMessage.emit(message, log_type)
+            
             # 创建提取器
             start_time = time.time()
             self.extractor = RobloxAudioExtractor(
@@ -57,7 +67,8 @@ class ExtractionWorker(QThread):
                 self.custom_output_dir,  # 传入自定义输出路径
                 self.scan_db,  # 是否扫描数据库
                 self.use_multiprocessing,  # 是否使用多进程
-                self.conservative_multiprocessing  # 是否使用保守的多进程策略
+                self.conservative_multiprocessing,  # 是否使用保守的多进程策略
+                audio_log_callback  # 传入日志回调
             )
 
             # 设置取消检查函数

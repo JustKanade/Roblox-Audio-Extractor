@@ -580,30 +580,26 @@ class RobloxVideoExtractor:
         # 初始化组件
         self.cache_scanner = RobloxCacheScanner()
         
-        # 根据scan_db配置设置缓存扫描行为
+        # 设置自定义缓存路径（如果提供了base_dir）
         if self.base_dir:
-            # 检查路径是否为数据库文件还是目录
-            is_database = self.base_dir.endswith('.db') or (self.scan_db and os.path.isfile(self.base_dir))
-            
-            # 如果用户禁用了数据库扫描，强制使用文件系统模式
-            if not self.scan_db:
-                is_database = False
-                # 如果base_dir是数据库文件但禁用了数据库扫描，使用其父目录
-                if self.base_dir.endswith('.db'):
-                    self.base_dir = os.path.dirname(self.base_dir)
-            
-            self.cache_scanner.set_custom_path(self.base_dir, is_database=is_database)
-        
-        # 如果没有指定自定义路径但禁用了数据库扫描，需要特殊处理
-        elif not self.scan_db:
-            # 获取自动检测的路径信息
-            cache_info = self.cache_scanner.get_cache_info()
-            if cache_info.get('is_database', False):
-                # 如果自动检测到数据库但用户禁用了数据库扫描
-                # 尝试使用文件系统路径
-                fs_path = cache_info.get('db_folder', '')
-                if fs_path and os.path.isdir(fs_path):
-                    self.cache_scanner.set_custom_path(fs_path, is_database=False)
+            # 检测是否为数据库文件
+            if self.base_dir.endswith('.db') and os.path.isfile(self.base_dir):
+                is_database = self.scan_db  # 只有启用数据库扫描才作为数据库处理
+                db_folder = os.path.splitext(self.base_dir)[0] if is_database else ""
+                target_path = self.base_dir if is_database else os.path.dirname(self.base_dir)
+                self.cache_scanner.set_custom_path(target_path, is_database, db_folder)
+            # 检查是否为Roblox标准数据库文件夹
+            elif os.path.basename(self.base_dir) == 'rbx-storage' and os.path.isdir(self.base_dir):
+                potential_db = self.base_dir + '.db'
+                if os.path.isfile(potential_db) and self.scan_db:
+                    # 存在数据库文件且启用数据库扫描
+                    self.cache_scanner.set_custom_path(potential_db, True, self.base_dir)
+                else:
+                    # 直接扫描文件夹
+                    self.cache_scanner.set_custom_path(self.base_dir, False, "")
+            # 其他情况，直接作为文件系统路径处理
+            else:
+                self.cache_scanner.set_custom_path(self.base_dir, False, "")
         
         self.content_identifier = ContentIdentifier(block_avatar_images=True)
         self.stats = VideoProcessingStats()
