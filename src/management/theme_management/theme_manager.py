@@ -16,6 +16,7 @@ from qfluentwidgets import setTheme, Theme, setThemeColor
 
 # 导入默认主题色常量
 from src.config.config_manager import DEFAULT_THEME_COLOR
+from src.management.theme_management.background_manager import get_background_manager
 
 # 设置日志记录
 logger = logging.getLogger(__name__)
@@ -306,22 +307,51 @@ def update_all_styles(window):
                 subtitle_color = "rgba(255, 255, 255, 0.8)"
                 accent_color = "rgb(0, 212, 255)"
 
-            # 缓存主题样式表
-            style_sheet = f"""
-                FluentWindow {{
-                    background-color: {main_bg};
-                }}
-                QWidget {{
-                    background-color: transparent;
-                }}
-                QScrollArea {{
-                    background-color: transparent;
-                    border: none;
-                }}
-                QScrollArea > QWidget > QWidget {{
-                    background-color: transparent;
-                }}
-            """
+            # 获取背景管理器并生成背景样式
+            background_manager = get_background_manager(window.config_manager)
+            background_styles = background_manager.get_background_style(theme_to_update)
+            
+            # 检查是否启用了背景图片
+            bg_enabled = window.config_manager.get("backgroundImageEnabled", False) if window.config_manager else False
+            bg_path = window.config_manager.get("backgroundImagePath", "") if window.config_manager else ""
+            has_valid_background = bg_enabled and background_manager.validate_image_path(bg_path)
+            
+            # 缓存主题样式表 - 如果有背景图片就不设置默认背景色
+            if has_valid_background:
+                base_style_sheet = f"""
+                    QWidget {{
+                        background-color: transparent;
+                    }}
+                    QScrollArea {{
+                        background-color: transparent;
+                        border: none;
+                    }}
+                    QScrollArea > QWidget > QWidget {{
+                        background-color: transparent;
+                    }}
+                """
+            else:
+                base_style_sheet = f"""
+                    FluentWindow {{
+                        background-color: {main_bg};
+                    }}
+                    MainWindow {{
+                        background-color: {main_bg};
+                    }}
+                    QWidget {{
+                        background-color: transparent;
+                    }}
+                    QScrollArea {{
+                        background-color: transparent;
+                        border: none;
+                    }}
+                    QScrollArea > QWidget > QWidget {{
+                        background-color: transparent;
+                    }}
+                """
+            
+            # 合并基础样式和背景样式
+            style_sheet = base_style_sheet + "\n" + background_styles
             
             # 更新缓存
             _theme_styles_cache[theme_to_update] = style_sheet

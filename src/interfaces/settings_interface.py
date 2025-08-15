@@ -82,6 +82,16 @@ try:
 except ImportError:
     LaunchFileCard = None
 
+try:
+    from src.components.cards.Settings.background_settings_card import (
+        BackgroundImageCard, BackgroundOpacityCard, BackgroundBlurCard, ComponentOpacityCard
+    )
+except ImportError:
+    BackgroundImageCard = None
+    BackgroundOpacityCard = None 
+    BackgroundBlurCard = None
+    ComponentOpacityCard = None
+
 
 
 class SettingsInterface(QWidget, InterfaceThemeMixin):
@@ -325,6 +335,11 @@ class SettingsInterface(QWidget, InterfaceThemeMixin):
         self.createUISettingsCards(ui_group)
         layout.addWidget(ui_group)
         
+        # 背景设置组
+        background_group = SettingCardGroup(self.get_text("background_settings"))
+        self.createBackgroundSettingsCards(background_group)
+        layout.addWidget(background_group)
+        
         # 性能设置组
         performance_group = SettingCardGroup(self.get_text("performance_settings"))
         self.createPerformanceSettingsCards(performance_group)
@@ -494,6 +509,48 @@ class SettingsInterface(QWidget, InterfaceThemeMixin):
         sidebar_expand_card.checkedChanged.connect(self.onSidebarExpandChanged)
         group.addSettingCard(sidebar_expand_card)
         self.sidebarExpandCard = sidebar_expand_card
+    
+    def createBackgroundSettingsCards(self, group):
+        """创建背景设置卡片"""
+        
+        # 背景图片启用开关
+        background_enable_card = SwitchSettingCard(
+            FluentIcon.PHOTO,
+            self.get_text("enable_background_image"),
+            self.get_text("enable_background_image_description"),
+            self.config_manager.cfg.backgroundImageEnabled if self.config_manager else None
+        )
+        background_enable_card.checkedChanged.connect(self.onBackgroundEnabledChanged)
+        group.addSettingCard(background_enable_card)
+        self.backgroundEnableCard = background_enable_card
+        
+        # 背景图片选择
+        if BackgroundImageCard is not None:
+            background_image_card = BackgroundImageCard(self.config_manager)
+            background_image_card.imageChanged.connect(self.onBackgroundImageChanged)
+            group.addSettingCard(background_image_card)
+            self.backgroundImageCard = background_image_card
+        
+        # 背景透明度
+        if BackgroundOpacityCard is not None:
+            background_opacity_card = BackgroundOpacityCard(self.config_manager)
+            background_opacity_card.opacityChanged.connect(self.onBackgroundOpacityChanged)
+            group.addSettingCard(background_opacity_card)
+            self.backgroundOpacityCard = background_opacity_card
+        
+        # 背景模糊半径
+        if BackgroundBlurCard is not None:
+            background_blur_card = BackgroundBlurCard(self.config_manager)
+            background_blur_card.blurChanged.connect(self.onBackgroundBlurChanged)
+            group.addSettingCard(background_blur_card)
+            self.backgroundBlurCard = background_blur_card
+        
+        # 组件透明度
+        if ComponentOpacityCard is not None:
+            component_opacity_card = ComponentOpacityCard(self.config_manager)
+            component_opacity_card.componentOpacityChanged.connect(self.onComponentOpacityChanged)
+            group.addSettingCard(component_opacity_card)
+            self.componentOpacityCard = component_opacity_card
     
     def createPerformanceSettingsCards(self, group):
         """创建性能设置卡片"""
@@ -1041,6 +1098,67 @@ class SettingsInterface(QWidget, InterfaceThemeMixin):
         # 调用父窗口的applyLanguage方法
         if self._parent_window and hasattr(self._parent_window, 'applyLanguage'):
             self._parent_window.applyLanguage()
+            
+    # 背景设置事件处理方法
+    def onBackgroundEnabledChanged(self, isChecked):
+        """背景图片启用状态改变事件"""
+        if self.config_manager:
+            self.config_manager.set("backgroundImageEnabled", isChecked)
+            self._update_background_settings()
+            if hasattr(self, 'settingsLogHandler'):
+                self.settingsLogHandler.info(f"背景图片: {'启用' if isChecked else '禁用'}")
+    
+    def onBackgroundImageChanged(self, imagePath):
+        """背景图片改变事件"""
+        if self.config_manager:
+            self.config_manager.set("backgroundImagePath", imagePath)
+            self._update_background_settings()
+            if hasattr(self, 'settingsLogHandler'):
+                if imagePath:
+                    self.settingsLogHandler.info(f"背景图片已更改: {imagePath}")
+                else:
+                    self.settingsLogHandler.info("背景图片已清除")
+    
+    def onBackgroundOpacityChanged(self, opacity):
+        """背景透明度改变事件"""
+        if self.config_manager:
+            self.config_manager.set("backgroundOpacity", opacity)
+            self._update_background_settings()
+            if hasattr(self, 'settingsLogHandler'):
+                self.settingsLogHandler.info(f"背景透明度已更改: {int(opacity * 100)}%")
+    
+    def onBackgroundBlurChanged(self, blurRadius):
+        """背景模糊半径改变事件"""
+        if self.config_manager:
+            self.config_manager.set("backgroundBlurRadius", blurRadius)
+            self._update_background_settings()
+            if hasattr(self, 'settingsLogHandler'):
+                self.settingsLogHandler.info(f"背景模糊半径已更改: {blurRadius}")
+    
+    def onComponentOpacityChanged(self, opacity):
+        """组件透明度改变事件"""
+        if self.config_manager:
+            self.config_manager.set("componentOpacity", opacity)
+            self._update_background_settings()
+            if hasattr(self, 'settingsLogHandler'):
+                self.settingsLogHandler.info(f"组件透明度已更改: {int(opacity * 100)}%")
+    
+    def _update_background_settings(self):
+        """更新背景设置"""
+        try:
+            # 获取背景管理器并更新设置
+            from src.management.theme_management.background_manager import get_background_manager
+            background_manager = get_background_manager(self.config_manager)
+            background_manager.update_background()
+            
+            # 如果有父窗口，通知更新主题样式
+            if self._parent_window and hasattr(self._parent_window, 'config_manager'):
+                from src.management.theme_management.theme_manager import update_all_styles
+                update_all_styles(self._parent_window)
+                
+        except Exception as e:
+            if hasattr(self, 'settingsLogHandler'):
+                self.settingsLogHandler.error(f"更新背景设置失败: {e}")
 
     def setModulesLang(self):
         """设置各个模块的语言变量"""

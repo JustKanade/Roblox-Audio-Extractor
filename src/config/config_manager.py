@@ -62,6 +62,15 @@ class AppConfig(QConfig):
     # 窗口效果配置
     micaEnabled = ConfigItem("MainWindow", "MicaEnabled", isWin11(), BoolValidator())
     acrylicEnabled = ConfigItem("MainWindow", "AcrylicEnabled", True, BoolValidator())
+
+    # 背景图片配置
+    backgroundImageEnabled = ConfigItem("Background", "BackgroundImageEnabled", False, BoolValidator())
+    backgroundImagePath = ConfigItem("Background", "BackgroundImagePath", "")
+    backgroundBlurRadius = RangeConfigItem("Background", "BackgroundBlurRadius", 10, RangeValidator(0, 100))
+    backgroundOpacity = RangeConfigItem("Background", "BackgroundOpacity", 0.8, RangeValidator(0.0, 1.0))  # 0.0-1.0
+
+    # 组件透明度配置
+    componentOpacity = RangeConfigItem("Background", "ComponentOpacity", 0.9, RangeValidator(0.0, 1.0))  # 0.0-1.0
     
     # 路径配置
     lastDirectory = ConfigItem("Paths", "LastDirectory", "", FolderValidator())
@@ -390,6 +399,12 @@ class ConfigManager:
                 # 视频转换配置
                 "convert_video_enabled": self.cfg.convertVideoEnabled,
                 "convert_video_format": self.cfg.convertVideoFormat,
+                # 背景设置配置
+                "backgroundImageEnabled": self.cfg.backgroundImageEnabled,
+                "backgroundImagePath": self.cfg.backgroundImagePath,
+                "backgroundBlurRadius": self.cfg.backgroundBlurRadius,
+                "backgroundOpacity": self.cfg.backgroundOpacity,
+                "componentOpacity": self.cfg.componentOpacity,
             }
             
             if key in key_mapping:
@@ -484,6 +499,12 @@ class ConfigManager:
                 # 视频转换配置
                 "convert_video_enabled": self.cfg.convertVideoEnabled,
                 "convert_video_format": self.cfg.convertVideoFormat,
+                # 背景设置配置
+                "backgroundImageEnabled": self.cfg.backgroundImageEnabled,
+                "backgroundImagePath": self.cfg.backgroundImagePath,
+                "backgroundBlurRadius": self.cfg.backgroundBlurRadius,
+                "backgroundOpacity": self.cfg.backgroundOpacity,
+                "componentOpacity": self.cfg.componentOpacity,
             }
             
             if key in key_mapping:

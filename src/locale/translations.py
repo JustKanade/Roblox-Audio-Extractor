@@ -2879,6 +2879,88 @@ def get_translations():
             "video_conversion_ffmpeg_warning": {
                 ENGLISH: "⚠ FFmpeg is required for video format conversion. Please install FFmpeg to enable this feature.",
                 CHINESE: "⚠ 视频格式转换需要FFmpeg。请安装FFmpeg以启用此功能。"
+            },
+            
+            # 背景设置相关翻译
+            "background_settings": {
+                ENGLISH: "Background Settings",
+                CHINESE: "背景设置"
+            },
+            "background_settings_description": {
+                ENGLISH: "Customize application background image and effects",
+                CHINESE: "自定义应用程序背景图片和效果"
+            },
+            "background_image_title": {
+                ENGLISH: "Background Image",
+                CHINESE: "背景图片"
+            },
+            "background_image_description": {
+                ENGLISH: "Select a custom background image for the application",
+                CHINESE: "为应用程序选择自定义背景图片"
+            },
+            "background_opacity_title": {
+                ENGLISH: "Background Opacity",
+                CHINESE: "背景透明度"
+            },
+            "background_opacity_description": {
+                ENGLISH: "Adjust the opacity of the background image",
+                CHINESE: "调整背景图片的透明度"
+            },
+            "background_blur_title": {
+                ENGLISH: "Background Blur",
+                CHINESE: "背景模糊"
+            },
+            "background_blur_description": {
+                ENGLISH: "Adjust the blur radius of the background image",
+                CHINESE: "调整背景图片的模糊半径"
+            },
+            "component_opacity_title": {
+                ENGLISH: "Component Opacity",
+                CHINESE: "组件透明度"
+            },
+            "component_opacity_description": {
+                ENGLISH: "Adjust the opacity of interface components",
+                CHINESE: "调整界面组件的透明度"
+            },
+            "enable_background_image": {
+                ENGLISH: "Enable Background Image",
+                CHINESE: "启用背景图片"
+            },
+            "enable_background_image_description": {
+                ENGLISH: "Show custom background image behind the interface",
+                CHINESE: "在界面后方显示自定义背景图片"
+            },
+            "select_image": {
+                ENGLISH: "Select Image",
+                CHINESE: "选择图片"
+            },
+            "clear_image": {
+                ENGLISH: "Clear Image",
+                CHINESE: "清除图片"
+            },
+            "no_image_selected": {
+                ENGLISH: "No image selected",
+                CHINESE: "未选择图片"
+            },
+            "image_filter": {
+                ENGLISH: "Image Files",
+                CHINESE: "图片文件"
+            },
+            "image_selected": {
+                ENGLISH: "Background image selected successfully",
+                CHINESE: "背景图片选择成功"
+            },
+            "image_cleared": {
+                ENGLISH: "Background image cleared successfully",
+                CHINESE: "背景图片清除成功"
+            },
+            "image_select_failed": {
+                ENGLISH: "Failed to select background image",
+                CHINESE: "选择背景图片失败"
+            },
+            "background_updated": {
+                ENGLISH: "Background settings updated",
+                CHINESE: "背景设置已更新"
             }
 
         }

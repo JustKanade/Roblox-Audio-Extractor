@@ -44,6 +44,7 @@ from src.management.window_management.responsive_handler import apply_responsive
 
 
 from src.management.theme_management.theme_manager import apply_theme_from_config, apply_theme_change, _pre_cache_theme_styles
+from src.management.theme_management.background_manager import get_background_manager
 
 from src.components.cards.Settings.custom_theme_color_card import CustomThemeColorCard
 
@@ -133,6 +134,10 @@ class MainWindow(FluentWindow):
 
         # 立即应用主题设置，避免白色闪现
         self.applyThemeFromConfig()
+        
+        # 初始化背景管理器
+        self.background_manager = get_background_manager(self.config_manager)
+        self.background_manager.backgroundChanged.connect(self._on_background_changed)
 
         # 窗口初始化
         self.initWindow()
@@ -559,6 +564,67 @@ class MainWindow(FluentWindow):
             self.settingsLogHandler if hasattr(self, 'settingsLogHandler') else None,
             lang
         )
+
+    def _on_background_changed(self):
+        """背景设置改变时的处理方法"""
+        try:
+            # 重新应用主题样式以包含最新的背景设置
+            from src.management.theme_management.theme_manager import update_all_styles
+            update_all_styles(self)
+            
+            # 强制重绘窗口以应用新的背景图片
+            self.update()
+            
+            if hasattr(self, 'settingsInterface') and hasattr(self.settingsInterface, 'settingsLogHandler'):
+                self.settingsInterface.settingsLogHandler.info("背景设置已更新")
+                
+        except Exception as e:
+            print(f"更新背景设置时出错: {e}")
+            if hasattr(self, 'settingsInterface') and hasattr(self.settingsInterface, 'settingsLogHandler'):
+                self.settingsInterface.settingsLogHandler.error(f"更新背景设置失败: {e}")
+
+    def paintEvent(self, event):
+        """重写paintEvent方法来绘制背景图片"""
+        try:
+            # 首先调用父类的paintEvent
+            super().paintEvent(event)
+            
+            # 检查是否启用背景图片
+            bg_enabled = self.config_manager.get("backgroundImageEnabled", False) if self.config_manager else False
+            bg_path = self.config_manager.get("backgroundImagePath", "") if self.config_manager else ""
+            bg_opacity = self.config_manager.get("backgroundOpacity", 0.8) if self.config_manager else 0.8
+            
+            if bg_enabled and bg_path and self.background_manager.validate_image_path(bg_path):
+                from PyQt5.QtGui import QPainter, QPixmap
+                from PyQt5.QtCore import Qt
+                
+                painter = QPainter(self)
+                painter.setRenderHint(QPainter.Antialiasing)
+                
+                # 加载背景图片
+                pixmap = QPixmap(bg_path)
+                if not pixmap.isNull():
+                    # 缩放图片以适应窗口大小，保持比例
+                    scaled_pixmap = pixmap.scaled(
+                        self.size(), 
+                        Qt.KeepAspectRatioByExpanding, 
+                        Qt.SmoothTransformation
+                    )
+                    
+                    # 计算居中位置
+                    x = (self.width() - scaled_pixmap.width()) // 2
+                    y = (self.height() - scaled_pixmap.height()) // 2
+                    
+                    # 设置透明度
+                    painter.setOpacity(bg_opacity)
+                    
+                    # 绘制背景图片
+                    painter.drawPixmap(x, y, scaled_pixmap)
+                    
+                painter.end()
+                
+        except Exception as e:
+            print(f"绘制背景图片时出错: {e}")
 
     def saveThreadsConfig(self, value):
         """保存线程数配置"""
