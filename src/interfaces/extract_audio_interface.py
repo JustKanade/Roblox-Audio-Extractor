@@ -237,8 +237,8 @@ class ExtractAudioInterface(BaseExtractInterface):
             
             # 记录清理操作
             if hasattr(self, 'extractLogHandler') and self.extractLogHandler:
-                self.extractLogHandler.info("已清理音频缓存扫描器状态")
+                self.extractLogHandler.info(self.get_text("audio_cache_scanner_cleared", "已清理音频缓存扫描器状态"))
         except Exception as e:
             # 避免清理失败影响其他操作
             if hasattr(self, 'extractLogHandler') and self.extractLogHandler:
-                self.extractLogHandler.warning(f"清理音频缓存扫描器状态时出错: {e}")
+                self.extractLogHandler.warning(self.get_text("cache_scanner_clear_error", "清理{}缓存扫描器状态时出错: {}").format(self.get_text("audio", "音频"), e))

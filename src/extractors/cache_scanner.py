@@ -15,7 +15,19 @@ from typing import List, Dict, Any, Optional, Tuple, Callable
 from dataclasses import dataclass
 from enum import Enum, auto
 
+# 尝试导入语言管理器
+try:
+    from src.locale.language_manager import lang
+except ImportError:
+    lang = None
+
 logger = logging.getLogger(__name__)
+
+def get_text(key, default=""):
+    """获取翻译文本"""
+    if lang and hasattr(lang, 'get'):
+        return lang.get(key, default)
+    return default
 
 class CacheType(Enum):
     """缓存类型"""
@@ -538,9 +550,9 @@ def clear_global_scanner_cache():
     # 如果实例不存在，创建一个以确保后续操作有效
     if _scanner_instance is None:
         _scanner_instance = RobloxCacheScanner()
-        logger.info("创建全局缓存扫描器实例以进行清理")
+        logger.info(get_text("scanner_instance_created", "创建全局缓存扫描器实例以进行清理"))
     
     _scanner_instance.clear_known_items()
     # 强制重置回退警告标志，确保下次扫描时能正确处理路径回退
     _scanner_instance._has_fallback_warned = False
-    logger.info("已清理全局缓存扫描器状态并强制重置回退标志") 
+    logger.info(get_text("global_cache_scanner_cleared", "已清理全局缓存扫描器状态并强制重置回退标志")) 

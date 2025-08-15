@@ -605,7 +605,7 @@ def get_translations():
                 CHINESE: "按分辨率"
             },
             "no_classification": {
-                ENGLISH: "No Classification",
+                ENGLISH: "None",
                 CHINESE: "无分类"
             },
             "threads": {
@@ -3092,6 +3092,54 @@ def get_translations():
             "show_splash_failed": {
                 ENGLISH: "Unable to show splash screen: {}",
                 CHINESE: "无法显示启动画面: {}"
+            },
+            
+            # 缓存扫描器状态清理日志
+            "audio_cache_scanner_cleared": {
+                ENGLISH: "Audio cache scanner state cleared",
+                CHINESE: "已清理音频缓存扫描器状态"
+            },
+            "video_cache_scanner_cleared": {
+                ENGLISH: "Video cache scanner state cleared", 
+                CHINESE: "已清理视频缓存扫描器状态"
+            },
+            "font_cache_scanner_cleared": {
+                ENGLISH: "Font cache scanner state cleared",
+                CHINESE: "已清理字体缓存扫描器状态"
+            },
+            "translation_cache_scanner_cleared": {
+                ENGLISH: "Translation cache scanner state cleared",
+                CHINESE: "已清理翻译缓存扫描器状态"
+            },
+            "global_cache_scanner_cleared": {
+                ENGLISH: "Global cache scanner state cleared and force reset fallback flags",
+                CHINESE: "已清理全局缓存扫描器状态并强制重置回退标志"
+            },
+            "scanner_instance_created": {
+                ENGLISH: "Created global cache scanner instance for cleanup",
+                CHINESE: "创建全局缓存扫描器实例以进行清理"
+            },
+            "cache_scanner_clear_error": {
+                ENGLISH: "Error occurred while clearing {} cache scanner state: {}",
+                CHINESE: "清理{}缓存扫描器状态时出错: {}"
+            },
+            
+            # 基础术语
+            "audio": {
+                ENGLISH: "audio",
+                CHINESE: "音频"
+            },
+            "videos": {
+                ENGLISH: "video",
+                CHINESE: "视频"
+            },
+            "font": {
+                ENGLISH: "font",
+                CHINESE: "字体"
+            },
+            "translation": {
+                ENGLISH: "translation",
+                CHINESE: "翻译"
             }
 
         }
