@@ -202,6 +202,10 @@ class VideoExtractionWorker(QThread):
         
         self.logMessage.emit(self._get_lang("video_cancelling"), 'warning')
     
+    def cancel(self):
+        """取消提取操作（与其他worker保持接口一致性）"""
+        self.stop()
+    
     def is_running_extraction(self):
         """检查是否正在运行提取"""
         return self.isRunning() and not self._stop_requested 

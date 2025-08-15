@@ -520,6 +520,7 @@ class HistoryInterface(QWidget, InterfaceThemeMixin):
                                 'audio': self.get_text("audio_history", "音频文件"),
                                 'font': self.get_text("font_history", "字体文件"), 
                                 'translation': self.get_text("translation_history", "翻译文件"),
+                                'video': self.get_text("video_history", "视频文件"),
                                 'image': self.get_text("image_history", "图片文件"),
                                 'texture': self.get_text("texture_history", "纹理文件"),
                                 'model': self.get_text("model_history", "模型文件"),

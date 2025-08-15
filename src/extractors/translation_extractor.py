@@ -415,7 +415,8 @@ class RobloxTranslationExtractor:
         # 初始化组件
         self.rbxh_parser = RBXHParser()
         self.content_identifier = ContentIdentifier(block_avatar_images)
-        self.cache_scanner = RobloxCacheScanner(log_callback)
+        from .cache_scanner import get_scanner
+        self.cache_scanner = get_scanner(log_callback)
         
         # 配置
         self.classification_method = classification_method

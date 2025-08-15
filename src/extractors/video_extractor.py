@@ -578,7 +578,8 @@ class RobloxVideoExtractor:
             self.output_dir = os.path.join(self.base_dir, custom_output_dir or "extracted")
         
         # 初始化组件
-        self.cache_scanner = RobloxCacheScanner()
+        from .cache_scanner import get_scanner
+        self.cache_scanner = get_scanner()
         
         # 设置自定义缓存路径（如果提供了base_dir）
         if self.base_dir:

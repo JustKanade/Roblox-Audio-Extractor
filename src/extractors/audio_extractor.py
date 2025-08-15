@@ -490,7 +490,8 @@ class RobloxAudioExtractor:
             self.category_dirs[category] = path
             
         # 初始化缓存扫描器
-        self.cache_scanner = RobloxCacheScanner(log_callback)
+        from .cache_scanner import get_scanner
+        self.cache_scanner = get_scanner(log_callback)
     
     def send_log(self, message_key: str, log_type: str, *args):
         """发送日志消息到界面"""

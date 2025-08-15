@@ -459,7 +459,8 @@ class BaseExtractInterface(QWidget, InterfaceThemeMixin, metaclass=QWidgetMeta):
             processing_text,
             self.window() or self
         )
-        self.extractionStateTooltip.show()
+        # 安全地显示StateToolTip
+        self._safeUpdateStateTooltip("", show_tooltip=True)
         
         # 创建定时器以定期更新UI
         self.update_timer = QTimer(self)
@@ -499,13 +500,46 @@ class BaseExtractInterface(QWidget, InterfaceThemeMixin, metaclass=QWidgetMeta):
             
             self.updateProgressLabel(self.get_text("cancelling", "Cancelling..."))
             
-            # 更新左上角进度通知为取消状态
-            if hasattr(self, 'extractionStateTooltip'):
-                self.extractionStateTooltip.setContent(self.get_text("task_canceled", "Task Canceled"))
-                self.extractionStateTooltip.setState(True)
-                
-                # 2秒后关闭通知
-                QTimer.singleShot(2000, self.extractionStateTooltip.close)
+            # 更新左上角进度通知为取消状态（使用安全方法）
+            self._safeUpdateStateTooltip(
+                self.get_text("task_canceled", "Task Canceled"),
+                success_state=True,
+                auto_close_ms=2000
+            )
+            
+            # 等待工作线程结束后恢复UI状态
+            # 使用QTimer延迟执行，确保取消操作完成
+            QTimer.singleShot(500, self._restoreUIAfterCancel)
+
+    def _restoreUIAfterCancel(self):
+        """取消操作后恢复UI状态"""
+        try:
+            # 停止定时器
+            if self.update_timer:
+                self.update_timer.stop()
+                self.update_timer = None
+
+            # 恢复按钮状态
+            self.showExtractButton(True)
+            self.showCancelButton(False)
+            
+            # 重置进度条到0%
+            self.updateProgressBar(0)
+            
+            # 恢复初始进度标签
+            self.updateProgressLabel(self.get_text("ready", "Ready"))
+            
+            # 恢复初始状态：显示确定进度条，隐藏不定进度条
+            self.showDeterminateProgress(True)
+            self.showIndeterminateProgress(False)
+            
+            # 清理工作线程引用
+            self.extraction_worker = None
+            
+        except Exception as e:
+            # 记录错误但不影响用户使用
+            import logging
+            logging.getLogger(__name__).debug(f"恢复UI状态时出错: {e}")
 
     def updateExtractionProgress(self, current, total, elapsed_time, speed):
         """更新提取进度"""
@@ -521,9 +555,8 @@ class BaseExtractInterface(QWidget, InterfaceThemeMixin, metaclass=QWidgetMeta):
             progress_text = f"{current}/{total} ({progress}%) - {speed_text}"
             self.updateProgressLabel(progress_text)
             
-            # 更新左上角进度通知
-            if hasattr(self, 'extractionStateTooltip'):
-                self.extractionStateTooltip.setContent(progress_text)
+            # 更新左上角进度通知（使用安全方法）
+            self._safeUpdateStateTooltip(progress_text)
 
     def extractionFinished(self, result):
         """提取完成处理"""
@@ -551,12 +584,12 @@ class BaseExtractInterface(QWidget, InterfaceThemeMixin, metaclass=QWidgetMeta):
             # 处理自动打开输出目录
             self._handleAutoOpenOutputDir(result, extraction_type)
             
-            # 更新左上角进度通知为完成状态
-            if hasattr(self, 'extractionStateTooltip'):
-                self.extractionStateTooltip.setContent(self.get_text("extraction_completed", "Extraction completed"))
-                self.extractionStateTooltip.setState(True)
-                # 3秒后关闭通知
-                QTimer.singleShot(3000, self.extractionStateTooltip.close)
+            # 更新左上角进度通知为完成状态（使用安全方法）
+            self._safeUpdateStateTooltip(
+                self.get_text("extraction_completed", "Extraction completed"),
+                success_state=True,
+                auto_close_ms=3000
+            )
             
             # 显示成功信息
             InfoBar.success(
@@ -578,12 +611,12 @@ class BaseExtractInterface(QWidget, InterfaceThemeMixin, metaclass=QWidgetMeta):
             # 显示错误日志
             self.extractLogHandler.error(self.get_text("error_occurred", f"{self.get_text('extraction_failed', 'Extraction failed')}: {error_msg}"))
             
-            # 更新左上角进度通知为错误状态
-            if hasattr(self, 'extractionStateTooltip'):
-                self.extractionStateTooltip.setContent(self.get_text("extraction_failed", "Extraction failed"))
-                self.extractionStateTooltip.setState(True)
-                # 5秒后关闭通知
-                QTimer.singleShot(5000, self.extractionStateTooltip.close)
+            # 更新左上角进度通知为错误状态（使用安全方法）
+            self._safeUpdateStateTooltip(
+                self.get_text("extraction_failed", "Extraction failed"),
+                success_state=True,
+                auto_close_ms=5000
+            )
             
             # 显示错误信息
             InfoBar.error(
@@ -925,4 +958,63 @@ class BaseExtractInterface(QWidget, InterfaceThemeMixin, metaclass=QWidgetMeta):
         
         # 合并样式
         combined_styles = self.get_common_interface_styles() + specific_styles
-        self.setStyleSheet(combined_styles) 
+        self.setStyleSheet(combined_styles)
+    
+    def clearCacheScanner(self):
+        """清理缓存扫描器状态 - 基类默认实现，具体实现由子类提供"""
+        pass
+
+    def _safeUpdateStateTooltip(self, content: str, success_state: bool = False, auto_close_ms: int = 0, show_tooltip: bool = False):
+        """安全地更新StateToolTip内容，避免访问已删除的Qt对象
+        
+        Args:
+            content: 要显示的内容
+            success_state: 是否设置为成功状态
+            auto_close_ms: 自动关闭的毫秒数，0表示不自动关闭
+            show_tooltip: 是否显示tooltip
+        """
+        if not hasattr(self, 'extractionStateTooltip'):
+            return
+            
+        try:
+            # 检查StateToolTip对象是否仍然有效
+            if hasattr(self.extractionStateTooltip, 'contentLabel'):
+                # 尝试访问内部组件以验证对象有效性
+                if self.extractionStateTooltip.contentLabel is not None:
+                    if content:  # 只有当有内容时才设置
+                        self.extractionStateTooltip.setContent(content)
+                    if success_state:
+                        self.extractionStateTooltip.setState(True)
+                    if show_tooltip:
+                        self.extractionStateTooltip.show()
+                    
+                    # 设置自动关闭
+                    if auto_close_ms > 0:
+                        QTimer.singleShot(auto_close_ms, self._safeCloseStateTooltip)
+                else:
+                    # 内部组件已被删除，清理引用
+                    self.extractionStateTooltip = None
+            else:
+                # StateToolTip对象结构异常，清理引用
+                self.extractionStateTooltip = None
+                
+        except (RuntimeError, AttributeError) as e:
+            # Qt对象已被删除或访问异常，清理引用避免后续错误
+            self.extractionStateTooltip = None
+            import logging
+            logging.getLogger(__name__).debug(f"StateToolTip对象已失效，已清理引用: {e}")
+    
+    def _safeCloseStateTooltip(self):
+        """安全地关闭StateToolTip"""
+        if not hasattr(self, 'extractionStateTooltip') or self.extractionStateTooltip is None:
+            return
+            
+        try:
+            if hasattr(self.extractionStateTooltip, 'close'):
+                self.extractionStateTooltip.close()
+        except (RuntimeError, AttributeError):
+            # 对象已被删除，忽略错误
+            pass
+        finally:
+            # 清理引用
+            self.extractionStateTooltip = None 

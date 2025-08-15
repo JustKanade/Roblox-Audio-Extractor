@@ -641,3 +641,23 @@ class ExtractVideosInterface(BaseExtractInterface):
             
             # 确保配置保存到文件
             self.config_manager.save_config() 
+
+    def updateHistorySize(self):
+        """更新历史记录大小显示"""
+        if self.download_history:
+            super().updateHistorySize()
+
+    def clearCacheScanner(self):
+        """清理视频提取器的缓存扫描器状态"""
+        try:
+            # 清理全局缓存扫描器状态
+            from src.extractors.cache_scanner import clear_global_scanner_cache
+            clear_global_scanner_cache()
+            
+            # 记录清理操作
+            if hasattr(self, 'extractLogHandler') and self.extractLogHandler:
+                self.extractLogHandler.info("已清理视频缓存扫描器状态")
+        except Exception as e:
+            # 避免清理失败影响其他操作
+            if hasattr(self, 'extractLogHandler') and self.extractLogHandler:
+                self.extractLogHandler.warning(f"清理视频缓存扫描器状态时出错: {e}") 

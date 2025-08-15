@@ -2404,6 +2404,10 @@ def get_translations():
                 ENGLISH: "Translation Files",
                 CHINESE: "翻译文件"
             },
+            "video_history": {
+                ENGLISH: "Video Files", 
+                CHINESE: "视频文件"
+            },
             "image_history": {
                 ENGLISH: "Image Files",
                 CHINESE: "图片文件"

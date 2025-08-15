@@ -117,11 +117,21 @@ class RobloxCacheScanner:
             is_database: 是否为数据库格式
             db_folder: 数据库文件夹路径
         """
+        # 检查路径是否实际发生了变化
+        path_changed = (self.target_path != path or 
+                       self.target_is_database != is_database or 
+                       self.db_folder != db_folder)
+        
         self.target_path = path
         self.target_is_database = is_database
         self.db_folder = db_folder
-        self._has_fallback_warned = False  # 重置警告标志
-        logger.info(f"设置自定义缓存路径: {path}, 数据库模式: {is_database}")
+        
+        # 只有在路径实际发生变化时才重置警告标志
+        if path_changed:
+            self._has_fallback_warned = False
+            logger.info(f"设置自定义缓存路径: {path}, 数据库模式: {is_database}")
+        else:
+            logger.debug(f"缓存路径未变化，保持现有设置: {path}")
     
     def _precheck_database_health(self) -> bool:
         """
@@ -520,4 +530,17 @@ def scan_roblox_cache(callback: Optional[Callable[[CacheItem], None]] = None) ->
     Returns:
         List[CacheItem]: 新发现的缓存项目
     """
-    return get_scanner().scan_cache(callback) 
+    return get_scanner().scan_cache(callback)
+
+def clear_global_scanner_cache():
+    """清理全局扫描器缓存状态"""
+    global _scanner_instance
+    # 如果实例不存在，创建一个以确保后续操作有效
+    if _scanner_instance is None:
+        _scanner_instance = RobloxCacheScanner()
+        logger.info("创建全局缓存扫描器实例以进行清理")
+    
+    _scanner_instance.clear_known_items()
+    # 强制重置回退警告标志，确保下次扫描时能正确处理路径回退
+    _scanner_instance._has_fallback_warned = False
+    logger.info("已清理全局缓存扫描器状态并强制重置回退标志") 

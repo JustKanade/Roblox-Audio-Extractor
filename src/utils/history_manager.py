@@ -26,6 +26,7 @@ class ExtractedHistory:
             'audio': {'file_hashes': set(), 'content_hashes': set()},
             'font': {'file_hashes': set(), 'content_hashes': set()},  # 字体类型
             'translation': {'file_hashes': set(), 'content_hashes': set()},  # 翻译文件类型
+            'video': {'file_hashes': set(), 'content_hashes': set()},  # 视频文件类型
             'image': {'file_hashes': set(), 'content_hashes': set()},
             'texture': {'file_hashes': set(), 'content_hashes': set()},
             'model': {'file_hashes': set(), 'content_hashes': set()},

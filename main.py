@@ -672,7 +672,8 @@ class MainWindow(FluentWindow):
             lang.get("processing"),
             self
         )
-        self.extractionStateTooltip.show()
+        # 安全地显示StateToolTip
+        self._safeUpdateStateTooltip("", show_tooltip=True)
 
         
         self.extraction_worker.start()
@@ -681,22 +682,39 @@ class MainWindow(FluentWindow):
         if self.extraction_worker and self.extraction_worker.isRunning():
             self.extraction_worker.cancel()
 
-            
-            if hasattr(self, 'extractionStateTooltip'):
-                self.extractionStateTooltip.setContent(lang.get("task_canceled"))
-                self.extractionStateTooltip.setState(True)
-                
-                QTimer.singleShot(2000, self.extractionStateTooltip.close)
+            # 安全地更新StateToolTip为取消状态
+            self._safeUpdateStateTooltip(
+                lang.get("task_canceled"),
+                success_state=True,
+                auto_close_ms=2000
+            )
 
+            # 立即更新UI显示取消状态
+            self.progressLabel.setText(lang.get("cancelling", "Cancelling..."))
             
+            # 延迟执行完整的UI恢复，确保取消操作完成
+            QTimer.singleShot(500, self._restoreUIAfterCancel)
+
+    def _restoreUIAfterCancel(self):
+        """取消操作后恢复UI状态"""
+        try:
+            # 恢复按钮状态
             self.cancelButton.hide()
             self.extractButton.show()
 
-            
+            # 重置进度条和标签
             self.progressBar.setValue(0)
             self.progressLabel.setText(lang.get("ready"))
 
+            # 清理工作线程引用
+            self.extraction_worker = None
+
+            # 记录取消操作
             self.handleExtractionLog(lang.get("canceled_by_user"), "warning")
+            
+        except Exception as e:
+            # 记录错误但不影响用户使用
+            logger.debug(f"恢复UI状态时出错: {e}")
 
     def updateExtractionProgress(self, current, total, elapsed, speed):
         """更新提取进度"""
@@ -714,8 +732,8 @@ class MainWindow(FluentWindow):
         self.progressBar.setValue(progress)
         self.progressLabel.setText(status_text)
         
-        if hasattr(self, 'extractionStateTooltip'):
-            self.extractionStateTooltip.setContent(status_text)
+        # 安全地更新StateToolTip进度
+        self._safeUpdateStateTooltip(status_text)
 
     def extractionFinished(self, result):
         """提取完成处理"""
@@ -752,15 +770,16 @@ class MainWindow(FluentWindow):
                     self.extractInterface._handleAutoOpenOutputDir(result, "audio")
                     
                     # 恢复原始设置
-                    self.extractInterface.extractLogHandler = original_log_handler
-                    self.extractInterface.config_manager = original_config_manager
+                    if self.extractInterface:
+                        self.extractInterface.extractLogHandler = original_log_handler
+                        self.extractInterface.config_manager = original_config_manager
 
-                
-                if hasattr(self, 'extractionStateTooltip'):
-                    self.extractionStateTooltip.setContent(lang.get("extraction_complete"))
-                    self.extractionStateTooltip.setState(True)
-                    
-                    QTimer.singleShot(2000, self.extractionStateTooltip.close)
+                    # 安全地更新StateToolTip为完成状态
+                    self._safeUpdateStateTooltip(
+                        lang.get("extraction_complete"),
+                        success_state=True,
+                        auto_close_ms=2000
+                    )
 
                 
                 InfoBar.success(
@@ -778,22 +797,22 @@ class MainWindow(FluentWindow):
             else:
                 self.extractLogHandler.warning(lang.get("no_files_processed"))
 
-                
-                if hasattr(self, 'extractionStateTooltip'):
-                    self.extractionStateTooltip.setContent(lang.get("no_files_processed"))
-                    self.extractionStateTooltip.setState(True)
-                    
-                    QTimer.singleShot(2000, self.extractionStateTooltip.close)
+                # 安全地更新StateToolTip为无文件处理状态
+                self._safeUpdateStateTooltip(
+                    lang.get("no_files_processed"),
+                    success_state=True,
+                    auto_close_ms=2000
+                )
         else:
             
             self.extractLogHandler.error(lang.get("error_occurred", result.get('error', '')))
 
-            
-            if hasattr(self, 'extractionStateTooltip'):
-                self.extractionStateTooltip.setContent(lang.get("task_failed"))
-                self.extractionStateTooltip.setState(False)
-                
-                QTimer.singleShot(2000, self.extractionStateTooltip.close)
+            # 安全地更新StateToolTip为失败状态
+            self._safeUpdateStateTooltip(
+                lang.get("task_failed"),
+                success_state=False,  # 注意这里是False，表示失败状态
+                auto_close_ms=2000
+            )
 
             
             InfoBar.error(
@@ -999,6 +1018,9 @@ class MainWindow(FluentWindow):
                 self.download_history.clear_history(record_type_str)
                 message = lang.get("history_type_cleared").format(record_type_str.capitalize())
 
+            # 清理对应的缓存扫描器状态
+            self._clearCacheScannerStates(record_type)
+
             # 使用QTimer延迟刷新界面，确保数据已保存
             QTimer.singleShot(100, self.historyInterface.refreshHistoryInterfaceAfterClear)
                 
@@ -1027,7 +1049,7 @@ class MainWindow(FluentWindow):
                 self.historyInterface.logHandler.error(lang.get("error_occurred", str(e)))
             traceback.print_exc()
 
-            
+            # 显示错误通知
             QTimer.singleShot(200, lambda: InfoBar.error(
                 title=lang.get("task_failed"),
                 content=lang.get('error_occurred', str(e)),
@@ -1037,6 +1059,98 @@ class MainWindow(FluentWindow):
                 duration=5000,
                 parent=self
             ))
+
+    def _clearCacheScannerStates(self, record_type="all"):
+        """清理缓存扫描器状态
+        
+        Args:
+            record_type: 要清理的记录类型
+        """
+        try:
+            # 定义记录类型与提取器界面的映射关系
+            interface_mapping = {
+                'audio': 'extractInterface',
+                'video': 'extractVideosInterface', 
+                'font': 'extractFontsInterface',
+                'translation': 'extractTranslationsInterface'
+            }
+            
+            if record_type == "all":
+                # 清理所有提取器的缓存扫描器状态
+                for interface_name in interface_mapping.values():
+                    if hasattr(self, interface_name):
+                        interface = getattr(self, interface_name)
+                        if hasattr(interface, 'clearCacheScanner'):
+                            interface.clearCacheScanner()
+            else:
+                # 清理特定类型的缓存扫描器状态
+                record_type_str = str(record_type).lower()
+                if record_type_str in interface_mapping:
+                    interface_name = interface_mapping[record_type_str]
+                    if hasattr(self, interface_name):
+                        interface = getattr(self, interface_name)
+                        if hasattr(interface, 'clearCacheScanner'):
+                            interface.clearCacheScanner()
+            
+        except Exception as e:
+            # 记录错误但不影响主要操作流程
+            logger.warning(f"清理缓存扫描器状态时出错: {e}")
+            if hasattr(self.historyInterface, 'logHandler'):
+                self.historyInterface.logHandler.warning(f"清理缓存扫描器状态时出错: {e}")
+
+    def _safeUpdateStateTooltip(self, content: str, success_state: bool = False, auto_close_ms: int = 0, show_tooltip: bool = False):
+        """安全地更新StateToolTip内容，避免访问已删除的Qt对象
+        
+        Args:
+            content: 要显示的内容
+            success_state: 是否设置为成功状态
+            auto_close_ms: 自动关闭的毫秒数，0表示不自动关闭
+            show_tooltip: 是否显示tooltip
+        """
+        if not hasattr(self, 'extractionStateTooltip'):
+            return
+            
+        try:
+            # 检查StateToolTip对象是否仍然有效
+            if hasattr(self.extractionStateTooltip, 'contentLabel'):
+                # 尝试访问内部组件以验证对象有效性
+                if self.extractionStateTooltip.contentLabel is not None:
+                    if content:  # 只有当有内容时才设置
+                        self.extractionStateTooltip.setContent(content)
+                    if success_state:
+                        self.extractionStateTooltip.setState(True)
+                    if show_tooltip:
+                        self.extractionStateTooltip.show()
+                    
+                    # 设置自动关闭
+                    if auto_close_ms > 0:
+                        QTimer.singleShot(auto_close_ms, self._safeCloseStateTooltip)
+                else:
+                    # 内部组件已被删除，清理引用
+                    self.extractionStateTooltip = None
+            else:
+                # StateToolTip对象结构异常，清理引用
+                self.extractionStateTooltip = None
+                
+        except (RuntimeError, AttributeError) as e:
+            # Qt对象已被删除或访问异常，清理引用避免后续错误
+            self.extractionStateTooltip = None
+            logger.debug(f"StateToolTip对象已失效，已清理引用: {e}")
+    
+    def _safeCloseStateTooltip(self):
+        """安全地关闭StateToolTip"""
+        if not hasattr(self, 'extractionStateTooltip') or self.extractionStateTooltip is None:
+            return
+            
+        try:
+            if hasattr(self.extractionStateTooltip, 'close'):
+                self.extractionStateTooltip.close()
+        except (RuntimeError, AttributeError):
+            # 对象已被删除，忽略错误
+            pass
+        finally:
+            # 清理引用
+            self.extractionStateTooltip = None
 
     def applyLanguage(self):
         """应用语言设置"""

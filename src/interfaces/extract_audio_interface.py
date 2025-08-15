@@ -227,3 +227,18 @@ class ExtractAudioInterface(BaseExtractInterface):
                 self.config_manager.set("convert_enabled", self.convert_card.isChecked())
             if hasattr(self, 'format_combo'):
                 self.config_manager.set("convert_format", self.format_combo.currentText())
+
+    def clearCacheScanner(self):
+        """清理音频提取器的缓存扫描器状态"""
+        try:
+            # 清理全局缓存扫描器状态
+            from src.extractors.cache_scanner import clear_global_scanner_cache
+            clear_global_scanner_cache()
+            
+            # 记录清理操作
+            if hasattr(self, 'extractLogHandler') and self.extractLogHandler:
+                self.extractLogHandler.info("已清理音频缓存扫描器状态")
+        except Exception as e:
+            # 避免清理失败影响其他操作
+            if hasattr(self, 'extractLogHandler') and self.extractLogHandler:
+                self.extractLogHandler.warning(f"清理音频缓存扫描器状态时出错: {e}")
