@@ -330,7 +330,7 @@ class BackgroundBlurCard(SettingCard):
     def _update_value_label(self, value):
         """更新数值标签"""
         if value == 0:
-            self.valueLabel.setText(get_text("blur_disabled", "Opx"))
+            self.valueLabel.setText(get_text("blur_disabled", "0px"))
         else:
             self.valueLabel.setText(f"{value}px")
 
