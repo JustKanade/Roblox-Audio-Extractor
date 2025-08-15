@@ -2821,39 +2821,7 @@ def get_translations():
                 ENGLISH: "Video Processing",
                 CHINESE: "视频处理"
             },
-            # 数据库相关提示
-            "database_integrity_check_failed": {
-                ENGLISH: "Database integrity check failed",
-                CHINESE: "数据库完整性检查失败"
-            },
-            "database_corrupted_detected": {
-                ENGLISH: "Detected database corruption or missing required tables",
-                CHINESE: "检测到数据库损坏或缺少必要的表结构"
-            },
-            "database_fallback_to_temp": {
-                ENGLISH: "Automatically switched to temporary directory scan mode",
-                CHINESE: "已自动回退到临时目录扫描模式"
-            },
-            "temp_directory_scan_mode": {
-                ENGLISH: "Using temporary directory scan mode",
-                CHINESE: "正在使用临时目录扫描模式"
-            },
-            "database_fallback_explanation": {
-                ENGLISH: "System switched to backup scan method due to original database unavailability",
-                CHINESE: "由于原始数据库不可用，系统已切换到备用扫描方法"
-            },
-            "cache_scan_using_fallback": {
-                ENGLISH: "Continuing extraction using fallback scan method",
-                CHINESE: "正在使用回退扫描方法继续提取操作"
-            },
-            "database_fallback_warning": {
-                ENGLISH: "⚠ Database corrupted or inaccessible - automatically switched to backup cache directory",
-                CHINESE: "⚠ 数据库损坏或无法访问 - 已自动切换至备用缓存目录"
-            },
-            "database_fallback_details": {
-                ENGLISH: "Original path: {0} → Backup path: {1}",
-                CHINESE: "原始路径: {0} → 备用路径: {1}"
-            },
+
             
             # 视频格式转换相关
             "video_format_conversion": {

@@ -145,54 +145,11 @@ class RobloxCacheScanner:
         else:
             logger.debug(f"缓存路径未变化，保持现有设置: {path}")
     
-    def _precheck_database_health(self) -> bool:
-        """
-        预检查数据库健康状态 - 在开始扫描前进行检查
-        模拟BloxDump的预检查机制
-        
-        Returns:
-            bool: 数据库是否健康可用
-        """
-        if not self.target_is_database:
-            return True
-            
-        if not os.path.isfile(self.target_path):
-            logger.warning(f"数据库文件不存在: {self.target_path}")
-            return False
-            
-        try:
-            # 尝试快速连接测试
-            with sqlite3.connect(self.target_path, timeout=5.0) as conn:
-                # 检查数据库完整性
-                if not self._validate_database_integrity(conn):
-                    logger.warning("数据库完整性检查失败，缺少必要的表结构")
-                    return False
-                    
-                # 尝试快速查询测试
-                cursor = conn.cursor()
-                cursor.execute("SELECT COUNT(*) FROM files LIMIT 1")
-                cursor.fetchone()
-                
-                logger.debug("数据库预检查通过")
-                return True
-                
-        except sqlite3.DatabaseError as e:
-            logger.warning(f"数据库损坏检测: {e}")
-            return False
-        except sqlite3.OperationalError as e:
-            if "0x87AF03F3" in str(e) or "database is locked" in str(e).lower():
-                logger.warning(f"数据库被锁定或无访问权限: {e}")
-            else:
-                logger.warning(f"数据库操作失败: {e}")
-            return False
-        except Exception as e:
-            logger.warning(f"数据库预检查失败: {e}")
-            return False
+
     
     def scan_cache(self, callback: Optional[Callable[[CacheItem], None]] = None) -> List[CacheItem]:
         """
         扫描缓存并返回新发现的项目
-        增强版本 - 添加了数据库预检查机制
         
         Args:
             callback: 可选的回调函数，每发现一个新项目时调用
@@ -208,16 +165,6 @@ class RobloxCacheScanner:
                 logger.warning("目标缓存路径无效或不存在")
                 return new_items
             
-            # 如果是数据库模式，进行预健康检查
-            if self.target_is_database:
-                if not self._precheck_database_health():
-                    logger.info("数据库预检查失败，自动切换到临时目录模式")
-                    self._fallback_to_temp_directory()
-                    # 切换后重新验证路径
-                    if not self._validate_target_path():
-                        logger.error("回滚到临时目录后路径仍然无效")
-                        return new_items
-                
             # 根据当前模式进行扫描
             if self.target_is_database:
                 new_items = self._scan_database(callback)
@@ -324,17 +271,8 @@ class RobloxCacheScanner:
             self.db_folder = ""
             self._has_fallback_warned = True
             
-            # 关键修复：清除已知项目缓存，避免数据库扫描的缓存影响文件系统扫描
-            with self._lock:
-                self.known_items.clear()
-            
             logger.warning(f"数据库损坏或无法访问，已自动回退到临时目录模式")
             logger.info(f"原始路径: {original_path} -> 回退路径: {fallback_path}")
-            logger.debug("已清除缓存项目记录，重新开始扫描")
-            
-            # 向UI发送警告通知
-            self.send_log("database_fallback_warning", "warning")
-            self.send_log("database_fallback_details", "info", original_path, fallback_path)
             
             # 如果原本不是数据库模式，额外说明
             if not original_is_db:
@@ -350,17 +288,8 @@ class RobloxCacheScanner:
                     self.db_folder = ""
                     self._has_fallback_warned = True
                     
-                    # 同样清除缓存
-                    with self._lock:
-                        self.known_items.clear()
-                    
                     logger.warning(f"无法找到有效的临时目录，使用默认备用路径: {backup_path}")
                     logger.info("注意: 此路径可能不存在文件，需要运行Roblox后重新尝试")
-                    logger.debug("已清除缓存项目记录")
-                    
-                    # 向UI发送警告通知
-                    self.send_log("database_fallback_warning", "warning")
-                    self.send_log("database_fallback_details", "info", original_path, backup_path)
     
     def _scan_database(self, callback: Optional[Callable[[CacheItem], None]] = None) -> List[CacheItem]:
         """
@@ -376,11 +305,7 @@ class RobloxCacheScanner:
         
         try:
             with sqlite3.connect(self.target_path, timeout=10.0) as conn:
-                # 再次检测数据库完整性（双重保险）
-                if not self._validate_database_integrity(conn):
-                    logger.error("数据库损坏：缺少必要的 'files' 表，回退到临时目录扫描")
-                    self._fallback_to_temp_directory()
-                    return self._scan_file_system(callback)
+
                 
                 cursor = conn.cursor()
                 cursor.execute("SELECT id, content FROM files")
@@ -394,11 +319,7 @@ class RobloxCacheScanner:
                             else:
                                 hash_id = str(row[0]).lower()
                             
-                            # 检查是否已知
-                            with self._lock:
-                                if hash_id in self.known_items:
-                                    continue
-                                self.known_items.add(hash_id)
+
                             
                             cache_item = None
                             
@@ -438,15 +359,9 @@ class RobloxCacheScanner:
                         
         except sqlite3.Error as e:
             logger.error(f"SQLite数据库访问失败: {e}")
-            logger.info("数据库访问失败，自动切换到临时目录扫描模式")
-            self._fallback_to_temp_directory()
-            return self._scan_file_system(callback)
                 
         except Exception as e:
             logger.error(f"数据库扫描出错: {e}")
-            logger.info("数据库扫描失败，自动尝试回退到文件系统模式")
-            self._fallback_to_temp_directory()
-            return self._scan_file_system(callback)
             
         return new_items
     
@@ -474,11 +389,7 @@ class RobloxCacheScanner:
                 if not os.path.isfile(file_path):
                     continue
                 
-                # 检查是否已知
-                with self._lock:
-                    if file_name in self.known_items:
-                        continue
-                    self.known_items.add(file_name)
+
                 
                 cache_item = CacheItem(
                     path=file_path,
@@ -518,7 +429,6 @@ class RobloxCacheScanner:
             "target_path": self.target_path,
             "target_is_database": self.target_is_database,
             "db_folder": self.db_folder,
-            "known_items_count": self.get_known_items_count(),
             "path_exists": self._validate_target_path()
         }
 
@@ -544,15 +454,4 @@ def scan_roblox_cache(callback: Optional[Callable[[CacheItem], None]] = None) ->
     """
     return get_scanner().scan_cache(callback)
 
-def clear_global_scanner_cache():
-    """清理全局扫描器缓存状态"""
-    global _scanner_instance
-    # 如果实例不存在，创建一个以确保后续操作有效
-    if _scanner_instance is None:
-        _scanner_instance = RobloxCacheScanner()
-        logger.info(get_text("scanner_instance_created", "创建全局缓存扫描器实例以进行清理"))
-    
-    _scanner_instance.clear_known_items()
-    # 强制重置回退警告标志，确保下次扫描时能正确处理路径回退
-    _scanner_instance._has_fallback_warned = False
-    logger.info(get_text("global_cache_scanner_cleared", "已清理全局缓存扫描器状态并强制重置回退标志")) 
+ 

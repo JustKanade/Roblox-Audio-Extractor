@@ -655,7 +655,7 @@ class RobloxVideoExtractor:
                 try:
                     # 解析缓存内容
                     if item.cache_type == CacheType.DATABASE:
-                        parsed = parse_cache_data(item.content)
+                        parsed = parse_cache_data(item.data)
                     else:
                         parsed = parse_cache_file(item.path)
                     

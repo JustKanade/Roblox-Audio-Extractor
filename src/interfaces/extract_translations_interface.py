@@ -176,17 +176,4 @@ class ExtractTranslationsInterface(BaseExtractInterface):
             self.config_manager.set("translation_processing_enabled", self.convert_card.isChecked())
             self.config_manager.save_config()
 
-    def clearCacheScanner(self):
-        """清理翻译提取器的缓存扫描器状态"""
-        try:
-            # 清理全局缓存扫描器状态
-            from src.extractors.cache_scanner import clear_global_scanner_cache
-            clear_global_scanner_cache()
-            
-            # 记录清理操作
-            if hasattr(self, 'extractLogHandler') and self.extractLogHandler:
-                self.extractLogHandler.info(self.get_text("translation_cache_scanner_cleared", "已清理翻译缓存扫描器状态"))
-        except Exception as e:
-            # 避免清理失败影响其他操作
-            if hasattr(self, 'extractLogHandler') and self.extractLogHandler:
-                self.extractLogHandler.warning(self.get_text("cache_scanner_clear_error", "清理{}缓存扫描器状态时出错: {}").format(self.get_text("translation", "翻译"), e)) 
+ 

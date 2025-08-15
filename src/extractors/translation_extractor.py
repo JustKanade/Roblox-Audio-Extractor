@@ -118,8 +118,14 @@ def _process_cache_item_worker(cache_item: CacheItem, config: 'TranslationProces
         if config.history_file and os.path.exists(config.history_file):
             download_history = ExtractedHistory(config.history_file)
         
-        # 解析缓存文件
-        parsed_cache = rbxh_parser.parse_cache_file(cache_item.path)
+        # 解析缓存内容
+        if cache_item.data:
+            # 直接从数据库获取的内容
+            parsed_cache = rbxh_parser.parse_cache_data(cache_item.data)
+        else:
+            # 从文件读取的内容
+            parsed_cache = rbxh_parser.parse_cache_file(cache_item.path)
+        
         if not parsed_cache.success:
             return result
         
@@ -727,8 +733,14 @@ class RobloxTranslationExtractor:
     def _process_single_cache_item(self, cache_item: CacheItem):
         """处理单个缓存项目"""
         try:
-            # 解析缓存文件
-            parsed_cache = self.rbxh_parser.parse_cache_file(cache_item.path)
+            # 解析缓存内容
+            if cache_item.data:
+                # 直接从数据库获取的内容
+                parsed_cache = self.rbxh_parser.parse_cache_data(cache_item.data)
+            else:
+                # 从文件读取的内容
+                parsed_cache = self.rbxh_parser.parse_cache_file(cache_item.path)
+            
             if not parsed_cache.success:
                 return
             

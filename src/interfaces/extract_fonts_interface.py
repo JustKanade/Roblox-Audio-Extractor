@@ -153,17 +153,4 @@ class ExtractFontsInterface(BaseExtractInterface):
             method = method_map[self.classification_combo.currentIndex()]
             self.config_manager.set("font_classification_method", method)
 
-    def clearCacheScanner(self):
-        """清理字体提取器的缓存扫描器状态"""
-        try:
-            # 清理全局缓存扫描器状态
-            from src.extractors.cache_scanner import clear_global_scanner_cache
-            clear_global_scanner_cache()
-            
-            # 记录清理操作
-            if hasattr(self, 'extractLogHandler') and self.extractLogHandler:
-                self.extractLogHandler.info(self.get_text("font_cache_scanner_cleared", "已清理字体缓存扫描器状态"))
-        except Exception as e:
-            # 避免清理失败影响其他操作
-            if hasattr(self, 'extractLogHandler') and self.extractLogHandler:
-                self.extractLogHandler.warning(self.get_text("cache_scanner_clear_error", "清理{}缓存扫描器状态时出错: {}").format(self.get_text("font", "字体"), e)) 
+ 

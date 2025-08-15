@@ -647,17 +647,4 @@ class ExtractVideosInterface(BaseExtractInterface):
         if self.download_history:
             super().updateHistorySize()
 
-    def clearCacheScanner(self):
-        """清理视频提取器的缓存扫描器状态"""
-        try:
-            # 清理全局缓存扫描器状态
-            from src.extractors.cache_scanner import clear_global_scanner_cache
-            clear_global_scanner_cache()
-            
-            # 记录清理操作
-            if hasattr(self, 'extractLogHandler') and self.extractLogHandler:
-                self.extractLogHandler.info(self.get_text("video_cache_scanner_cleared", "已清理视频缓存扫描器状态"))
-        except Exception as e:
-            # 避免清理失败影响其他操作
-            if hasattr(self, 'extractLogHandler') and self.extractLogHandler:
-                self.extractLogHandler.warning(self.get_text("cache_scanner_clear_error", "清理{}缓存扫描器状态时出错: {}").format(self.get_text("videos", "视频"), e)) 
+ 
