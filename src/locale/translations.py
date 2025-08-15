@@ -149,24 +149,24 @@ def get_translations():
                 CHINESE: "欢迎使用 Roblox Audio Extractor！"
             },
             "extract_audio": {
-                ENGLISH: "Extract Audio",
-                CHINESE: "提取音频"
+                ENGLISH: "Audio",
+                CHINESE: "音频"
             },
             "extract": {
                 ENGLISH: "Extract",
                 CHINESE: "提取"
             },
             "extract_images": {
-                ENGLISH: "Extract Images",
-                CHINESE: "提取图像"
+                ENGLISH: "Images",
+                CHINESE: "图像"
             },
             "extract_textures": {
-                ENGLISH: "Extract Textures",
-                CHINESE: "提取纹理"
+                ENGLISH: "Textures",
+                CHINESE: "纹理"
             },
             "extract_fonts": {
-                ENGLISH: "Extract Fonts",
-                CHINESE: "提取字体"
+                ENGLISH: "Fonts",
+                CHINESE: "字体"
             },
             "view_history": {
                 ENGLISH: "History",
@@ -2287,24 +2287,24 @@ def get_translations():
             },
             # Translation提取相关翻译
             "extract_translations": {
-                ENGLISH: "Extract Translations Files",
-                CHINESE: "提取翻译文件"
+                ENGLISH: "Translations",
+                CHINESE: "翻译文件"
             },
             "extract_translations_menu_item": {
                 ENGLISH: "Extract Translations Files",
                 CHINESE: "提取翻译文件"
             },
             "extract_videos_menu_item": {
-                ENGLISH: "Extract Videos",
-                CHINESE: "提取视频"
+                ENGLISH: "Videos",
+                CHINESE: "视频"
             },
             "extract_translation_title": {
                 ENGLISH: "Extract Translations Files",
                 CHINESE: "提取翻译文件"
             },
             "extract_translations_title": {
-                ENGLISH: "Extract Translation Files",
-                CHINESE: "提取翻译文件"
+                ENGLISH: "Translation Files",
+                CHINESE: "翻译文件"
             },
             "extract_translations_description": {
                 ENGLISH: "Extract translation files from Roblox cache for localization analysis",

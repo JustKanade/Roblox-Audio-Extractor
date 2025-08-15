@@ -899,7 +899,7 @@ class SettingsInterface(QWidget, InterfaceThemeMixin):
                     # 如果强制展开，确保侧边栏是展开状态
                     self._parent_window.navigationInterface.expand(useAni=False)
                     # 设置窗口最小宽度为1025
-                    self._parent_window.setMinimumWidth(1025)
+                    self._parent_window.setMinimumWidth(900)
                 else:
                     # 如果禁用强制展开，恢复原来的最小宽度
                     self._parent_window.setMinimumWidth(750)  # 恢复到原始最小宽度

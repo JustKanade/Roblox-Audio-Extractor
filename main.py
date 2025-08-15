@@ -170,7 +170,7 @@ class MainWindow(FluentWindow):
         """初始化窗口设置"""
         # 窗口标题和尺寸设置
         self.setWindowTitle(lang.get("title"))
-        self.resize(1020, 650)
+        self.resize(750, 700)
 
         # 最小尺寸设置
         self.setMinimumSize(750, 380)
@@ -449,6 +449,9 @@ class MainWindow(FluentWindow):
         acrylic_enabled = self.config_manager.cfg.get(self.config_manager.cfg.acrylicEnabled)
         self.navigationInterface.setAcrylicEnabled(acrylic_enabled)
         
+        # 设置侧边栏固定展开宽度
+        self.navigationInterface.setExpandWidth(180)
+        
         # 应用侧边栏展开设置
         sidebar_force_expand = self.config_manager.cfg.get(self.config_manager.cfg.sidebarForceExpand)
         self.navigationInterface.setCollapsible(not sidebar_force_expand)
@@ -456,7 +459,7 @@ class MainWindow(FluentWindow):
             # 如果强制展开，确保侧边栏是展开状态
             self.navigationInterface.expand(useAni=False)
             # 设置窗口最小宽度为1025，防止窗口收缩过小
-            self.setMinimumWidth(1025)
+            self.setMinimumWidth(900)
 
         
         self.switchTo(self.homeInterface)
