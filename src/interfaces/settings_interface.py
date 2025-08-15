@@ -1167,9 +1167,9 @@ class SettingsInterface(QWidget, InterfaceThemeMixin):
             self._update_background_settings()
             if hasattr(self, 'settingsLogHandler'):
                 if blur_radius == 0:
-                    self.settingsLogHandler.info(self.get_text("background_blur_disabled", "背景模糊已关闭"))
+                    self.settingsLogHandler.info(self.get_text("background_blur_disabled", ""))
                 else:
-                    self.settingsLogHandler.info(self.get_text("background_blur_changed", "背景模糊半径已更改为：{}px").format(blur_radius))
+                    self.settingsLogHandler.info(self.get_text("background_blur_changed", "：{}px").format(blur_radius))
     
 
     
