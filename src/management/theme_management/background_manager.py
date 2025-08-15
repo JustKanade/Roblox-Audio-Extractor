@@ -11,7 +11,24 @@ from PyQt5.QtCore import QObject, pyqtSignal
 from PyQt5.QtGui import QPixmap, QPainter, QBrush
 from PyQt5.QtWidgets import QWidget, QGraphicsBlurEffect
 
+# 导入语言管理器
+try:
+    from src.locale import lang
+except ImportError:
+    lang = None
+
 logger = logging.getLogger(__name__)
+
+def get_text(key, default="", *args):
+    """获取翻译文本"""
+    if lang and hasattr(lang, 'get'):
+        text = lang.get(key, default)
+        if args:
+            return text.format(*args)
+        return text
+    if args and default:
+        return default.format(*args)
+    return default
 
 
 class BackgroundManager(QObject):
@@ -23,6 +40,8 @@ class BackgroundManager(QObject):
         super().__init__()
         self.config_manager = config_manager
         self._background_style_cache = {}
+        self._blurred_pixmap_cache = {}  # 缓存模糊后的图片
+        self._current_blur_key = None  # 当前模糊图片的缓存键
         
     def validate_image_path(self, image_path: str) -> bool:
         """验证图片路径是否有效"""
@@ -38,67 +57,16 @@ class BackgroundManager(QObject):
         return path.suffix.lower() in supported_formats
     
     def get_background_style(self, theme_mode="light") -> str:
-        """生成组件透明度样式表（背景图片通过paintEvent实现）
+        """生成背景样式表（背景图片通过paintEvent实现）
         
         Args:
             theme_mode: 主题模式 ("light" 或 "dark")
             
         Returns:
-            str: 组件透明度相关的CSS样式
+            str: 空字符串（样式通过paintEvent实现）
         """
-        if not self.config_manager:
-            return ""
-            
-        try:
-            # 检查缓存
-            cache_key = f"{theme_mode}_{self._get_background_hash()}"
-            if cache_key in self._background_style_cache:
-                return self._background_style_cache[cache_key]
-            
-            style_parts = []
-            
-            # 获取配置
-            bg_enabled = self.config_manager.get("backgroundImageEnabled", False)
-            component_opacity = self.config_manager.get("componentOpacity", 0.9)
-            
-            # 调整组件透明度
-            if bg_enabled:
-                # 当启用背景图片时，调整组件透明度
-                component_alpha_value = component_opacity * 0.5  # 背景图片时降低组件不透明度
-                if theme_mode == "light":
-                    component_bg_color = f"rgba(255, 255, 255, {component_alpha_value:.3f})"
-                else:
-                    component_bg_color = f"rgba(32, 32, 32, {component_alpha_value:.3f})"
-                    
-                style_parts.append(f"""
-                    StackedWidget {{
-                        background-color: {component_bg_color};
-                    }}
-                """)
-            else:
-                # 未启用背景图片时使用默认样式
-                if theme_mode == "light":
-                    default_bg = "rgba(255, 255, 255, 0.5)"
-                else:
-                    default_bg = "rgba(255, 255, 255, 0.0314)"  # 参考PyQt-Fluent-Widgets的深色主题
-                    
-                style_parts.append(f"""
-                    StackedWidget {{
-                        background-color: {default_bg};
-                    }}
-                """)
-            
-            final_style = "\n".join(style_parts)
-            
-            # 缓存样式
-            self._background_style_cache[cache_key] = final_style
-            logger.debug(f"生成组件样式: enabled={bg_enabled}, component_opacity={component_opacity}")
-            
-            return final_style
-            
-        except Exception as e:
-            logger.error(f"生成组件样式失败: {e}")
-            return ""
+        # 背景图片现在通过paintEvent实现，不需要CSS样式
+        return ""
     
     def _get_background_hash(self) -> str:
         """获取当前背景设置的哈希值，用于缓存"""
@@ -108,14 +76,15 @@ class BackgroundManager(QObject):
         bg_enabled = self.config_manager.get("backgroundImageEnabled", False)
         bg_path = self.config_manager.get("backgroundImagePath", "")
         bg_opacity = self.config_manager.get("backgroundOpacity", 0.8)
-        component_opacity = self.config_manager.get("componentOpacity", 0.9)
         
-        return f"{bg_enabled}_{bg_path}_{bg_opacity}_{component_opacity}"
+        return f"{bg_enabled}_{bg_path}_{bg_opacity}"
     
     def clear_cache(self):
-        """清除背景样式缓存"""
+        """清除背景样式缓存和模糊图片缓存"""
         self._background_style_cache.clear()
-        logger.debug("背景样式缓存已清除")
+        self._blurred_pixmap_cache.clear()
+        self._current_blur_key = None
+        logger.debug(get_text("background_cache_cleared", "背景样式缓存和模糊图片缓存已清除"))
     
     def apply_blur_effect(self, widget: QWidget, blur_radius: int = 10):
         """为指定组件应用模糊效果（暂时不实现，因为会影响性能）
@@ -127,10 +96,10 @@ class BackgroundManager(QObject):
         try:
             # 暂时不实现模糊效果，因为QGraphicsBlurEffect会严重影响性能
             # 如果需要模糊效果，建议使用预处理的模糊背景图片
-            logger.debug(f"模糊效果设置: radius={blur_radius} (暂未实现)")
+            logger.debug(get_text("blur_effect_not_implemented", "模糊效果设置: radius={} (暂未实现)", blur_radius))
             
         except Exception as e:
-            logger.error(f"应用模糊效果失败: {e}")
+            logger.error(get_text("apply_blur_failed", "应用模糊效果失败: {}", str(e)))
             
     def get_background_image_path(self) -> str:
         """获取当前背景图片路径"""
@@ -149,12 +118,126 @@ class BackgroundManager(QObject):
         if not self.config_manager:
             return 0.8
         return self.config_manager.get("backgroundOpacity", 0.8)
+        
+    def get_background_blur_radius(self) -> int:
+        """获取背景模糊半径"""
+        if not self.config_manager:
+            return 0
+        return self.config_manager.get("backgroundBlurRadius", 0)
+        
+    def get_background_pixmap(self, window_size):
+        """获取处理后的背景图片（包含缓存的模糊效果）"""
+        try:
+            if not self.is_background_enabled():
+                return None
+                
+            bg_path = self.get_background_image_path()
+            if not bg_path or not self.validate_image_path(bg_path):
+                return None
+                
+            blur_radius = self.get_background_blur_radius()
+            
+            # 生成缓存键
+            cache_key = f"{bg_path}_{window_size.width()}_{window_size.height()}_{blur_radius}"
+            
+            # 检查缓存
+            if cache_key in self._blurred_pixmap_cache:
+                return self._blurred_pixmap_cache[cache_key]
+                
+            # 加载原始图片
+            from PyQt5.QtGui import QPixmap
+            from PyQt5.QtCore import Qt
+            
+            pixmap = QPixmap(bg_path)
+            if pixmap.isNull():
+                return None
+                
+            # 缩放图片
+            scaled_pixmap = pixmap.scaled(
+                window_size, 
+                Qt.KeepAspectRatioByExpanding, 
+                Qt.SmoothTransformation
+            )
+            
+            # 如果需要模糊效果
+            if blur_radius > 0:
+                scaled_pixmap = self._apply_efficient_blur(scaled_pixmap, blur_radius)
+            
+            # 缓存处理后的图片
+            self._blurred_pixmap_cache[cache_key] = scaled_pixmap
+            self._current_blur_key = cache_key
+            
+            # 清理旧缓存（保留最近的5个）
+            if len(self._blurred_pixmap_cache) > 5:
+                oldest_key = next(iter(self._blurred_pixmap_cache))
+                del self._blurred_pixmap_cache[oldest_key]
+                
+            return scaled_pixmap
+            
+        except Exception as e:
+            logger.error(get_text("get_background_pixmap_failed", "获取背景图片失败: {}", str(e)))
+            return None
+            
+    def _apply_efficient_blur(self, pixmap, blur_radius):
+        """应用高效的模糊效果（简化版高斯模糊）"""
+        try:
+            from PyQt5.QtGui import QPainter, QPixmap
+            from PyQt5.QtCore import Qt
+            
+            # 为了性能，使用简化的模糊算法
+            # 对于较大的模糊半径，先缩小图片再放大以提高性能
+            original_size = pixmap.size()
+            
+            if blur_radius > 20:
+                # 高模糊半径时，先缩小到1/4处理
+                small_size = original_size * 0.25
+                temp_pixmap = pixmap.scaled(small_size, Qt.KeepAspectRatio, Qt.SmoothTransformation)
+                blurred = self._simple_blur(temp_pixmap, blur_radius // 4)
+                return blurred.scaled(original_size, Qt.KeepAspectRatio, Qt.SmoothTransformation)
+            else:
+                return self._simple_blur(pixmap, blur_radius)
+                
+        except Exception as e:
+            logger.error(get_text("apply_blur_failed", "应用模糊效果失败: {}", str(e)))
+            return pixmap
+            
+    def _simple_blur(self, pixmap, radius):
+        """简单的模糊实现（避免使用QGraphicsBlurEffect）"""
+        try:
+            from PyQt5.QtGui import QPainter, QPixmap
+            from PyQt5.QtCore import Qt
+            
+            # 创建结果图片
+            result = QPixmap(pixmap.size())
+            result.fill(Qt.transparent)
+            
+            painter = QPainter(result)
+            painter.setRenderHint(QPainter.Antialiasing)
+            
+            # 使用多次绘制来模拟模糊效果（简化版）
+            opacity_step = 0.3 / max(1, radius // 3)  # 根据半径调整透明度
+            offset_step = max(1, radius // 5)  # 根据半径调整偏移步长
+            
+            for i in range(-radius//2, radius//2 + 1, offset_step):
+                for j in range(-radius//2, radius//2 + 1, offset_step):
+                    if i == 0 and j == 0:
+                        painter.setOpacity(1.0)  # 中心图像不透明
+                    else:
+                        painter.setOpacity(opacity_step)
+                    painter.drawPixmap(i, j, pixmap)
+                    
+            painter.end()
+            return result
+            
+        except Exception as e:
+            logger.error(get_text("simple_blur_failed", "简单模糊处理失败: {}", str(e)))
+            return pixmap
     
     def update_background(self):
         """更新背景设置，清除缓存并发送信号"""
         self.clear_cache()
         self.backgroundChanged.emit()
-        logger.info("背景设置已更新")
+        logger.info(get_text("background_settings_updated", "背景设置已更新"))
 
 
 # 全局背景管理器实例

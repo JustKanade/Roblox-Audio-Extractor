@@ -576,12 +576,16 @@ class MainWindow(FluentWindow):
             self.update()
             
             if hasattr(self, 'settingsInterface') and hasattr(self.settingsInterface, 'settingsLogHandler'):
-                self.settingsInterface.settingsLogHandler.info("背景设置已更新")
+                self.settingsInterface.settingsLogHandler.info(
+                    self.settingsInterface.get_text("background_settings_updated_log", "背景设置更新成功")
+                )
                 
         except Exception as e:
-            print(f"更新背景设置时出错: {e}")
+            self._print_error("update_background_settings_error", "更新背景设置时出错: {}", str(e))
             if hasattr(self, 'settingsInterface') and hasattr(self.settingsInterface, 'settingsLogHandler'):
-                self.settingsInterface.settingsLogHandler.error(f"更新背景设置失败: {e}")
+                self.settingsInterface.settingsLogHandler.error(
+                    self.settingsInterface.get_text("background_settings_update_failed", "更新背景设置失败：{}").format(str(e))
+                )
 
     def paintEvent(self, event):
         """重写paintEvent方法来绘制背景图片"""
@@ -589,42 +593,41 @@ class MainWindow(FluentWindow):
             # 首先调用父类的paintEvent
             super().paintEvent(event)
             
-            # 检查是否启用背景图片
-            bg_enabled = self.config_manager.get("backgroundImageEnabled", False) if self.config_manager else False
-            bg_path = self.config_manager.get("backgroundImagePath", "") if self.config_manager else ""
-            bg_opacity = self.config_manager.get("backgroundOpacity", 0.8) if self.config_manager else 0.8
-            
-            if bg_enabled and bg_path and self.background_manager.validate_image_path(bg_path):
-                from PyQt5.QtGui import QPainter, QPixmap
-                from PyQt5.QtCore import Qt
+            # 使用BackgroundManager获取处理后的背景图片（包含缓存）
+            if self.background_manager:
+                background_pixmap = self.background_manager.get_background_pixmap(self.size())
                 
-                painter = QPainter(self)
-                painter.setRenderHint(QPainter.Antialiasing)
-                
-                # 加载背景图片
-                pixmap = QPixmap(bg_path)
-                if not pixmap.isNull():
-                    # 缩放图片以适应窗口大小，保持比例
-                    scaled_pixmap = pixmap.scaled(
-                        self.size(), 
-                        Qt.KeepAspectRatioByExpanding, 
-                        Qt.SmoothTransformation
-                    )
+                if background_pixmap is not None:
+                    from PyQt5.QtGui import QPainter
+                    
+                    painter = QPainter(self)
+                    painter.setRenderHint(QPainter.Antialiasing)
+                    
+                    # 获取透明度设置
+                    bg_opacity = self.background_manager.get_background_opacity()
                     
                     # 计算居中位置
-                    x = (self.width() - scaled_pixmap.width()) // 2
-                    y = (self.height() - scaled_pixmap.height()) // 2
+                    x = (self.width() - background_pixmap.width()) // 2
+                    y = (self.height() - background_pixmap.height()) // 2
                     
-                    # 设置透明度
+                    # 设置透明度并绘制背景图片
                     painter.setOpacity(bg_opacity)
-                    
-                    # 绘制背景图片
-                    painter.drawPixmap(x, y, scaled_pixmap)
-                    
-                painter.end()
+                    painter.drawPixmap(x, y, background_pixmap)
+                    painter.end()
                 
         except Exception as e:
-            print(f"绘制背景图片时出错: {e}")
+            self._print_error("draw_background_error", "绘制背景图片时出错: {}", str(e))
+    
+    def _print_error(self, key, default, *args):
+        """打印带翻译的错误信息"""
+        try:
+            from src.locale import lang
+            if lang:
+                print(lang.get(key, default).format(*args))
+            else:
+                print(default.format(*args))
+        except:
+            print(default.format(*args))
 
     def saveThreadsConfig(self, value):
         """保存线程数配置"""
@@ -1431,7 +1434,7 @@ class MainWindow(FluentWindow):
         try:
             # 检查系统是否支持系统托盘
             if not QSystemTrayIcon.isSystemTrayAvailable():
-                print("系统托盘不可用")
+                self._print_error("system_tray_unavailable", "系统托盘不可用")
                 return
             
             # 创建系统托盘图标
@@ -1463,7 +1466,7 @@ class MainWindow(FluentWindow):
             self.tray_icon.show()
             
         except Exception as e:
-            print(f"初始化系统托盘失败: {e}")
+            self._print_error("init_tray_failed", "初始化系统托盘失败: {}", str(e))
 
     def createTrayMenu(self):
         """创建托盘右键菜单"""

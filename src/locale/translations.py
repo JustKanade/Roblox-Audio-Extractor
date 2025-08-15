@@ -2914,14 +2914,7 @@ def get_translations():
                 ENGLISH: "Adjust the blur radius of the background image",
                 CHINESE: "调整背景图片的模糊半径"
             },
-            "component_opacity_title": {
-                ENGLISH: "Component Opacity",
-                CHINESE: "组件透明度"
-            },
-            "component_opacity_description": {
-                ENGLISH: "Adjust the opacity of interface components",
-                CHINESE: "调整界面组件的透明度"
-            },
+
             "enable_background_image": {
                 ENGLISH: "Enable Background Image",
                 CHINESE: "启用背景图片"
@@ -2961,6 +2954,144 @@ def get_translations():
             "background_updated": {
                 ENGLISH: "Background settings updated",
                 CHINESE: "背景设置已更新"
+            },
+            
+            # 背景透明度相关翻译
+            "background_opacity_changed": {
+                ENGLISH: "Background opacity changed to: {}%",
+                CHINESE: "：{}%"
+            },
+            "background_enabled": {
+                ENGLISH: "Background image enabled",
+                CHINESE: "背景图片已启用"
+            },
+            "background_disabled": {
+                ENGLISH: "Background image disabled",
+                CHINESE: "背景图片已禁用"
+            },
+            "background_image_changed": {
+                ENGLISH: "Background image changed: {}",
+                CHINESE: "背景图片已更改：{}"
+            },
+            "background_image_cleared_log": {
+                ENGLISH: "Background image cleared",
+                CHINESE: "背景图片已清除"
+            },
+            "background_settings_updated_log": {
+                ENGLISH: "Background settings updated successfully",
+                CHINESE: "背景设置更新成功"
+            },
+            "background_settings_update_failed": {
+                ENGLISH: "Failed to update background settings: {}",
+                CHINESE: "更新背景设置失败：{}"
+            },
+            
+            # 背景功能禁用提示
+            "background_disabled_tooltip": {
+                ENGLISH: "Please enable background image function first",
+                CHINESE: "请先启用背景图片功能"
+            },
+            
+            # 背景模糊相关翻译
+            "blur_disabled": {
+                ENGLISH: "Off",
+                CHINESE: "关闭"
+            },
+            "background_blur_changed": {
+                ENGLISH: "Background blur radius changed to: {}",
+                CHINESE: "背景模糊半径已更改为：{}"
+            },
+            "background_blur_disabled": {
+                ENGLISH: "Background blur disabled",
+                CHINESE: "背景模糊已关闭"
+            },
+            
+            # 背景管理器日志翻译
+            "background_cache_cleared": {
+                ENGLISH: "Background cache and blur cache cleared",
+                CHINESE: "背景样式缓存和模糊图片缓存已清除"
+            },
+            "blur_effect_not_implemented": {
+                ENGLISH: "Blur effect setting: radius={} (not implemented yet)",
+                CHINESE: "模糊效果设置: radius={} (暂未实现)"
+            },
+            "apply_blur_failed": {
+                ENGLISH: "Failed to apply blur effect: {}",
+                CHINESE: "应用模糊效果失败: {}"
+            },
+            "get_background_pixmap_failed": {
+                ENGLISH: "Failed to get background pixmap: {}",
+                CHINESE: "获取背景图片失败: {}"
+            },
+            "simple_blur_failed": {
+                ENGLISH: "Simple blur processing failed: {}",
+                CHINESE: "简单模糊处理失败: {}"
+            },
+            "background_settings_updated": {
+                ENGLISH: "Background settings updated",
+                CHINESE: "背景设置已更新"
+            },
+            
+            # main.py中的错误信息翻译
+            "draw_background_error": {
+                ENGLISH: "Error drawing background image: {}",
+                CHINESE: "绘制背景图片时出错: {}"
+            },
+            "update_background_settings_error": {
+                ENGLISH: "Error updating background settings: {}",
+                CHINESE: "更新背景设置时出错: {}"
+            },
+            "system_tray_unavailable": {
+                ENGLISH: "System tray unavailable",
+                CHINESE: "系统托盘不可用"
+            },
+            "set_tray_icon_failed": {
+                ENGLISH: "Failed to set tray icon: {}",
+                CHINESE: "设置托盘图标失败: {}"
+            },
+            "init_tray_failed": {
+                ENGLISH: "Failed to initialize system tray: {}",
+                CHINESE: "初始化系统托盘失败: {}"
+            },
+            "create_tray_menu_failed": {
+                ENGLISH: "Failed to create tray menu: {}",
+                CHINESE: "创建托盘菜单失败: {}"
+            },
+            "tray_activate_failed": {
+                ENGLISH: "Tray icon activation event handling failed: {}",
+                CHINESE: "托盘图标激活事件处理失败: {}"
+            },
+            "show_main_window_failed": {
+                ENGLISH: "Failed to show main window: {}",
+                CHINESE: "显示主窗口失败: {}"
+            },
+            "exit_app_failed": {
+                ENGLISH: "Failed to exit application: {}",
+                CHINESE: "退出应用程序失败: {}"
+            },
+            "close_event_failed": {
+                ENGLISH: "Failed to handle window close event: {}",
+                CHINESE: "处理窗口关闭事件失败: {}"
+            },
+            "show_close_dialog_failed": {
+                ENGLISH: "Failed to show close behavior dialog: {}",
+                CHINESE: "显示关闭行为对话框失败: {}"
+            },
+            "handle_close_choice_failed": {
+                ENGLISH: "Failed to handle close behavior choice: {}",
+                CHINESE: "处理关闭行为选择失败: {}"
+            },
+            "handle_cancel_failed": {
+                ENGLISH: "Failed to handle cancel operation: {}",
+                CHINESE: "处理取消操作失败: {}"
+            },
+            "set_app_icon_failed": {
+                ENGLISH: "Unable to set application icon: {}",
+                CHINESE: "无法设置应用图标: {}"
+            },
+            "show_splash_failed": {
+                ENGLISH: "Unable to show splash screen: {}",
+                CHINESE: "无法显示启动画面: {}"
             }
 
         }

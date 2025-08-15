@@ -23,6 +23,7 @@ import sys
 import subprocess
 import multiprocessing
 from functools import partial
+from pathlib import Path
 
 from src.utils.log_utils import LogHandler
 from src.components.cards.recent_activity_card import RecentActivityCard
@@ -84,13 +85,12 @@ except ImportError:
 
 try:
     from src.components.cards.Settings.background_settings_card import (
-        BackgroundImageCard, BackgroundOpacityCard, BackgroundBlurCard, ComponentOpacityCard
+        BackgroundImageCard, BackgroundOpacityCard, BackgroundBlurCard
     )
 except ImportError:
     BackgroundImageCard = None
-    BackgroundOpacityCard = None 
+    BackgroundOpacityCard = None
     BackgroundBlurCard = None
-    ComponentOpacityCard = None
 
 
 
@@ -538,19 +538,44 @@ class SettingsInterface(QWidget, InterfaceThemeMixin):
             group.addSettingCard(background_opacity_card)
             self.backgroundOpacityCard = background_opacity_card
         
-        # 背景模糊半径
+        # 背景模糊
         if BackgroundBlurCard is not None:
             background_blur_card = BackgroundBlurCard(self.config_manager)
             background_blur_card.blurChanged.connect(self.onBackgroundBlurChanged)
             group.addSettingCard(background_blur_card)
             self.backgroundBlurCard = background_blur_card
+            
+        # 根据当前背景功能状态设置子卡片的初始可用性
+        background_enabled = self.config_manager.get("backgroundImageEnabled", False) if self.config_manager else False
+        self._updateBackgroundSubcardsState(background_enabled)
+    
+    def _updateBackgroundSubcardsState(self, enabled):
+        """更新背景设置子卡片的可用性状态"""
+        tooltip_text = self.get_text("background_disabled_tooltip", "请先启用背景图片功能")
         
-        # 组件透明度
-        if ComponentOpacityCard is not None:
-            component_opacity_card = ComponentOpacityCard(self.config_manager)
-            component_opacity_card.componentOpacityChanged.connect(self.onComponentOpacityChanged)
-            group.addSettingCard(component_opacity_card)
-            self.componentOpacityCard = component_opacity_card
+        # 更新背景图片选择卡片状态
+        if hasattr(self, 'backgroundImageCard'):
+            self.backgroundImageCard.setEnabled(enabled)
+            if not enabled:
+                self.backgroundImageCard.setToolTip(tooltip_text)
+            else:
+                self.backgroundImageCard.setToolTip("")
+        
+        # 更新背景透明度卡片状态
+        if hasattr(self, 'backgroundOpacityCard'):
+            self.backgroundOpacityCard.setEnabled(enabled)
+            if not enabled:
+                self.backgroundOpacityCard.setToolTip(tooltip_text)
+            else:
+                self.backgroundOpacityCard.setToolTip("")
+        
+        # 更新背景模糊卡片状态
+        if hasattr(self, 'backgroundBlurCard'):
+            self.backgroundBlurCard.setEnabled(enabled)
+            if not enabled:
+                self.backgroundBlurCard.setToolTip(tooltip_text)
+            else:
+                self.backgroundBlurCard.setToolTip("")
     
     def createPerformanceSettingsCards(self, group):
         """创建性能设置卡片"""
@@ -1104,9 +1129,14 @@ class SettingsInterface(QWidget, InterfaceThemeMixin):
         """背景图片启用状态改变事件"""
         if self.config_manager:
             self.config_manager.set("backgroundImageEnabled", isChecked)
+            # 更新子卡片的可用性状态
+            self._updateBackgroundSubcardsState(isChecked)
             self._update_background_settings()
             if hasattr(self, 'settingsLogHandler'):
-                self.settingsLogHandler.info(f"背景图片: {'启用' if isChecked else '禁用'}")
+                if isChecked:
+                    self.settingsLogHandler.info(self.get_text("background_enabled", "背景图片已启用"))
+                else:
+                    self.settingsLogHandler.info(self.get_text("background_disabled", "背景图片已禁用"))
     
     def onBackgroundImageChanged(self, imagePath):
         """背景图片改变事件"""
@@ -1115,9 +1145,11 @@ class SettingsInterface(QWidget, InterfaceThemeMixin):
             self._update_background_settings()
             if hasattr(self, 'settingsLogHandler'):
                 if imagePath:
-                    self.settingsLogHandler.info(f"背景图片已更改: {imagePath}")
+                    # 只显示文件名，不显示完整路径
+                    file_name = Path(imagePath).name if imagePath else ""
+                    self.settingsLogHandler.info(self.get_text("background_image_changed", "背景图片已更改：{}").format(file_name))
                 else:
-                    self.settingsLogHandler.info("背景图片已清除")
+                    self.settingsLogHandler.info(self.get_text("background_image_cleared_log", "背景图片已清除"))
     
     def onBackgroundOpacityChanged(self, opacity):
         """背景透明度改变事件"""
@@ -1125,23 +1157,21 @@ class SettingsInterface(QWidget, InterfaceThemeMixin):
             self.config_manager.set("backgroundOpacity", opacity)
             self._update_background_settings()
             if hasattr(self, 'settingsLogHandler'):
-                self.settingsLogHandler.info(f"背景透明度已更改: {int(opacity * 100)}%")
+                opacity_percent = int(opacity * 100)
+                self.settingsLogHandler.info(self.get_text("background_opacity_changed", "背景透明度已更改为：{}%").format(opacity_percent))
     
-    def onBackgroundBlurChanged(self, blurRadius):
+    def onBackgroundBlurChanged(self, blur_radius):
         """背景模糊半径改变事件"""
         if self.config_manager:
-            self.config_manager.set("backgroundBlurRadius", blurRadius)
+            self.config_manager.set("backgroundBlurRadius", blur_radius)
             self._update_background_settings()
             if hasattr(self, 'settingsLogHandler'):
-                self.settingsLogHandler.info(f"背景模糊半径已更改: {blurRadius}")
+                if blur_radius == 0:
+                    self.settingsLogHandler.info(self.get_text("background_blur_disabled", "背景模糊已关闭"))
+                else:
+                    self.settingsLogHandler.info(self.get_text("background_blur_changed", "背景模糊半径已更改为：{}px").format(blur_radius))
     
-    def onComponentOpacityChanged(self, opacity):
-        """组件透明度改变事件"""
-        if self.config_manager:
-            self.config_manager.set("componentOpacity", opacity)
-            self._update_background_settings()
-            if hasattr(self, 'settingsLogHandler'):
-                self.settingsLogHandler.info(f"组件透明度已更改: {int(opacity * 100)}%")
+
     
     def _update_background_settings(self):
         """更新背景设置"""
@@ -1158,7 +1188,7 @@ class SettingsInterface(QWidget, InterfaceThemeMixin):
                 
         except Exception as e:
             if hasattr(self, 'settingsLogHandler'):
-                self.settingsLogHandler.error(f"更新背景设置失败: {e}")
+                self.settingsLogHandler.error(self.get_text("background_settings_update_failed", "更新背景设置失败：{}").format(str(e)))
 
     def setModulesLang(self):
         """设置各个模块的语言变量"""

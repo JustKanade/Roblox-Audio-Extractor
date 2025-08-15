@@ -66,11 +66,8 @@ class AppConfig(QConfig):
     # 背景图片配置
     backgroundImageEnabled = ConfigItem("Background", "BackgroundImageEnabled", False, BoolValidator())
     backgroundImagePath = ConfigItem("Background", "BackgroundImagePath", "")
-    backgroundBlurRadius = RangeConfigItem("Background", "BackgroundBlurRadius", 10, RangeValidator(0, 100))
     backgroundOpacity = RangeConfigItem("Background", "BackgroundOpacity", 0.8, RangeValidator(0.0, 1.0))  # 0.0-1.0
-
-    # 组件透明度配置
-    componentOpacity = RangeConfigItem("Background", "ComponentOpacity", 0.9, RangeValidator(0.0, 1.0))  # 0.0-1.0
+    backgroundBlurRadius = RangeConfigItem("Background", "BackgroundBlurRadius", 0, RangeValidator(0, 50))  # 0-50像素
     
     # 路径配置
     lastDirectory = ConfigItem("Paths", "LastDirectory", "", FolderValidator())
@@ -402,9 +399,8 @@ class ConfigManager:
                 # 背景设置配置
                 "backgroundImageEnabled": self.cfg.backgroundImageEnabled,
                 "backgroundImagePath": self.cfg.backgroundImagePath,
-                "backgroundBlurRadius": self.cfg.backgroundBlurRadius,
                 "backgroundOpacity": self.cfg.backgroundOpacity,
-                "componentOpacity": self.cfg.componentOpacity,
+                "backgroundBlurRadius": self.cfg.backgroundBlurRadius,
             }
             
             if key in key_mapping:
@@ -502,9 +498,8 @@ class ConfigManager:
                 # 背景设置配置
                 "backgroundImageEnabled": self.cfg.backgroundImageEnabled,
                 "backgroundImagePath": self.cfg.backgroundImagePath,
-                "backgroundBlurRadius": self.cfg.backgroundBlurRadius,
                 "backgroundOpacity": self.cfg.backgroundOpacity,
-                "componentOpacity": self.cfg.componentOpacity,
+                "backgroundBlurRadius": self.cfg.backgroundBlurRadius,
             }
             
             if key in key_mapping:

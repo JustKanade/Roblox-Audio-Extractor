@@ -13,13 +13,44 @@ from PyQt5.QtGui import QPixmap
 
 from qfluentwidgets import (
     SettingCardGroup, SettingCard, SwitchButton, PushButton, 
-    Slider, FluentIcon, InfoBar, InfoBarPosition, 
+    Slider, FluentIcon, InfoBar, InfoBarPosition, BodyLabel,
     qconfig, ConfigItem, BoolValidator
 )
 
-from src.locale import lang
+# 尝试导入语言管理器
+try:
+    from src.locale import lang
+except ImportError:
+    lang = None
+    print("警告：无法导入语言管理器，将使用默认翻译")
 
 logger = logging.getLogger(__name__)
+
+# 默认翻译，如果lang未初始化时使用
+DEFAULT_TRANSLATIONS = {
+    "background_image_title": "Background Image",
+    "background_image_description": "Select a custom background image for the application",
+    "background_opacity_title": "Background Opacity", 
+    "background_opacity_description": "Adjust the opacity of the background image",
+    "background_blur_title": "Background Blur",
+    "background_blur_description": "Adjust the blur radius of the background image",
+    "select_image": "Select Image",
+    "clear_image": "Clear Image",
+    "no_image_selected": "No image selected",
+    "image_filter": "Image Files",
+    "image_selected": "Background image selected successfully",
+    "image_cleared": "Background image cleared successfully",
+    "image_select_failed": "Failed to select background image",
+    "success": "Success",
+    "error": "Error",
+    "blur_disabled": "Off"
+}
+
+def get_text(key, default=""):
+    """获取翻译文本，如果lang未初始化则使用默认值"""
+    if lang and hasattr(lang, 'get'):
+        return lang.get(key, default or DEFAULT_TRANSLATIONS.get(key, key))
+    return default or DEFAULT_TRANSLATIONS.get(key, key)
 
 
 class BackgroundImageCard(SettingCard):
@@ -29,40 +60,28 @@ class BackgroundImageCard(SettingCard):
     
     def __init__(self, config_manager, parent=None):
         self.config_manager = config_manager
-        self.lang_manager = lang
         
         super().__init__(
             FluentIcon.PHOTO,
-            self.get_text("background_image_title"),
-            self.get_text("background_image_description"),
+            get_text("background_image_title"),
+            get_text("background_image_description"),
             parent
         )
         
         self.current_image_path = ""
         self._setup_ui()
         self._connect_signals()
-        
-    def get_text(self, key, default=""):
-        """获取本地化文本"""
-        try:
-            return self.lang_manager.get(key, default)
-        except:
-            return default
             
     def _setup_ui(self):
         """设置UI界面"""
         # 选择图片按钮
-        self.selectButton = PushButton(self.get_text("select_image", "选择图片"))
+        self.selectButton = PushButton(get_text("select_image"))
         self.selectButton.setFixedWidth(120)
         
         # 清除图片按钮
-        self.clearButton = PushButton(self.get_text("clear_image", "清除图片"))
+        self.clearButton = PushButton(get_text("clear_image"))
         self.clearButton.setFixedWidth(120)
         self.clearButton.setEnabled(False)
-        
-        # 当前图片路径标签
-        self.pathLabel = QLabel(self.get_text("no_image_selected", "未选择图片"))
-        self.pathLabel.setStyleSheet("color: gray; font-size: 12px;")
         
         # 按钮布局
         button_layout = QHBoxLayout()
@@ -70,14 +89,8 @@ class BackgroundImageCard(SettingCard):
         button_layout.addWidget(self.clearButton)
         button_layout.addStretch()
         
-        # 主布局
-        content_layout = QVBoxLayout()
-        content_layout.addLayout(button_layout)
-        content_layout.addWidget(self.pathLabel)
-        content_layout.setSpacing(8)
-        
         content_widget = QWidget()
-        content_widget.setLayout(content_layout)
+        content_widget.setLayout(button_layout)
         
         self.hBoxLayout.addWidget(content_widget, 0, Qt.AlignRight)
         self.hBoxLayout.addSpacing(16)
@@ -105,7 +118,7 @@ class BackgroundImageCard(SettingCard):
             file_dialog = QFileDialog(self)
             file_dialog.setFileMode(QFileDialog.ExistingFile)
             file_dialog.setNameFilter(
-                self.get_text("image_filter", "图片文件") + " (*.png *.jpg *.jpeg *.bmp *.gif *.webp)"
+                get_text("image_filter") + " (*.png *.jpg *.jpeg *.bmp *.gif *.webp)"
             )
             
             # 设置默认目录
@@ -128,8 +141,8 @@ class BackgroundImageCard(SettingCard):
                     
                     # 显示成功提示
                     InfoBar.success(
-                        title=self.get_text("success", "成功"),
-                        content=self.get_text("image_selected", "背景图片已选择"),
+                        title=get_text("success"),
+                        content=get_text("image_selected"),
                         orient=Qt.Horizontal,
                         isClosable=True,
                         position=InfoBarPosition.TOP,
@@ -140,8 +153,8 @@ class BackgroundImageCard(SettingCard):
         except Exception as e:
             logger.error(f"选择背景图片失败: {e}")
             InfoBar.error(
-                title=self.get_text("error", "错误"),
-                content=self.get_text("image_select_failed", "选择背景图片失败"),
+                title=get_text("error"),
+                content=get_text("image_select_failed"),
                 orient=Qt.Horizontal,
                 isClosable=True,
                 position=InfoBarPosition.TOP,
@@ -157,8 +170,8 @@ class BackgroundImageCard(SettingCard):
             self.imageChanged.emit("")
             
             InfoBar.success(
-                title=self.get_text("success", "成功"),
-                content=self.get_text("image_cleared", "背景图片已清除"),
+                title=get_text("success"),
+                content=get_text("image_cleared"),
                 orient=Qt.Horizontal,
                 isClosable=True,
                 position=InfoBarPosition.TOP,
@@ -170,23 +183,13 @@ class BackgroundImageCard(SettingCard):
             logger.error(f"清除背景图片失败: {e}")
             
     def _update_image_path(self, path: str):
-        """更新图片路径显示"""
+        """更新图片路径状态"""
         self.current_image_path = path
         
+        # 更新清除按钮的可用状态
         if path and Path(path).exists():
-            # 显示文件名
-            file_name = Path(path).name
-            if len(file_name) > 30:
-                display_name = file_name[:27] + "..."
-            else:
-                display_name = file_name
-                
-            self.pathLabel.setText(display_name)
-            self.pathLabel.setToolTip(path)
             self.clearButton.setEnabled(True)
         else:
-            self.pathLabel.setText(self.get_text("no_image_selected", "未选择图片"))
-            self.pathLabel.setToolTip("")
             self.clearButton.setEnabled(False)
 
 
@@ -197,24 +200,16 @@ class BackgroundOpacityCard(SettingCard):
     
     def __init__(self, config_manager, parent=None):
         self.config_manager = config_manager
-        self.lang_manager = lang
         
         super().__init__(
             FluentIcon.TRANSPARENT,
-            self.get_text("background_opacity_title", "背景透明度"),
-            self.get_text("background_opacity_description", "调整背景图片的透明度"),
+            get_text("background_opacity_title"),
+            get_text("background_opacity_description"),
             parent
         )
         
         self._setup_ui()
         self._connect_signals()
-        
-    def get_text(self, key, default=""):
-        """获取本地化文本"""
-        try:
-            return self.lang_manager.get(key, default)
-        except:
-            return default
             
     def _setup_ui(self):
         """设置UI界面"""
@@ -279,174 +274,65 @@ class BackgroundOpacityCard(SettingCard):
 
 
 class BackgroundBlurCard(SettingCard):
-    """背景模糊半径设置卡片"""
+    """背景模糊设置卡片"""
     
     blurChanged = pyqtSignal(int)  # 模糊半径改变信号
     
     def __init__(self, config_manager, parent=None):
         self.config_manager = config_manager
-        self.lang_manager = lang
         
         super().__init__(
-            FluentIcon.HISTORY,
-            self.get_text("background_blur_title", "背景模糊"),
-            self.get_text("background_blur_description", "调整背景图片的模糊半径"),
+            FluentIcon.IOT,
+            get_text("background_blur_title"),
+            get_text("background_blur_description"),
             parent
         )
         
         self._setup_ui()
         self._connect_signals()
         
-    def get_text(self, key, default=""):
-        """获取本地化文本"""
-        try:
-            return self.lang_manager.get(key, default)
-        except:
-            return default
-            
     def _setup_ui(self):
         """设置UI界面"""
-        # 模糊半径滑块
-        self.blurSlider = Slider(Qt.Horizontal)
-        self.blurSlider.setRange(0, 100)
-        self.blurSlider.setValue(10)  # 默认10
-        self.blurSlider.setFixedWidth(200)
+        # 创建滑块
+        self.slider = Slider(Qt.Horizontal)
+        self.slider.setRange(0, 50)
+        self.slider.setValue(self.config_manager.get("backgroundBlurRadius", 0) if self.config_manager else 0)
+        self.slider.setFixedWidth(200)
         
-        # 模糊值标签
-        self.valueLabel = QLabel("10")
-        self.valueLabel.setFixedWidth(40)
-        self.valueLabel.setAlignment(Qt.AlignCenter)
+        # 数值标签
+        self.valueLabel = BodyLabel()
+        self._update_value_label(self.slider.value())
+        self.valueLabel.setFixedWidth(60)
         
         # 布局
-        slider_layout = QHBoxLayout()
-        slider_layout.addWidget(self.blurSlider)
-        slider_layout.addWidget(self.valueLabel)
-        slider_layout.addStretch()
+        content_widget = QWidget()
+        layout = QHBoxLayout(content_widget)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(10)
+        layout.addWidget(self.slider)
+        layout.addWidget(self.valueLabel)
+        layout.addStretch()
         
-        slider_widget = QWidget()
-        slider_widget.setLayout(slider_layout)
-        
-        self.hBoxLayout.addWidget(slider_widget, 0, Qt.AlignRight)
+        self.hBoxLayout.addWidget(content_widget, 0, Qt.AlignRight)
         self.hBoxLayout.addSpacing(16)
-        
-        # 加载当前设置
-        self._load_current_setting()
         
     def _connect_signals(self):
         """连接信号槽"""
-        self.blurSlider.valueChanged.connect(self._on_blur_changed)
+        self.slider.valueChanged.connect(self._on_value_changed)
         
-    def _load_current_setting(self):
-        """加载当前设置"""
-        try:
-            blur_radius = self.config_manager.get("backgroundBlurRadius", 10)
-            self.blurSlider.setValue(blur_radius)
-            self._update_value_label(blur_radius)
-        except Exception as e:
-            logger.error(f"加载背景模糊设置失败: {e}")
-            
-    def _on_blur_changed(self, value):
-        """模糊半径改变处理"""
-        try:
-            self._update_value_label(value)
-            
-            # 保存到配置
+    def _on_value_changed(self, value):
+        """值改变时的处理"""
+        self._update_value_label(value)
+        if self.config_manager:
             self.config_manager.set("backgroundBlurRadius", value)
-            
-            # 发送信号
-            self.blurChanged.emit(value)
-            
-        except Exception as e:
-            logger.error(f"更新背景模糊设置失败: {e}")
-            
+        self.blurChanged.emit(value)
+        
     def _update_value_label(self, value):
-        """更新值标签"""
-        self.valueLabel.setText(str(value))
+        """更新数值标签"""
+        if value == 0:
+            self.valueLabel.setText(get_text("blur_disabled", "Opx"))
+        else:
+            self.valueLabel.setText(f"{value}px")
 
 
-class ComponentOpacityCard(SettingCard):
-    """组件透明度设置卡片"""
-    
-    componentOpacityChanged = pyqtSignal(float)  # 组件透明度改变信号
-    
-    def __init__(self, config_manager, parent=None):
-        self.config_manager = config_manager
-        self.lang_manager = lang
-        
-        super().__init__(
-            FluentIcon.SETTING,
-            self.get_text("component_opacity_title", "组件透明度"),
-            self.get_text("component_opacity_description", "调整界面组件的透明度"),
-            parent
-        )
-        
-        self._setup_ui()
-        self._connect_signals()
-        
-    def get_text(self, key, default=""):
-        """获取本地化文本"""
-        try:
-            return self.lang_manager.get(key, default)
-        except:
-            return default
-            
-    def _setup_ui(self):
-        """设置UI界面"""
-        # 透明度滑块
-        self.opacitySlider = Slider(Qt.Horizontal)
-        self.opacitySlider.setRange(30, 100)  # 30%-100%
-        self.opacitySlider.setValue(90)  # 默认90%
-        self.opacitySlider.setFixedWidth(200)
-        
-        # 透明度值标签
-        self.valueLabel = QLabel("90%")
-        self.valueLabel.setFixedWidth(40)
-        self.valueLabel.setAlignment(Qt.AlignCenter)
-        
-        # 布局
-        slider_layout = QHBoxLayout()
-        slider_layout.addWidget(self.opacitySlider)
-        slider_layout.addWidget(self.valueLabel)
-        slider_layout.addStretch()
-        
-        slider_widget = QWidget()
-        slider_widget.setLayout(slider_layout)
-        
-        self.hBoxLayout.addWidget(slider_widget, 0, Qt.AlignRight)
-        self.hBoxLayout.addSpacing(16)
-        
-        # 加载当前设置
-        self._load_current_setting()
-        
-    def _connect_signals(self):
-        """连接信号槽"""
-        self.opacitySlider.valueChanged.connect(self._on_opacity_changed)
-        
-    def _load_current_setting(self):
-        """加载当前设置"""
-        try:
-            opacity = self.config_manager.get("componentOpacity", 0.9)
-            slider_value = int(opacity * 100)
-            self.opacitySlider.setValue(slider_value)
-            self._update_value_label(slider_value)
-        except Exception as e:
-            logger.error(f"加载组件透明度设置失败: {e}")
-            
-    def _on_opacity_changed(self, value):
-        """透明度改变处理"""
-        try:
-            opacity = value / 100.0
-            self._update_value_label(value)
-            
-            # 保存到配置
-            self.config_manager.set("componentOpacity", opacity)
-            
-            # 发送信号
-            self.componentOpacityChanged.emit(opacity)
-            
-        except Exception as e:
-            logger.error(f"更新组件透明度失败: {e}")
-            
-    def _update_value_label(self, value):
-        """更新值标签"""
-        self.valueLabel.setText(f"{value}%") 
+ 
