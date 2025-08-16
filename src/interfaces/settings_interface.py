@@ -469,7 +469,7 @@ class SettingsInterface(QWidget, InterfaceThemeMixin):
         
         # 自定义主题颜色卡片
         if CustomThemeColorCard is not None:
-            self.themeColorCard = CustomThemeColorCard(self.config_manager)
+            self.themeColorCard = CustomThemeColorCard(self.config_manager, lang=self.lang)
             group.addSettingCard(self.themeColorCard)
         
         # 亚克力效果设置 - 使用标准的 SwitchSettingCard
@@ -526,21 +526,21 @@ class SettingsInterface(QWidget, InterfaceThemeMixin):
         
         # 背景图片选择
         if BackgroundImageCard is not None:
-            background_image_card = BackgroundImageCard(self.config_manager)
+            background_image_card = BackgroundImageCard(self.config_manager, lang=self.lang)
             background_image_card.imageChanged.connect(self.onBackgroundImageChanged)
             group.addSettingCard(background_image_card)
             self.backgroundImageCard = background_image_card
         
         # 背景透明度
         if BackgroundOpacityCard is not None:
-            background_opacity_card = BackgroundOpacityCard(self.config_manager)
+            background_opacity_card = BackgroundOpacityCard(self.config_manager, lang=self.lang)
             background_opacity_card.opacityChanged.connect(self.onBackgroundOpacityChanged)
             group.addSettingCard(background_opacity_card)
             self.backgroundOpacityCard = background_opacity_card
         
         # 背景模糊
         if BackgroundBlurCard is not None:
-            background_blur_card = BackgroundBlurCard(self.config_manager)
+            background_blur_card = BackgroundBlurCard(self.config_manager, lang=self.lang)
             background_blur_card.blurChanged.connect(self.onBackgroundBlurChanged)
             group.addSettingCard(background_blur_card)
             self.backgroundBlurCard = background_blur_card

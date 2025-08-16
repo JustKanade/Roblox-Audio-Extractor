@@ -481,8 +481,11 @@ class RobloxAudioExtractor:
         # 根据分类方法选择要使用的类别
         if self.classification_method == ClassificationMethod.DURATION:
             categories = self.duration_categories
-        else:
+        elif self.classification_method == ClassificationMethod.SIZE:
             categories = self.size_categories
+        else:
+            # NONE 分类 - 不创建子分类目录
+            categories = {}
 
         for category in categories:
             path = os.path.join(self.audio_dir, category)
@@ -1177,16 +1180,19 @@ class RobloxAudioExtractor:
             with open(temp_path, 'wb', buffering=1024 * 8) as f:
                 f.write(content)
 
-            # 确定分类类别
+            # 确定分类类别和输出目录
             if self.classification_method == ClassificationMethod.DURATION:
                 # 按时长分类
                 category = self._get_duration_category(temp_path)
-            else:
+                output_dir = self.category_dirs[category]
+            elif self.classification_method == ClassificationMethod.SIZE:
                 # 按大小分类
                 file_size = len(content)
                 category = self._get_size_category(file_size)
-
-            output_dir = self.category_dirs[category]
+                output_dir = self.category_dirs[category]
+            else:
+                # 无分类 - 直接输出到音频根目录
+                output_dir = self.audio_dir
 
             # 生成最终文件名 - 只使用原始文件名和时间戳
             output_name = f"{base_name}.ogg"
